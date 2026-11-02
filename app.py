@@ -1,5 +1,6 @@
 """Screens for O Arquivo Proibido. Rules are in logic.py, storage in db.py."""
 
+import base64
 import os
 from pathlib import Path
 
@@ -15,13 +16,23 @@ from logic import (
     decision_labels,
     is_finished,
     new_game,
+    scene_hotspots,
     scene_image,
     scene_text,
 )
 
 # Tests point this at a temporary file so they never touch the real save
 DB_PATH = os.environ.get("PLOT_TWIST_DB", DEFAULT_DB_PATH)
-ART_DIR = Path(__file__).parent / "assets" / "scenes"
+ASSETS_DIR = Path(__file__).parent / "assets"
+ART_DIR = ASSETS_DIR / "scenes"
+COMPONENT_DIR = Path(__file__).parent / "components"
+
+# Clickable scene picture (JavaScript in components/). A click sends back the chosen action.
+scene_view = st.components.v2.component(
+    "scene_view",
+    css=(COMPONENT_DIR / "scene_view.css").read_text(encoding="utf-8"),
+    js=(COMPONENT_DIR / "scene_view.js").read_text(encoding="utf-8"),
+)
 
 st.set_page_config(page_title="O Arquivo Proibido", page_icon="🗄️")
 
@@ -29,6 +40,8 @@ if "game" not in st.session_state:
     st.session_state.game = None
     st.session_state.message = None
     st.session_state.confirm_restart = False
+    # Where the character stands on screen. Only for display: not saved, not game progress.
+    st.session_state.character = None
 
 
 def start_new_game():
@@ -62,6 +75,40 @@ def choose(action_id):
         save_game(DB_PATH, game)
         st.session_state.game = game
     st.session_state.message = (accepted, message)
+
+
+def character_x(game):
+    """The character keeps its spot inside a scene and starts at the scene's start in a new one."""
+    character = st.session_state.character
+    if character and character["scene"] == game["scene"]:
+        return character["x"]
+    return SCENES[game["scene"]]["walk"]["start"]
+
+
+def svg_data_uri(path):
+    return "data:image/svg+xml;base64," + base64.b64encode(path.read_bytes()).decode("ascii")
+
+
+def show_scene_picture(game):
+    """Endings: plain illustration. Playable scenes: the clickable scene."""
+    if is_finished(game):
+        st.image(str(ART_DIR / scene_image(game)), width="stretch")
+        return
+
+    data = {
+        "background": svg_data_uri(ART_DIR / scene_image(game)),
+        "character": (ASSETS_DIR / "character.svg").read_text(encoding="utf-8"),
+        "walk": SCENES[game["scene"]]["walk"],
+        "x": character_x(game),
+        "spots": scene_hotspots(game),
+    }
+    result = scene_view(data=data, key="scene_view", on_action_change=lambda: None)
+    if result.action:
+        # Same path as a button: the rules in logic.py decide
+        st.session_state.character = {"scene": game["scene"], "x": result.action["x"]}
+        choose(result.action["id"])
+        st.rerun()
+    st.caption("Clica na imagem para andar. Os pontos amarelos e as setas são sítios onde podes agir.")
 
 
 def play_again():
@@ -107,7 +154,7 @@ def show_game_screen():
         st.divider()
         st.button("Voltar ao menu", key="voltar_menu", on_click=back_to_menu)
 
-    st.image(str(ART_DIR / scene_image(game)), width="stretch")
+    show_scene_picture(game)
     st.title(scene["title"])
     st.write(scene_text(game))
 

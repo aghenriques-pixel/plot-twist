@@ -17,6 +17,8 @@ SCENES = {
     "ministerio": {
         "title": "Ministério da Verdade",
         "image": "ministerio.svg",
+        # Where the character walks in the 800x400 picture (clickable scenes)
+        "walk": {"start": 380, "floor": 360, "scale": 1.05, "min": 30, "max": 740},
         "text": (
             "Os teletelas zumbem por cima das secretárias. O teu trabalho é corrigir "
             "jornais antigos para que digam o que o Partido quer. Na secretária do teu "
@@ -37,6 +39,8 @@ SCENES = {
     "arquivo": {
         "title": "Arquivo secreto",
         "image": "arquivo.svg",
+        # Where the character walks in the 800x400 picture (clickable scenes)
+        "walk": {"start": 520, "floor": 368, "scale": 1.0, "min": 30, "max": 760},
         "text": (
             "Estantes até ao teto, caixas com carimbos vermelhos. Aqui estão as versões "
             "originais de tudo o que foi reescrito. Numa pasta aberta está um relatório "
@@ -56,6 +60,8 @@ SCENES = {
     "apartamento": {
         "title": "Apartamento",
         "image": "apartamento.svg",
+        # Where the character walks in the 800x400 picture (clickable scenes)
+        "walk": {"start": 450, "floor": 360, "scale": 1.05, "min": 30, "max": 580},
         "text": (
             "O teu apartamento pequeno, com um teletela que nunca se desliga. Alguém "
             "bate à porta: é o Tomás, o teu colega da secretária ao lado. Fala baixo: "
@@ -65,6 +71,8 @@ SCENES = {
     "vigilancia": {
         "title": "Estação de vigilância",
         "image": "vigilancia.svg",
+        # Where the character walks in the 800x400 picture (clickable scenes)
+        "walk": {"start": 470, "floor": 375, "scale": 1.0, "min": 300, "max": 740},
         "text": (
             "A sala de onde se vigia o bairro inteiro. Dezenas de ecrãs, um guarda "
             "sonolento e, ao fundo, uma grelha no chão que dá para os túneis antigos."
@@ -73,6 +81,8 @@ SCENES = {
     "tunel": {
         "title": "Túnel de fuga",
         "image": "tunel.svg",
+        # Where the character walks in the 800x400 picture (clickable scenes)
+        "walk": {"start": 220, "floor": 395, "scale": 1.1, "min": 120, "max": 600},
         "text": (
             "Escuro, húmido, cheio de ecos. Uma lanterna acende-se mais à frente: "
             "alguém da resistência está à tua espera, de mão estendida."
@@ -108,14 +118,17 @@ SCENES = {
 # - decides: (decision, value) stored when accepted (only offered while undecided)
 # - only_if: (decision, value) the action is hidden unless that decision was made
 # - goes_to: scene the player moves to
+# - hotspot: clickable spot in the scene picture; the character walks to x = stand first
 ACTIONS = {
     "apanhar_cartao": {
+        "hotspot": {"x": 515, "y": 232, "w": 140, "h": 58, "stand": 470},
         "scene": "ministerio",
         "label": "Apanhar cartão de acesso",
         "gives": "cartao_acesso",
         "message": "Guardas o cartão de acesso no bolso. Ninguém reparou.",
     },
     "ir_arquivo": {
+        "hotspot": {"x": 690, "y": 150, "w": 80, "h": 140, "stand": 730},
         "scene": "ministerio",
         "label": "Ir ao Arquivo secreto",
         "requires": "cartao_acesso",
@@ -124,18 +137,21 @@ ACTIONS = {
         "message": "Passas o cartão no leitor. A luz fica verde e a porta abre-se.",
     },
     "ir_apartamento": {
+        "hotspot": {"x": 0, "y": 120, "w": 45, "h": 240, "stand": 30, "edge": "left"},
         "scene": "ministerio",
         "label": "Ir para casa",
         "goes_to": "apartamento",
         "message": "Sais do Ministério sem olhar para trás.",
     },
     "apanhar_documento": {
+        "hotspot": {"x": 330, "y": 270, "w": 110, "h": 55, "stand": 470},
         "scene": "arquivo",
         "label": "Apanhar documento proibido",
         "gives": "documento_proibido",
         "message": "Escondes o relatório debaixo do casaco. O coração bate depressa.",
     },
     "voltar_ministerio": {
+        "hotspot": {"x": 0, "y": 120, "w": 45, "h": 240, "stand": 30, "edge": "left"},
         "scene": "arquivo",
         "label": "Voltar ao Ministério",
         "goes_to": "ministerio",
@@ -158,12 +174,14 @@ ACTIONS = {
         "message": "Dizes ao Tomás que não sabes de nada. Ele vai-se embora. Vais investigar sozinho.",
     },
     "regressar_ministerio": {
+        "hotspot": {"x": 0, "y": 260, "w": 45, "h": 120, "stand": 30, "edge": "left"},
         "scene": "apartamento",
         "label": "Voltar ao Ministério",
         "goes_to": "ministerio",
         "message": "Voltas ao trabalho como se nada fosse.",
     },
     "ir_vigilancia": {
+        "hotspot": {"x": 590, "y": 110, "w": 110, "h": 220, "stand": 560},
         "scene": "apartamento",
         "label": "Ir à Estação de vigilância",
         "needs_decision": "colega",
@@ -172,6 +190,7 @@ ACTIONS = {
         "message": "Atravessas o bairro às escuras até à Estação de vigilância.",
     },
     "ir_tunel": {
+        "hotspot": {"x": 600, "y": 335, "w": 160, "h": 55, "stand": 680},
         "scene": "vigilancia",
         "label": "Seguir o Tomás para o túnel",
         "only_if": ("colega", "confiou"),
@@ -179,6 +198,7 @@ ACTIONS = {
         "message": "O Tomás distrai o guarda e desliga as câmaras. Desces pela grelha.",
     },
     "tentar_sozinho": {
+        "hotspot": {"x": 600, "y": 335, "w": 160, "h": 55, "stand": 680},
         "scene": "vigilancia",
         "label": "Tentar passar sozinho",
         "only_if": ("colega", "escondeu"),
@@ -186,6 +206,7 @@ ACTIONS = {
         "message": "Avanças devagar, encostado à parede...",
     },
     "entregar_documentos": {
+        "hotspot": {"x": 385, "y": 235, "w": 90, "h": 110, "stand": 330},
         "scene": "tunel",
         "label": "Entregar os documentos à resistência",
         "requires": "documento_proibido",
@@ -222,6 +243,16 @@ def scene_image(state):
         if item in state["inventory"]:
             return image
     return scene["image"]
+
+
+def scene_hotspots(state):
+    """Clickable spots for the actions available right now (none at an ending)."""
+    spots = []
+    for action_id in available_actions(state):
+        action = ACTIONS[action_id]
+        if "hotspot" in action:
+            spots.append({"action": action_id, "label": action["label"], **action["hotspot"]})
+    return spots
 
 
 def decision_labels(state):
