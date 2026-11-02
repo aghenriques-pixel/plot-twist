@@ -16,6 +16,7 @@ DECISION_LABELS = {
 SCENES = {
     "ministerio": {
         "title": "Ministério da Verdade",
+        "image": "ministerio.svg",
         "text": (
             "Os teletelas zumbem por cima das secretárias. O teu trabalho é corrigir "
             "jornais antigos para que digam o que o Partido quer. Na secretária do teu "
@@ -23,6 +24,8 @@ SCENES = {
             "Ao fundo do corredor há uma porta sem placa: o Arquivo secreto."
         ),
         # Text shown instead once the player has the item (PT R3)
+        # Picture shown instead once the player has the item (PT R3)
+        "image_after": {"cartao_acesso": "ministerio_sem_cartao.svg"},
         "text_after": {
             "cartao_acesso": (
                 "Os teletelas zumbem por cima das secretárias. A secretária do teu chefe "
@@ -33,12 +36,15 @@ SCENES = {
     },
     "arquivo": {
         "title": "Arquivo secreto",
+        "image": "arquivo.svg",
         "text": (
             "Estantes até ao teto, caixas com carimbos vermelhos. Aqui estão as versões "
             "originais de tudo o que foi reescrito. Numa pasta aberta está um relatório "
             "com a tua própria assinatura, sobre uma guerra que nunca aconteceu. "
             "Ouves passos ao longe."
         ),
+        # Picture shown instead once the player has the item (PT R3)
+        "image_after": {"documento_proibido": "arquivo_sem_documento.svg"},
         "text_after": {
             "documento_proibido": (
                 "Estantes até ao teto, caixas com carimbos vermelhos. A pasta onde estava "
@@ -49,6 +55,7 @@ SCENES = {
     },
     "apartamento": {
         "title": "Apartamento",
+        "image": "apartamento.svg",
         "text": (
             "O teu apartamento pequeno, com um teletela que nunca se desliga. Alguém "
             "bate à porta: é o Tomás, o teu colega da secretária ao lado. Fala baixo: "
@@ -57,6 +64,7 @@ SCENES = {
     },
     "vigilancia": {
         "title": "Estação de vigilância",
+        "image": "vigilancia.svg",
         "text": (
             "A sala de onde se vigia o bairro inteiro. Dezenas de ecrãs, um guarda "
             "sonolento e, ao fundo, uma grelha no chão que dá para os túneis antigos."
@@ -64,6 +72,7 @@ SCENES = {
     },
     "tunel": {
         "title": "Túnel de fuga",
+        "image": "tunel.svg",
         "text": (
             "Escuro, húmido, cheio de ecos. Uma lanterna acende-se mais à frente: "
             "alguém da resistência está à tua espera, de mão estendida."
@@ -71,6 +80,7 @@ SCENES = {
     },
     "final_resistencia": {
         "title": "Final 1 — A verdade escapa",
+        "image": "final_resistencia.svg",
         "text": (
             "Entregas o documento. Antes do amanhecer, cópias do relatório circulam por "
             "toda a cidade. O Ministério vai negar tudo, mas desta vez há provas. "
@@ -80,6 +90,7 @@ SCENES = {
     },
     "final_descoberto": {
         "title": "Final 2 — Descoberto",
+        "image": "final_descoberto.svg",
         "text": (
             "Sozinho, tentas passar pela grelha. Um dos ecrãs mostra a tua cara. "
             "O alarme dispara e o guarda já não está sonolento. O documento é apreendido "
@@ -202,6 +213,15 @@ def scene_text(state):
         if item in state["inventory"]:
             return text
     return scene["text"]
+
+
+def scene_image(state):
+    """File name in assets/scenes/ for the current scene, updated like scene_text."""
+    scene = SCENES[state["scene"]]
+    for item, image in scene.get("image_after", {}).items():
+        if item in state["inventory"]:
+            return image
+    return scene["image"]
 
 
 def decision_labels(state):

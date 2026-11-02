@@ -1,6 +1,7 @@
 """Screens for O Arquivo Proibido. Rules are in logic.py, storage in db.py."""
 
 import os
+from pathlib import Path
 
 import streamlit as st
 
@@ -14,11 +15,13 @@ from logic import (
     decision_labels,
     is_finished,
     new_game,
+    scene_image,
     scene_text,
 )
 
 # Tests point this at a temporary file so they never touch the real save
 DB_PATH = os.environ.get("PLOT_TWIST_DB", DEFAULT_DB_PATH)
+ART_DIR = Path(__file__).parent / "assets" / "scenes"
 
 st.set_page_config(page_title="O Arquivo Proibido", page_icon="🗄️")
 
@@ -104,6 +107,7 @@ def show_game_screen():
         st.divider()
         st.button("Voltar ao menu", key="voltar_menu", on_click=back_to_menu)
 
+    st.image(str(ART_DIR / scene_image(game)), width="stretch")
     st.title(scene["title"])
     st.write(scene_text(game))
 
