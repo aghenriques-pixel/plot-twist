@@ -5,6 +5,8 @@ Assumed interface in logic.py:
 - ACTIONS[action_id]["hotspot"] (optional): {"x", "y", "w", "h", "stand"}
 - scene_hotspots(state) -> list of {"action", "label", "x", "y", "w", "h", "stand", ...}
   for the currently available actions that have a hotspot
+- SCENES[scene_id]["talks"] (optional): {name: {"x", "y", "w", "h", "stand", "label", "line"}}
+  a talk spot groups the available actions with "talk": name into "options"
 """
 
 import xml.etree.ElementTree as ET
@@ -14,8 +16,12 @@ from logic import ACTIONS, SCENES, apply_action, is_finished, new_game, scene_ho
 
 ASSETS = Path(__file__).parent.parent / "assets"
 TO_APARTMENT_WITH_DOCUMENT = ["apanhar_cartao", "ir_arquivo", "apanhar_documento", "voltar_ministerio", "ir_apartamento"]
-FINAL_1_PATH = TO_APARTMENT_WITH_DOCUMENT + ["confiar_colega", "ir_vigilancia", "ir_tunel", "entregar_documentos"]
+FINAL_1_PATH = (
+    ["apanhar_cartao", "ir_arquivo", "apanhar_documento", "apanhar_ficha", "voltar_ministerio", "ir_apartamento"]
+    + ["confrontar_colega", "ir_vigilancia", "ir_tunel", "entregar_documentos"]
+)
 FINAL_2_PATH = TO_APARTMENT_WITH_DOCUMENT + ["esconder_descoberta", "ir_vigilancia", "tentar_sozinho"]
+FINAL_3_PATH = TO_APARTMENT_WITH_DOCUMENT + ["confiar_colega", "ir_vigilancia", "seguir_tomas"]
 
 
 def play(actions):
@@ -27,7 +33,11 @@ def play(actions):
 
 
 def spot_ids(state):
-    return [spot["action"] for spot in scene_hotspots(state)]
+    return [spot["action"] for spot in scene_hotspots(state) if "talk" not in spot]
+
+
+def talk_options(state):
+    return [option["action"] for spot in scene_hotspots(state) if "talk" in spot for option in spot["options"]]
 
 
 def overlaps(a, b):
@@ -54,19 +64,37 @@ def test_spots_carry_the_action_label():
 # Done when 2
 def test_grate_follows_the_decision():
     assert spot_ids(play(TO_APARTMENT_WITH_DOCUMENT + ["esconder_descoberta", "ir_vigilancia"])) == ["tentar_sozinho"]
-    assert spot_ids(play(TO_APARTMENT_WITH_DOCUMENT + ["confiar_colega", "ir_vigilancia"])) == ["ir_tunel"]
+    # Trusting without the file leads to the trap; confronting leads to the tunnel (specs/tomas-twist.md)
+    assert spot_ids(play(TO_APARTMENT_WITH_DOCUMENT + ["confiar_colega", "ir_vigilancia"])) == ["seguir_tomas"]
+    assert spot_ids(play(FINAL_1_PATH[:-2])) == ["ir_tunel"]
 
 
-def test_decision_has_no_spot():
+# Replaces test_decision_has_no_spot: Tomás is now a talk spot (specs/tomas-twist.md)
+def test_tomas_is_a_talk_spot_with_the_decision_options():
     state = play(TO_APARTMENT_WITH_DOCUMENT)
 
+    talks = [spot for spot in scene_hotspots(state) if "talk" in spot]
+    assert len(talks) == 1
+    assert talks[0]["line"] != ""
+    assert talk_options(state) == ["confiar_colega", "esconder_descoberta"]
     assert "confiar_colega" not in spot_ids(state)
-    assert "esconder_descoberta" not in spot_ids(state)
+
+
+def test_confronting_is_a_talk_option_only_with_the_file():
+    state = play(FINAL_1_PATH[:6])
+
+    assert talk_options(state) == ["confiar_colega", "esconder_descoberta", "confrontar_colega"]
+
+
+def test_tomas_is_gone_after_deciding():
+    state = play(TO_APARTMENT_WITH_DOCUMENT + ["esconder_descoberta"])
+
+    assert talk_options(state) == []
 
 
 # Done when 3
 def test_no_spots_at_endings():
-    for path in (FINAL_1_PATH, FINAL_2_PATH):
+    for path in (FINAL_1_PATH, FINAL_2_PATH, FINAL_3_PATH):
         state = play(path)
         assert is_finished(state)
         assert scene_hotspots(state) == []
@@ -82,10 +110,15 @@ def test_every_hotspot_fits_the_picture_and_the_walk_range():
         assert 0 <= spot["x"] and spot["x"] + spot["w"] <= 800, action_id
         assert 0 <= spot["y"] and spot["y"] + spot["h"] <= 400, action_id
         assert walk["min"] <= spot["stand"] <= walk["max"], action_id
+    for scene_id, scene in SCENES.items():
+        for name, spot in scene.get("talks", {}).items():
+            assert 0 <= spot["x"] and spot["x"] + spot["w"] <= 800, name
+            assert 0 <= spot["y"] and spot["y"] + spot["h"] <= 400, name
+            assert scene["walk"]["min"] <= spot["stand"] <= scene["walk"]["max"], name
 
 
 def test_spots_offered_together_never_overlap():
-    for path in (FINAL_1_PATH, FINAL_2_PATH):
+    for path in (FINAL_1_PATH, FINAL_2_PATH, FINAL_3_PATH):
         state = new_game()
         for action_id in [None] + path:
             if action_id:
@@ -93,7 +126,7 @@ def test_spots_offered_together_never_overlap():
             spots = scene_hotspots(state)
             for i, a in enumerate(spots):
                 for b in spots[i + 1 :]:
-                    assert not overlaps(a, b), f"{a['action']} overlaps {b['action']} in {state['scene']}"
+                    assert not overlaps(a, b), f"{a['label']} overlaps {b['label']} in {state['scene']}"
 
 
 # Done when 5

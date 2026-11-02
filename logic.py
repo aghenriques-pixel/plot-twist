@@ -5,12 +5,20 @@ START_SCENE = "ministerio"
 ITEMS = {
     "cartao_acesso": "Cartão de acesso",
     "documento_proibido": "Documento proibido",
+    "ficha_tomas": "Ficha do Tomás",
+}
+
+ITEM_ICONS = {
+    "cartao_acesso": "🪪",
+    "documento_proibido": "📄",
+    "ficha_tomas": "🗂️",
 }
 
 # Shown in the inventory panel once a decision is made
 DECISION_LABELS = {
     ("colega", "confiou"): "Confiaste no Tomás",
     ("colega", "escondeu"): "Escondeste a descoberta",
+    ("colega", "confrontou"): "Confrontaste o Tomás",
 }
 
 SCENES = {
@@ -25,8 +33,7 @@ SCENES = {
             "chefe, meio escondido debaixo de um dossiê, brilha um cartão de acesso. "
             "Ao fundo do corredor há uma porta sem placa: o Arquivo secreto."
         ),
-        # Text shown instead once the player has the item (PT R3)
-        # Picture shown instead once the player has the item (PT R3)
+        # Picture and text shown instead once the player has the item (PT R3)
         "image_after": {"cartao_acesso": "ministerio_sem_cartao.svg"},
         "text_after": {
             "cartao_acesso": (
@@ -40,20 +47,34 @@ SCENES = {
         "title": "Arquivo secreto",
         "image": "arquivo.svg",
         # Where the character walks in the 800x400 picture (clickable scenes)
-        "walk": {"start": 520, "floor": 368, "scale": 1.0, "min": 30, "max": 760},
+        "walk": {"start": 260, "floor": 368, "scale": 1.0, "min": 30, "max": 760},
         "text": (
             "Estantes até ao teto, caixas com carimbos vermelhos. Aqui estão as versões "
             "originais de tudo o que foi reescrito. Numa pasta aberta está um relatório "
-            "com a tua própria assinatura, sobre uma guerra que nunca aconteceu. "
-            "Ouves passos ao longe."
+            "com a tua própria assinatura, sobre uma guerra que nunca aconteceu. Num "
+            "armário de metal, uma gaveta entreaberta tem uma etiqueta: TOMÁS."
         ),
-        # Picture shown instead once the player has the item (PT R3)
-        "image_after": {"documento_proibido": "arquivo_sem_documento.svg"},
+        # A tuple key needs all its items; the first match wins, so the tuple comes first
+        "image_after": {
+            ("documento_proibido", "ficha_tomas"): "arquivo_vazio.svg",
+            "documento_proibido": "arquivo_sem_documento.svg",
+            "ficha_tomas": "arquivo_sem_ficha.svg",
+        },
         "text_after": {
+            ("documento_proibido", "ficha_tomas"): (
+                "Estantes até ao teto, caixas com carimbos vermelhos. A pasta está vazia e "
+                "a gaveta do Tomás fechada. Tens tudo o que vieste buscar. Os passos estão "
+                "quase a chegar."
+            ),
             "documento_proibido": (
                 "Estantes até ao teto, caixas com carimbos vermelhos. A pasta onde estava "
-                "o relatório está vazia: o documento está agora debaixo do teu casaco. "
-                "Os passos aproximam-se."
+                "o relatório está vazia: o documento está agora debaixo do teu casaco. A "
+                "gaveta com a etiqueta TOMÁS continua entreaberta. Os passos aproximam-se."
+            ),
+            "ficha_tomas": (
+                "Estantes até ao teto, caixas com carimbos vermelhos. Fechaste a gaveta do "
+                "Tomás, mas não consegues esquecer o que leste. O relatório com a tua "
+                "assinatura continua na pasta aberta."
             ),
         },
     },
@@ -61,12 +82,29 @@ SCENES = {
         "title": "Apartamento",
         "image": "apartamento.svg",
         # Where the character walks in the 800x400 picture (clickable scenes)
-        "walk": {"start": 450, "floor": 360, "scale": 1.05, "min": 30, "max": 580},
+        "walk": {"start": 330, "floor": 360, "scale": 1.05, "min": 30, "max": 720},
         "text": (
             "O teu apartamento pequeno, com um teletela que nunca se desliga. Alguém "
-            "bate à porta: é o Tomás, o teu colega da secretária ao lado. Fala baixo: "
-            "diz que pertence à resistência e que sabe que andas a fazer perguntas."
+            "bate à porta: é o Tomás, o teu colega da secretária ao lado. Entra sem "
+            "esperar. Fala baixo: diz que pertence à resistência e que sabe que andas "
+            "a fazer perguntas."
         ),
+        # After any decision about Tomás he leaves (keyed by decision name)
+        "image_after_decision": {"colega": "apartamento_sem_tomas.svg"},
+        "text_after_decision": {
+            "colega": (
+                "O Tomás já saiu. Ficaste sozinho com o zumbido do teletela e com a "
+                "decisão que tomaste. Lá fora, a noite está a cair."
+            ),
+        },
+        # Clickable characters: their actions are the ones with "talk": name
+        "talks": {
+            "tomas": {
+                "x": 540, "y": 170, "w": 70, "h": 175, "stand": 470,
+                "label": "Falar com o Tomás",
+                "line": "«Sei que andas a fazer perguntas. Eu sou da resistência. Mostra-me o que encontraste.»",
+            },
+        },
     },
     "vigilancia": {
         "title": "Estação de vigilância",
@@ -94,7 +132,7 @@ SCENES = {
         "text": (
             "Entregas o documento. Antes do amanhecer, cópias do relatório circulam por "
             "toda a cidade. O Ministério vai negar tudo, mas desta vez há provas. "
-            "Tu e o Tomás desaparecem pelos túneis."
+            "Tu e o Tomás, finalmente do mesmo lado, desaparecem pelos túneis."
         ),
         "ending": True,
     },
@@ -108,6 +146,16 @@ SCENES = {
         ),
         "ending": True,
     },
+    "final_traido": {
+        "title": "Final 3 — Traído",
+        "image": "final_traido.svg",
+        "text": (
+            "O Tomás abre a grelha... e acende as luzes. Os guardas já estavam à tua "
+            "espera. Um oficial entrega-lhe um envelope; ele não olha para ti. Na gaveta "
+            "do Arquivo estava escrito: Informador nº 47. Se ao menos a tivesses aberto."
+        ),
+        "ending": True,
+    },
 }
 
 # Each action belongs to one scene. Optional keys:
@@ -117,6 +165,9 @@ SCENES = {
 # - blocked_message: shown when `requires` or `needs_decision` is not met
 # - decides: (decision, value) stored when accepted (only offered while undecided)
 # - only_if: (decision, value) the action is hidden unless that decision was made
+# - only_with: item; the action is hidden unless the player has it
+# - talk: name of a clickable character in SCENES[scene]["talks"]; the action is one of its options
+# - say: what the player says when this is chosen in a conversation
 # - goes_to: scene the player moves to
 # - hotspot: clickable spot in the scene picture; the character walks to x = stand first
 ACTIONS = {
@@ -150,6 +201,16 @@ ACTIONS = {
         "gives": "documento_proibido",
         "message": "Escondes o relatório debaixo do casaco. O coração bate depressa.",
     },
+    "apanhar_ficha": {
+        "hotspot": {"x": 508, "y": 250, "w": 74, "h": 95, "stand": 560},
+        "scene": "arquivo",
+        "label": "Ler a ficha do Tomás",
+        "gives": "ficha_tomas",
+        "message": (
+            "Abres a gaveta. Uma ficha com a fotografia do Tomás: «Informador nº 47. "
+            "Missão: ganhar a confiança dos curiosos.» Guardas a ficha. As mãos tremem-te."
+        ),
+    },
     "voltar_ministerio": {
         "hotspot": {"x": 0, "y": 120, "w": 45, "h": 240, "stand": 30, "edge": "left"},
         "scene": "arquivo",
@@ -159,19 +220,37 @@ ACTIONS = {
     },
     "confiar_colega": {
         "scene": "apartamento",
+        "talk": "tomas",
+        "say": "«Está bem, confio em ti. Olha o que encontrei.»",
         "label": "Confiar no Tomás",
         "requires": "documento_proibido",
         "blocked_message": "Não tens provas para mostrar. Precisas primeiro do documento do Arquivo.",
         "decides": ("colega", "confiou"),
-        "message": "Mostras-lhe o documento. O Tomás sorri: \"Esta noite, na Estação de vigilância.\"",
+        "message": "Mostras-lhe o documento. O Tomás sorri: \"Esta noite, na Estação de vigilância.\" E sai.",
     },
     "esconder_descoberta": {
         "scene": "apartamento",
+        "talk": "tomas",
+        "say": "«Não sei do que estás a falar, Tomás.»",
         "label": "Esconder a descoberta",
         "requires": "documento_proibido",
         "blocked_message": "Não há nada para esconder. Precisas primeiro do documento do Arquivo.",
         "decides": ("colega", "escondeu"),
         "message": "Dizes ao Tomás que não sabes de nada. Ele vai-se embora. Vais investigar sozinho.",
+    },
+    "confrontar_colega": {
+        "scene": "apartamento",
+        "talk": "tomas",
+        "say": "«Primeiro explica-me isto.» (mostrar a ficha)",
+        "label": "Confrontar o Tomás com a ficha",
+        "only_with": "ficha_tomas",
+        "requires": "documento_proibido",
+        "blocked_message": "Ele vai negar tudo. Precisas primeiro do documento do Arquivo para o convencer.",
+        "decides": ("colega", "confrontou"),
+        "message": (
+            "Mostras-lhe a ficha. O Tomás fica pálido e senta-se. Confessa que o obrigaram "
+            "a informar, mas jura que esta noite vai ajudar-te a sério. \"Na Estação. Confia em mim desta vez.\""
+        ),
     },
     "regressar_ministerio": {
         "hotspot": {"x": 0, "y": 260, "w": 45, "h": 120, "stand": 30, "edge": "left"},
@@ -181,7 +260,7 @@ ACTIONS = {
         "message": "Voltas ao trabalho como se nada fosse.",
     },
     "ir_vigilancia": {
-        "hotspot": {"x": 590, "y": 110, "w": 110, "h": 220, "stand": 560},
+        "hotspot": {"x": 655, "y": 110, "w": 110, "h": 220, "stand": 700},
         "scene": "apartamento",
         "label": "Ir à Estação de vigilância",
         "needs_decision": "colega",
@@ -189,11 +268,20 @@ ACTIONS = {
         "goes_to": "vigilancia",
         "message": "Atravessas o bairro às escuras até à Estação de vigilância.",
     },
-    "ir_tunel": {
+    # Same spot and label for both: the player cannot tell the trap from the real escape
+    "seguir_tomas": {
         "hotspot": {"x": 600, "y": 335, "w": 160, "h": 55, "stand": 680},
         "scene": "vigilancia",
         "label": "Seguir o Tomás para o túnel",
         "only_if": ("colega", "confiou"),
+        "goes_to": "final_traido",
+        "message": "O Tomás faz-te sinal para desceres primeiro...",
+    },
+    "ir_tunel": {
+        "hotspot": {"x": 600, "y": 335, "w": 160, "h": 55, "stand": 680},
+        "scene": "vigilancia",
+        "label": "Seguir o Tomás para o túnel",
+        "only_if": ("colega", "confrontou"),
         "goes_to": "tunel",
         "message": "O Tomás distrai o guarda e desliga as câmaras. Desces pela grelha.",
     },
@@ -227,32 +315,63 @@ def is_finished(state):
     return SCENES[state["scene"]].get("ending", False)
 
 
-def scene_text(state):
-    """Scene description, updated for items the player already collected."""
+def has_items(state, key):
+    """True if the player has the item, or every item when `key` is a tuple."""
+    items = key if isinstance(key, tuple) else (key,)
+    return all(item in state["inventory"] for item in items)
+
+
+def scene_variant(state, field):
+    """The scene's `field` ("text" or "image"), updated for remembered changes (PT R3):
+    first decisions made, then items collected."""
     scene = SCENES[state["scene"]]
-    for item, text in scene.get("text_after", {}).items():
-        if item in state["inventory"]:
-            return text
-    return scene["text"]
+    for name, value in scene.get(f"{field}_after_decision", {}).items():
+        if name in state["decisions"]:
+            return value
+    for key, value in scene.get(f"{field}_after", {}).items():
+        if has_items(state, key):
+            return value
+    return scene[field]
+
+
+def scene_text(state):
+    """Scene description for the current state."""
+    return scene_variant(state, "text")
 
 
 def scene_image(state):
-    """File name in assets/scenes/ for the current scene, updated like scene_text."""
-    scene = SCENES[state["scene"]]
-    for item, image in scene.get("image_after", {}).items():
-        if item in state["inventory"]:
-            return image
-    return scene["image"]
+    """File name in assets/scenes/ for the current state."""
+    return scene_variant(state, "image")
 
 
 def scene_hotspots(state):
-    """Clickable spots for the actions available right now (none at an ending)."""
+    """Clickable spots for the actions available right now (none at an ending).
+    Actions with "talk" are grouped into one spot per character, with "options"."""
     spots = []
+    talks = {}
     for action_id in available_actions(state):
         action = ACTIONS[action_id]
         if "hotspot" in action:
             spots.append({"action": action_id, "label": action["label"], **action["hotspot"]})
+        if "talk" in action:
+            name = action["talk"]
+            if name not in talks:
+                talks[name] = {"talk": name, "action": None, **SCENES[state["scene"]]["talks"][name], "options": []}
+                spots.append(talks[name])
+            talks[name]["options"].append({"action": action_id, "say": action["say"]})
     return spots
+
+
+def journey(state):
+    """Short sentences describing the path taken, shown at the ending."""
+    steps = []
+    if "colega" in state["decisions"]:
+        if "ficha_tomas" in state["inventory"]:
+            steps.append("Leste a ficha do Tomás")
+        else:
+            steps.append("Não leste a ficha do Tomás")
+    steps += decision_labels(state)
+    return steps
 
 
 def decision_labels(state):
@@ -262,7 +381,8 @@ def decision_labels(state):
 
 def is_offered(action, state):
     """Whether the action is shown. Hidden: other scenes, items already collected,
-    decisions already made, and routes that need a different decision."""
+    decisions already made, routes that need a different decision, and actions
+    that need an item the player does not have (`only_with`)."""
     if action["scene"] != state["scene"]:
         return False
     if "gives" in action and action["gives"] in state["inventory"]:
@@ -273,6 +393,8 @@ def is_offered(action, state):
         name, value = action["only_if"]
         if state["decisions"].get(name) != value:
             return False
+    if "only_with" in action and action["only_with"] not in state["inventory"]:
+        return False
     return True
 
 

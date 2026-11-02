@@ -1,6 +1,7 @@
 // Clickable scene: background picture, the character, and clickable spots.
 // Clicking the floor makes the character walk there. Clicking a spot makes the
 // character walk to it and then sends {id, x} to Python as the "action" trigger.
+// A talk spot (a character) opens a speech bubble; each option sends its action the same way.
 // Python decides whether the action is allowed (logic.apply_action), exactly like a button.
 
 const WIDTH = 800; // picture coordinates, same as the SVG viewBox
@@ -51,6 +52,34 @@ export default function ({ data, parentElement, setTriggerValue }) {
     }, ms);
   }
 
+  function closeBubble() {
+    root.querySelector(".bubble")?.remove();
+  }
+
+  function openBubble(spot) {
+    closeBubble();
+    const bubble = document.createElement("div");
+    bubble.className = "bubble";
+    bubble.onclick = (event) => event.stopPropagation();
+    const line = document.createElement("p");
+    line.className = "line";
+    line.textContent = spot.line;
+    bubble.appendChild(line);
+    for (const option of spot.options) {
+      const choice = document.createElement("button");
+      choice.className = "choice";
+      choice.textContent = option.say;
+      choice.onclick = () => setTriggerValue("action", { id: option.action, x: spot.stand });
+      bubble.appendChild(choice);
+    }
+    const leave = document.createElement("button");
+    leave.className = "choice leave";
+    leave.textContent = "Afastar-te";
+    leave.onclick = closeBubble;
+    bubble.appendChild(leave);
+    root.appendChild(bubble);
+  }
+
   for (const spot of spots) {
     const el = document.createElement("button");
     el.className = spot.edge ? `spot edge-${spot.edge}` : "spot";
@@ -64,12 +93,14 @@ export default function ({ data, parentElement, setTriggerValue }) {
     el.innerHTML = `<span class="label">${spot.label}</span>`;
     el.onclick = (event) => {
       event.stopPropagation();
-      walkTo(spot.stand, () => setTriggerValue("action", { id: spot.action, x: spot.stand }));
+      if (spot.talk) walkTo(spot.stand, () => openBubble(spot));
+      else walkTo(spot.stand, () => setTriggerValue("action", { id: spot.action, x: spot.stand }));
     };
     root.appendChild(el);
   }
 
   root.onclick = (event) => {
+    closeBubble();
     const box = root.getBoundingClientRect();
     walkTo(((event.clientX - box.left) / box.width) * WIDTH);
   };
