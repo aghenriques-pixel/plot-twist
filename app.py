@@ -9,12 +9,14 @@ import streamlit as st
 from db import DEFAULT_DB_PATH, has_save, load_game, save_game
 from logic import (
     ACTIONS,
+    ITEM_ICONS,
     ITEMS,
     SCENES,
     apply_action,
     available_actions,
     decision_labels,
     is_finished,
+    journey,
     new_game,
     scene_hotspots,
     scene_image,
@@ -146,7 +148,7 @@ def show_game_screen():
         st.subheader("Inventário")
         if game["inventory"]:
             for item in game["inventory"]:
-                st.write(f"• {ITEMS[item]}")
+                st.write(f"{ITEM_ICONS[item]} {ITEMS[item]}")
         else:
             st.caption("Vazio")
         for label in decision_labels(game):
@@ -167,6 +169,7 @@ def show_game_screen():
 
     if is_finished(game):
         st.subheader("Fim do jogo")
+        st.markdown("**O teu caminho:** " + " · ".join(journey(game)))
         st.button("Jogar outra vez", key="jogar_outra_vez", on_click=play_again, type="primary")
         return
 

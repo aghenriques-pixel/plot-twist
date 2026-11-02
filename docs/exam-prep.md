@@ -1,5 +1,7 @@
 # Preparação para o exame — Plot Twist: *O Arquivo Proibido*
 
+> Atualizado depois do *plot twist* do Tomás: há 3 itens, 3 decisões possíveis e 3 finais.
+
 Parte do exame sobre o projeto solo: **30% da nota**. As perguntas seguem os 6 tipos do template do curso.
 Pode haver uma folha A4 (frente e verso) — há uma proposta no fim deste ficheiro.
 
@@ -49,7 +51,8 @@ button click ──► choose() ──► apply_action(state, action_id) ──�
 **Model answer:**
 > In scene `apartamento`, with both items, the player clicks "Confiar no Tomás" → `choose("confiar_colega")`. The action has `"requires": "documento_proibido"` and `"decides": ("colega", "confiou")`.
 > `apply_action` checks the document is in the inventory, then writes `new_state["decisions"]["colega"] = "confiou"`. The scene does not change (no `goes_to`). `choose` saves it, so the `decisions` table gets the row `("colega", "confiou")`.
-> On the next render, `is_offered` hides both decision actions because `"colega"` is already in `decisions`, and the sidebar shows "Decisão: Confiaste no Tomás". Later, at `vigilancia`, only `ir_tunel` is offered because it has `"only_if": ("colega", "confiou")`; `tentar_sozinho` is hidden. So this decision decides the ending.
+> On the next render, `is_offered` hides all decision actions because `"colega"` is already in `decisions`, and the sidebar shows "Decisão: Confiaste no Tomás". Later, at `vigilancia`, only `seguir_tomas` is offered because it has `"only_if": ("colega", "confiou")`, and it leads to `final_traido` (Final 3 — the twist: Tomás is an informer). To reach Final 1 the player must read his file (`ficha_tomas`) in the archive, which unlocks `confrontar_colega` (`"only_with": "ficha_tomas"`); that stores `"confrontou"`, and only then `ir_tunel` is offered. So the decision, plus whether you investigated, decides the ending.
+> In the app the player can also click Tomás in the picture: a speech bubble shows the options, and each one sends the same action id to `choose()` as the button.
 
 ---
 
@@ -83,11 +86,13 @@ Para cada caso: **resultado, aceite/recusado, porquê, o que fica igual.** Tapa 
 | c | `apartamento`, `["cartao_acesso"]`, `{}` | `confiar_colega` | **Recusada** (`requires` documento) → "Não tens provas para mostrar..." Decisões continuam `{}`. |
 | d | `apartamento`, os 2 itens, `{"colega": "escondeu"}` | `confiar_colega` | **Recusada**: decisão já tomada (`decides` e `"colega"` já existe) → "Já tomaste essa decisão." Não dá para mudar. |
 | e | `apartamento`, os 2 itens, `{}` | `ir_vigilancia` | **Recusada** (`needs_decision: "colega"`) → "Antes de sair tens de decidir..." |
-| f | `vigilancia`, os 2 itens, `{"colega": "escondeu"}` | `ir_tunel` | **Recusada**: `only_if` pede `"confiou"`, por isso está escondida → "Não podes fazer isso aqui." |
+| f | `vigilancia`, os 2 itens, `{"colega": "escondeu"}` | `ir_tunel` | **Recusada**: `only_if` pede `"confrontou"`, por isso está escondida → "Não podes fazer isso aqui." |
+| f2 | `vigilancia`, os 2 itens, `{"colega": "confiou"}` | `seguir_tomas` | **Aceite** → `final_traido` ("Final 3 — Traído"). O *plot twist*: o Tomás era informador. |
+| f3 | `apartamento`, só cartão + documento (sem ficha), `{}` | `confrontar_colega` | **Recusada**: `only_with: "ficha_tomas"` esconde-a → "Não podes fazer isso aqui." |
 | g | `vigilancia`, os 2 itens, `{"colega": "escondeu"}` | `tentar_sozinho` | **Aceite** → cena `final_descoberto` ("Final 2 — Descoberto"). Inventário e decisões iguais. Gravado. |
 | h | `final_resistencia`, ... | qualquer ação (ex. `voltar_ministerio`) | **Recusada** logo no início de `apply_action`, porque `is_finished` é True → "O jogo terminou." `available_actions` devolve `[]`. |
 | i | `ministerio`, `[]`, `{}` | `voar_para_lua` | **Recusada**: não existe em `ACTIONS` → "Essa ação não existe." |
-| j | `tunel`, os 2 itens, `{"colega": "confiou"}` | `entregar_documentos` | **Aceite** → `final_resistencia` ("Final 1 — A verdade escapa"). O documento **não** é removido (os itens não se gastam, PT R2). |
+| j | `tunel`, os 3 itens, `{"colega": "confrontou"}` | `entregar_documentos` | **Aceite** → `final_resistencia` ("Final 1 — A verdade escapa"). O documento **não** é removido (os itens não se gastam, PT R2). |
 
 **Model answer (example a, written out):**
 > The action is rejected. `ir_arquivo` is offered in `ministerio`, so `is_offered` passes, but it has `"requires": "cartao_acesso"` and the inventory is empty, so `apply_action` returns `False` with `copy_state(state)` and the `blocked_message`. Because `choose` only calls `save_game` when `accepted` is True, the database is not written. The resulting state is identical: scene `ministerio`, inventory `[]`, decisions `{}`.
@@ -155,12 +160,12 @@ Para cada caso: **resultado, aceite/recusado, porquê, o que fica igual.** Tapa 
 > **Stored data:** inventory changes after use; if I add a "collected" or "arquivo_aberto" flag, it must be saved too (a decision row works without a new table).
 > **Must keep working:** A3 (no duplicate collection), both ending paths, resume. **Check to add:** a test that goes ministerio → arquivo → back → arquivo again, and a test that both `FINAL_1_PATH` and `FINAL_2_PATH` still finish.
 
-### Q6.2 — "Add a third ending."
+### Q6.2 — "Add a third ending." (já fizeste isto: `specs/tomas-twist.md`)
 
 **Model answer:**
-> Mostly content, not code: add a scene in `SCENES` with `"ending": True` and a title starting "Final 3", and an action in `ACTIONS` that leads there with the right condition, e.g. in `vigilancia` an action `"denunciar_tomas"` with `"only_if": ("colega", "confiou")`. `is_finished`, `available_actions` and the ending screen in `app.py` work without changes because they read the `ending` flag.
-> **Stored data:** nothing new; the scene id is saved as before.
-> **Must keep working:** Final 1 and Final 2 paths, the "game over" rule. **Check:** a test that plays a path to Final 3 and asserts `is_finished`.
+> This is what the Tomás twist did. Mostly content: a new ending scene `final_traido` with `"ending": True`, a new item `ficha_tomas`, a new decision value via `confrontar_colega` (`only_with` the file), and station routes split by decision (`seguir_tomas` only if `confiou`, `ir_tunel` only if `confrontou`). `is_finished`, `available_actions` and the ending screen needed no change because they read the `ending` flag. The only new rule key was `only_with`.
+> **Stored data:** nothing new in the database: the new item is a row in `inventory`, the new decision value a row in `decisions`.
+> **Must keep working / what changed:** Final 2 stayed the same. Final 1's path changed, so the tests that said "trust → tunnel" were updated **explicitly** and listed in the spec, instead of being deleted. New tests play all three endings from a new game (PT R4).
 
 ### Q6.3 — "Allow the player to change their mind about the colleague."
 
@@ -174,7 +179,7 @@ Para cada caso: **resultado, aceite/recusado, porquê, o que fica igual.** Tapa 
 **Frente:**
 ```
 FILES   app.py = screens | logic.py = story + rules | db.py = SQLite (data/game.db)
-STATE   {"scene": str, "inventory": [items], "decisions": {"colega": "confiou"|"escondeu"}}
+STATE   {"scene": str, "inventory": [items], "decisions": {"colega": "confiou"|"escondeu"|"confrontou"}}
 CONTENT SCENES, ACTIONS, ITEMS, DECISION_LABELS (logic.py, never in DB)
 TABLES  game(id=1, scene) | inventory(item PK) | decisions(name PK, value)
 
@@ -183,17 +188,20 @@ FLOW    click → choose(id) → apply_action(state,id) → (ok, new_state, msg)
         Continuar → resume_game → load_game ; Novo jogo → ask_new_game → confirm (A6)
 
 apply_action order: exists? → finished? → is_offered? → requires? → needs_decision? → apply
-is_offered hides: other scene | gives already owned | decides already made | only_if mismatch
-ACTION KEYS: gives, requires, needs_decision, blocked_message, decides, only_if, goes_to
+is_offered hides: other scene | gives already owned | decides already made | only_if mismatch | only_with missing
+ACTION KEYS: gives, requires, needs_decision, blocked_message, decides, only_if, only_with, goes_to,
+             hotspot (clickable spot), talk/say (conversation option)
+CLICKS  components/scene_view.js: click spot → walk → setTriggerValue("action") → app.py → choose(id)
 ```
 
 **Verso:**
 ```
-MAP  ministerio ─card→ arquivo (documento)      ministerio → apartamento
-     apartamento: confiar_colega | esconder_descoberta (need doc, once)
+MAP  ministerio ─card→ arquivo (documento + ficha_tomas)      ministerio → apartamento
+     apartamento (talk to Tomás): confiar | esconder | confrontar (only with ficha) — need doc, once
      ir_vigilancia (needs decision) → vigilancia
-       confiou  → ir_tunel → tunel → entregar_documentos → FINAL 1 A verdade escapa
-       escondeu → tentar_sozinho → FINAL 2 Descoberto
+       confrontou → ir_tunel → tunel → entregar_documentos → FINAL 1 A verdade escapa
+       escondeu   → tentar_sozinho → FINAL 2 Descoberto
+       confiou    → seguir_tomas → FINAL 3 Traído (twist: Tomás = informador nº 47)
 ENDING  is_finished = SCENES[scene]["ending"]; no actions; "O jogo terminou."
 
 BRD  PT01 start/resume+confirm | PT02 explore | PT03 collect/use, no dupes
@@ -201,7 +209,8 @@ BRD  PT01 start/resume+confirm | PT02 explore | PT03 collect/use, no dupes
      R1 blocked = no move/no change | R2 once, not consumed | R3 remembered changes
      R4 new game resets progress, all endings reachable
 TESTS  test_logic (card rules) | test_db (save/load) | test_app (A6, AppTest)
-       test_story (doc, decision, 2 endings) | test_story_save (decisions/ending saved)
+       test_story (doc, decision, endings) | test_story_save (decisions/ending saved)
+       test_twist (ficha, confront, Final 3) | test_hotspots (clicks) | test_art (pictures)
        restart = stop server (Ctrl+C) + start, not just refresh
 ```
 

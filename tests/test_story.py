@@ -1,4 +1,4 @@
-"""Rules for the rest of the story: document, colleague decision, and two endings.
+"""Rules for the rest of the story: document, colleague decision, and the endings.
 
 Assumed interface in logic.py, in addition to new_game / available_actions / apply_action:
 - state has a third field: "decisions", a dict such as {"colega": "confiou"}
@@ -17,8 +17,18 @@ TO_APARTMENT_WITH_DOCUMENT = [
     "voltar_ministerio",
     "ir_apartamento",
 ]
-FINAL_1_PATH = TO_APARTMENT_WITH_DOCUMENT + ["confiar_colega", "ir_vigilancia", "ir_tunel", "entregar_documentos"]
+# Final 1 now needs the file on Tomás and a confrontation (specs/tomas-twist.md)
+TO_APARTMENT_WITH_DOCUMENT_AND_FILE = [
+    "apanhar_cartao",
+    "ir_arquivo",
+    "apanhar_documento",
+    "apanhar_ficha",
+    "voltar_ministerio",
+    "ir_apartamento",
+]
+FINAL_1_PATH = TO_APARTMENT_WITH_DOCUMENT_AND_FILE + ["confrontar_colega", "ir_vigilancia", "ir_tunel", "entregar_documentos"]
 FINAL_2_PATH = TO_APARTMENT_WITH_DOCUMENT + ["esconder_descoberta", "ir_vigilancia", "tentar_sozinho"]
+FINAL_3_PATH = TO_APARTMENT_WITH_DOCUMENT + ["confiar_colega", "ir_vigilancia", "seguir_tomas"]
 
 
 def play(actions, state=None):
@@ -109,25 +119,25 @@ def test_station_needs_a_decision():
 
 
 # PT04: at the station only the route matching the decision exists
-def test_station_after_trusting_offers_only_the_tunnel():
+def test_station_after_trusting_offers_only_following_tomas():
     state = play(TO_APARTMENT_WITH_DOCUMENT + ["confiar_colega", "ir_vigilancia"])
 
     assert state["scene"] == "vigilancia"
-    assert "ir_tunel" in available_actions(state)
-    assert "tentar_sozinho" not in available_actions(state)
+    assert available_actions(state) == ["seguir_tomas"]
+    assert_rejected_and_unchanged(state, "ir_tunel")
     assert_rejected_and_unchanged(state, "tentar_sozinho")
 
 
 def test_station_after_hiding_offers_only_going_alone():
     state = play(TO_APARTMENT_WITH_DOCUMENT + ["esconder_descoberta", "ir_vigilancia"])
 
-    assert "tentar_sozinho" in available_actions(state)
-    assert "ir_tunel" not in available_actions(state)
+    assert available_actions(state) == ["tentar_sozinho"]
     assert_rejected_and_unchanged(state, "ir_tunel")
+    assert_rejected_and_unchanged(state, "seguir_tomas")
 
 
 # Done when 5 / A5: Final 1
-def test_final_1_is_reachable_by_trusting_the_colleague():
+def test_final_1_is_reachable_by_confronting_the_colleague():
     state = play(FINAL_1_PATH)
 
     assert state["scene"] == "final_resistencia"
@@ -151,15 +161,15 @@ def test_game_in_progress_is_not_finished():
 
 # Done when 7 / PT05: an ending is final
 def test_no_actions_at_an_ending():
-    for path in (FINAL_1_PATH, FINAL_2_PATH):
+    for path in (FINAL_1_PATH, FINAL_2_PATH, FINAL_3_PATH):
         state = play(path)
 
         assert available_actions(state) == []
-        for action_id in ("voltar_ministerio", "apanhar_cartao", "ir_tunel", "entregar_documentos", "tentar_sozinho"):
+        for action_id in ("voltar_ministerio", "apanhar_cartao", "ir_tunel", "entregar_documentos", "tentar_sozinho", "seguir_tomas"):
             message = assert_rejected_and_unchanged(state, action_id)
             assert "terminou" in message.lower()
 
 
 # PT R4: every ending is reachable from a new game, and they are different
-def test_the_two_endings_are_different_scenes():
-    assert play(FINAL_1_PATH)["scene"] != play(FINAL_2_PATH)["scene"]
+def test_the_three_endings_are_different_scenes():
+    assert len({play(path)["scene"] for path in (FINAL_1_PATH, FINAL_2_PATH, FINAL_3_PATH)}) == 3

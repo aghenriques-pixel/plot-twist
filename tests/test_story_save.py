@@ -103,7 +103,9 @@ def test_app_resume_keeps_decision_and_routes(db_path):
     assert "ir_vigilancia" in button_keys(at)
 
     click(at, "ir_vigilancia")
-    assert "ir_tunel" in button_keys(at)
+    # Trusting Tomás without the file leads to his trap (specs/tomas-twist.md)
+    assert "seguir_tomas" in button_keys(at)
+    assert "ir_tunel" not in button_keys(at)
     assert "tentar_sozinho" not in button_keys(at)
 
 
