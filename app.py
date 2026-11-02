@@ -20,6 +20,7 @@ from logic import (
     new_game,
     scene_hotspots,
     scene_image,
+    scene_looks,
     scene_text,
 )
 
@@ -71,8 +72,11 @@ def resume_game():
     st.session_state.message = None
 
 
-def choose(action_id):
-    accepted, game, message = apply_action(st.session_state.game, action_id)
+def choose(action_id, code=None, code_key=None):
+    """Run an action. A code comes from the keypad in the picture, or from a text field (code_key)."""
+    if code_key is not None:
+        code = st.session_state.get(code_key, "")
+    accepted, game, message = apply_action(st.session_state.game, action_id, code)
     if accepted:
         save_game(DB_PATH, game)
         st.session_state.game = game
@@ -103,14 +107,15 @@ def show_scene_picture(game):
         "walk": SCENES[game["scene"]]["walk"],
         "x": character_x(game),
         "spots": scene_hotspots(game),
+        "looks": scene_looks(game),
     }
     result = scene_view(data=data, key="scene_view", on_action_change=lambda: None)
     if result.action:
         # Same path as a button: the rules in logic.py decide
         st.session_state.character = {"scene": game["scene"], "x": result.action["x"]}
-        choose(result.action["id"])
+        choose(result.action["id"], result.action.get("code"))
         st.rerun()
-    st.caption("Clica na imagem para andar. Os pontos amarelos e as setas são sítios onde podes agir.")
+    st.caption("Clica na imagem para andar. Os pontos amarelos e as setas são sítios onde podes agir; a 🔍 são coisas para observar.")
 
 
 def play_again():
@@ -174,7 +179,19 @@ def show_game_screen():
         return
 
     for action_id in available_actions(game):
-        st.button(ACTIONS[action_id]["label"], key=action_id, on_click=choose, args=(action_id,))
+        action = ACTIONS[action_id]
+        if "code" in action:
+            # Same lock as the keypad in the picture
+            st.text_input(action["code_prompt"], key=f"code_{action_id}", max_chars=6)
+            st.button(action["label"], key=action_id, on_click=choose, args=(action_id,), kwargs={"code_key": f"code_{action_id}"})
+        else:
+            st.button(action["label"], key=action_id, on_click=choose, args=(action_id,))
+
+    looks = scene_looks(game)
+    if looks:
+        with st.expander("🔍 Observar à tua volta"):
+            for look in looks:
+                st.markdown(f"**{look['label']}** — {look['text']}")
 
 
 if st.session_state.game is None:

@@ -50,7 +50,7 @@ def test_ministerio_picture_changes_after_collecting_the_card():
 # Done when 4
 def test_arquivo_picture_changes_after_collecting_the_document():
     _, state, _ = apply_action(new_game(), "apanhar_cartao")
-    _, state, _ = apply_action(state, "ir_arquivo")
+    _, state, _ = apply_action(state, "ir_arquivo", "1704")
     assert scene_image(state) == "arquivo.svg"
 
     _, state, _ = apply_action(state, "apanhar_documento")

@@ -3,7 +3,7 @@
 Assumed interface in logic.py (pure Python, no Streamlit, no SQLite):
 - new_game() -> dict like {"scene": "ministerio", "inventory": [], "decisions": {}}
 - available_actions(state) -> list of action ids the player can choose now
-- apply_action(state, action_id) -> (accepted: bool, new_state: dict, message: str)
+- apply_action(state, action_id, code=None) -> (accepted: bool, new_state: dict, message: str)
   It never modifies the state it receives. When rejected, new_state equals the old state.
 """
 
@@ -75,7 +75,7 @@ def test_collect_action_is_offered_only_before_collecting():
 def test_archive_opens_with_card_and_card_is_kept():
     _, state, _ = apply_action(new_game(), "apanhar_cartao")
 
-    accepted, new_state, _ = apply_action(state, "ir_arquivo")
+    accepted, new_state, _ = apply_action(state, "ir_arquivo", "1704")
 
     assert accepted is True
     assert new_state["scene"] == "arquivo"
@@ -84,7 +84,7 @@ def test_archive_opens_with_card_and_card_is_kept():
 
 def test_can_go_back_to_ministerio_and_card_is_not_offered_again():
     _, state, _ = apply_action(new_game(), "apanhar_cartao")
-    _, state, _ = apply_action(state, "ir_arquivo")
+    _, state, _ = apply_action(state, "ir_arquivo", "1704")
 
     accepted, state, _ = apply_action(state, "voltar_ministerio")
 

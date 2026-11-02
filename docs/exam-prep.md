@@ -1,6 +1,6 @@
 # Preparação para o exame — Plot Twist: *O Arquivo Proibido*
 
-> Atualizado depois do *plot twist* do Tomás: há 3 itens, 3 decisões possíveis e 3 finais.
+> Atualizado depois do *plot twist* do Tomás e dos enigmas: há 3 itens, 3 decisões possíveis, 3 finais, 5 enigmas e 6 cenas jogáveis.
 
 Parte do exame sobre o projeto solo: **30% da nota**. As perguntas seguem os 6 tipos do template do curso.
 Pode haver uma folha A4 (frente e verso) — há uma proposta no fim deste ficheiro.
@@ -187,9 +187,11 @@ FLOW    click → choose(id) → apply_action(state,id) → (ok, new_state, msg)
         ok → save_game + session_state.game = new_state ; not ok → nothing saved
         Continuar → resume_game → load_game ; Novo jogo → ask_new_game → confirm (A6)
 
-apply_action order: exists? → finished? → is_offered? → requires? → needs_decision? → apply
+apply_action(state, id, code=None) order:
+  exists? → finished? → is_offered? → rejects? → requires? → needs_decision? → code? → apply
 is_offered hides: other scene | gives already owned | decides already made | only_if mismatch | only_with missing
-ACTION KEYS: gives, requires, needs_decision, blocked_message, decides, only_if, only_with, goes_to,
+ACTION KEYS: gives, requires, needs_decision, blocked_message, decides, only_if, only_with, only_without,
+             rejects (wrong answer), code/code_prompt/wrong_code_message, goes_to,
              hotspot (clickable spot), talk/say (conversation option)
 CLICKS  components/scene_view.js: click spot → walk → setTriggerValue("action") → app.py → choose(id)
 ```
@@ -202,6 +204,11 @@ MAP  ministerio ─card→ arquivo (documento + ficha_tomas)      ministerio →
        confrontou → ir_tunel → tunel → entregar_documentos → FINAL 1 A verdade escapa
        escondeu   → tentar_sozinho → FINAL 2 Descoberto
        confiou    → seguir_tomas → FINAL 3 Traído (twist: Tomás = informador nº 47)
+     confrontou path: grate code 42 → tunel (fork: seco ✗ / luz ✗ / água ✓) → esconderijo → entregar
+PUZZLES door 1704 (calendar + notice) | box 1981 (newspaper 1984 − 3) | drawer 47 (mug)
+        grate 42 (6 dark screens × 7) | tunnel: follow the water (Tomás)
+        wrong code/choice = rejected, unchanged, not saved (R1) | looks never change state
+        the code never goes to the browser: scene_hotspots sends only code_prompt
 ENDING  is_finished = SCENES[scene]["ending"]; no actions; "O jogo terminou."
 
 BRD  PT01 start/resume+confirm | PT02 explore | PT03 collect/use, no dupes
@@ -211,6 +218,7 @@ BRD  PT01 start/resume+confirm | PT02 explore | PT03 collect/use, no dupes
 TESTS  test_logic (card rules) | test_db (save/load) | test_app (A6, AppTest)
        test_story (doc, decision, endings) | test_story_save (decisions/ending saved)
        test_twist (ficha, confront, Final 3) | test_hotspots (clicks) | test_art (pictures)
+       test_puzzles (codes, wrong choices, clues; grate code checked against the SVG)
        restart = stop server (Ctrl+C) + start, not just refresh
 ```
 

@@ -1,7 +1,8 @@
 // Clickable scene: background picture, the character, and clickable spots.
 // Clicking the floor makes the character walk there. Clicking a spot makes the
 // character walk to it and then sends {id, x} to Python as the "action" trigger.
-// A talk spot (a character) opens a speech bubble; each option sends its action the same way.
+// A talk spot (a character or object) opens a bubble with options; each option sends its action.
+// A spot with a code_prompt opens a keypad and sends {id, x, code}. A look only shows a text.
 // Python decides whether the action is allowed (logic.apply_action), exactly like a button.
 
 const WIDTH = 800; // picture coordinates, same as the SVG viewBox
@@ -15,7 +16,7 @@ const pct = (value, total) => `${(value / total) * 100}%`;
 
 export default function ({ data, parentElement, setTriggerValue }) {
   parentElement.querySelector(".scene")?.remove();
-  const { background, character, walk, x: startX, spots } = data;
+  const { background, character, walk, x: startX, spots, looks } = data;
 
   const root = document.createElement("div");
   root.className = "scene";
@@ -56,33 +57,63 @@ export default function ({ data, parentElement, setTriggerValue }) {
     root.querySelector(".bubble")?.remove();
   }
 
-  function openBubble(spot) {
+  // A bubble with a text and buttons; clicks inside it never make the character walk
+  function openBubble(text, buttons, leaveText) {
     closeBubble();
     const bubble = document.createElement("div");
     bubble.className = "bubble";
     bubble.onclick = (event) => event.stopPropagation();
     const line = document.createElement("p");
     line.className = "line";
-    line.textContent = spot.line;
+    line.textContent = text;
     bubble.appendChild(line);
-    for (const option of spot.options) {
-      const choice = document.createElement("button");
-      choice.className = "choice";
-      choice.textContent = option.say;
-      choice.onclick = () => setTriggerValue("action", { id: option.action, x: spot.stand });
-      bubble.appendChild(choice);
-    }
+    for (const element of buttons) bubble.appendChild(element);
     const leave = document.createElement("button");
     leave.className = "choice leave";
-    leave.textContent = "Afastar-te";
+    leave.textContent = leaveText;
     leave.onclick = closeBubble;
     bubble.appendChild(leave);
     root.appendChild(bubble);
+    return bubble;
   }
 
-  for (const spot of spots) {
+  function button(text, onClick) {
+    const element = document.createElement("button");
+    element.className = "choice";
+    element.textContent = text;
+    element.onclick = onClick;
+    return element;
+  }
+
+  function openTalk(spot) {
+    const options = spot.options.map((option) =>
+      button(option.say, () => setTriggerValue("action", { id: option.action, x: spot.stand }))
+    );
+    openBubble(spot.line, options, "Afastar-te");
+  }
+
+  function openKeypad(spot) {
+    const form = document.createElement("form");
+    form.className = "keypad";
+    const input = document.createElement("input");
+    input.inputMode = "numeric";
+    input.autocomplete = "off";
+    input.maxLength = 6;
+    input.placeholder = "····";
+    const submit = button("Tentar", null);
+    submit.type = "submit";
+    form.append(input, submit);
+    form.onsubmit = (event) => {
+      event.preventDefault();
+      setTriggerValue("action", { id: spot.action, x: spot.stand, code: input.value });
+    };
+    openBubble(spot.code_prompt, [form], "Desistir");
+    input.focus();
+  }
+
+  function addSpot(spot, className, onArrive) {
     const el = document.createElement("button");
-    el.className = spot.edge ? `spot edge-${spot.edge}` : "spot";
+    el.className = className;
     // Labels near the right edge open to the left so they are not cut off
     if (spot.x + spot.w / 2 > WIDTH * 0.75) el.classList.add("label-end");
     el.style.left = pct(spot.x, WIDTH);
@@ -93,10 +124,22 @@ export default function ({ data, parentElement, setTriggerValue }) {
     el.innerHTML = `<span class="label">${spot.label}</span>`;
     el.onclick = (event) => {
       event.stopPropagation();
-      if (spot.talk) walkTo(spot.stand, () => openBubble(spot));
-      else walkTo(spot.stand, () => setTriggerValue("action", { id: spot.action, x: spot.stand }));
+      closeBubble();
+      walkTo(spot.stand, onArrive);
     };
     root.appendChild(el);
+  }
+
+  // Looks first, so action spots are on top if they ever touch
+  for (const look of looks) {
+    addSpot(look, "spot look", () => openBubble(look.text, [], "Fechar"));
+  }
+  for (const spot of spots) {
+    addSpot(spot, spot.edge ? `spot edge-${spot.edge}` : "spot", () => {
+      if (spot.talk) openTalk(spot);
+      else if (spot.code_prompt) openKeypad(spot);
+      else setTriggerValue("action", { id: spot.action, x: spot.stand });
+    });
   }
 
   root.onclick = (event) => {

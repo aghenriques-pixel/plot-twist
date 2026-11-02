@@ -35,7 +35,7 @@ def test_saved_game_can_be_loaded(tmp_path):
 def test_progress_survives_restart(tmp_path):
     db_path = tmp_path / "game.db"
     _, state, _ = apply_action(new_game(), "apanhar_cartao")
-    _, state, _ = apply_action(state, "ir_arquivo")
+    _, state, _ = apply_action(state, "ir_arquivo", "1704")
     save_game(db_path, state)
 
     # "Restart": nothing is kept in memory, only the file on disk
@@ -61,7 +61,7 @@ def test_new_save_replaces_old_one(tmp_path):
     db_path = tmp_path / "game.db"
     _, first, _ = apply_action(new_game(), "apanhar_cartao")
     save_game(db_path, first)
-    _, second, _ = apply_action(first, "ir_arquivo")
+    _, second, _ = apply_action(first, "ir_arquivo", "1704")
 
     save_game(db_path, second)
 
