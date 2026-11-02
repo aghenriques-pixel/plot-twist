@@ -11,6 +11,7 @@ def connect(db_path):
     conn = sqlite3.connect(db_path)
     conn.execute("CREATE TABLE IF NOT EXISTS game (id INTEGER PRIMARY KEY CHECK (id = 1), scene TEXT NOT NULL)")
     conn.execute("CREATE TABLE IF NOT EXISTS inventory (item TEXT PRIMARY KEY)")
+    conn.execute("CREATE TABLE IF NOT EXISTS decisions (name TEXT PRIMARY KEY, value TEXT NOT NULL)")
     return conn
 
 
@@ -19,14 +20,16 @@ def has_save(db_path=DEFAULT_DB_PATH):
 
 
 def save_game(db_path, state):
-    """Replace the saved game with `state` (scene and inventory) in one transaction."""
+    """Replace the saved game with `state` (scene, inventory, decisions) in one transaction."""
     conn = connect(db_path)
     try:
         with conn:
             conn.execute("DELETE FROM game")
             conn.execute("DELETE FROM inventory")
+            conn.execute("DELETE FROM decisions")
             conn.execute("INSERT INTO game (id, scene) VALUES (1, ?)", (state["scene"],))
             conn.executemany("INSERT INTO inventory (item) VALUES (?)", [(item,) for item in state["inventory"]])
+            conn.executemany("INSERT INTO decisions (name, value) VALUES (?, ?)", state["decisions"].items())
     finally:
         conn.close()
 
@@ -41,6 +44,7 @@ def load_game(db_path=DEFAULT_DB_PATH):
         if row is None:
             return None
         items = [item for (item,) in conn.execute("SELECT item FROM inventory ORDER BY rowid")]
-        return {"scene": row[0], "inventory": items}
+        decisions = dict(conn.execute("SELECT name, value FROM decisions"))
+        return {"scene": row[0], "inventory": items, "decisions": decisions}
     finally:
         conn.close()

@@ -1,7 +1,7 @@
 """Rules for the first feature: the access card unlocks the secret archive.
 
 Assumed interface in logic.py (pure Python, no Streamlit, no SQLite):
-- new_game() -> dict like {"scene": "ministerio", "inventory": []}
+- new_game() -> dict like {"scene": "ministerio", "inventory": [], "decisions": {}}
 - available_actions(state) -> list of action ids the player can choose now
 - apply_action(state, action_id) -> (accepted: bool, new_state: dict, message: str)
   It never modifies the state it receives. When rejected, new_state equals the old state.

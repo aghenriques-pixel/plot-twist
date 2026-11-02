@@ -5,7 +5,17 @@ import os
 import streamlit as st
 
 from db import DEFAULT_DB_PATH, has_save, load_game, save_game
-from logic import ACTIONS, ITEMS, SCENES, apply_action, available_actions, new_game, scene_text
+from logic import (
+    ACTIONS,
+    ITEMS,
+    SCENES,
+    apply_action,
+    available_actions,
+    decision_labels,
+    is_finished,
+    new_game,
+    scene_text,
+)
 
 # Tests point this at a temporary file so they never touch the real save
 DB_PATH = os.environ.get("PLOT_TWIST_DB", DEFAULT_DB_PATH)
@@ -51,6 +61,13 @@ def choose(action_id):
     st.session_state.message = (accepted, message)
 
 
+def play_again():
+    """After an ending: back to the start screen with the new-game confirmation open (A6)."""
+    st.session_state.game = None
+    st.session_state.message = None
+    st.session_state.confirm_restart = True
+
+
 def back_to_menu():
     st.session_state.game = None
     st.session_state.message = None
@@ -82,6 +99,8 @@ def show_game_screen():
                 st.write(f"• {ITEMS[item]}")
         else:
             st.caption("Vazio")
+        for label in decision_labels(game):
+            st.caption(f"Decisão: {label}")
         st.divider()
         st.button("Voltar ao menu", key="voltar_menu", on_click=back_to_menu)
 
@@ -94,6 +113,11 @@ def show_game_screen():
             st.success(message)
         else:
             st.warning(message)
+
+    if is_finished(game):
+        st.subheader("Fim do jogo")
+        st.button("Jogar outra vez", key="jogar_outra_vez", on_click=play_again, type="primary")
+        return
 
     for action_id in available_actions(game):
         st.button(ACTIONS[action_id]["label"], key=action_id, on_click=choose, args=(action_id,))

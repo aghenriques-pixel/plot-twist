@@ -13,7 +13,7 @@ from streamlit.testing.v1 import AppTest
 from db import load_game, save_game
 
 APP_PATH = str(Path(__file__).parent.parent / "app.py")
-SAVED_PROGRESS = {"scene": "arquivo", "inventory": ["cartao_acesso"]}
+SAVED_PROGRESS = {"scene": "arquivo", "inventory": ["cartao_acesso"], "decisions": {}}
 
 
 @pytest.fixture
@@ -46,7 +46,7 @@ def test_new_game_without_save_starts_immediately(db_path):
 
     assert at.title[0].value == "Ministério da Verdade"
     assert "confirmar_novo_jogo" not in button_keys(at)
-    assert load_game(db_path) == {"scene": "ministerio", "inventory": []}
+    assert load_game(db_path) == {"scene": "ministerio", "inventory": [], "decisions": {}}
 
 
 # Done when 2: the warning appears and nothing is saved yet
@@ -88,7 +88,7 @@ def test_confirm_starts_over(db_path):
 
     assert at.title[0].value == "Ministério da Verdade"
     assert "apanhar_cartao" in button_keys(at)
-    assert load_game(db_path) == {"scene": "ministerio", "inventory": []}
+    assert load_game(db_path) == {"scene": "ministerio", "inventory": [], "decisions": {}}
 
 
 # Done when 5: after a confirmed restart, a fresh app session resumes the new game
@@ -114,4 +114,4 @@ def test_rejected_action_in_app_leaves_save_unchanged(db_path):
 
     assert at.title[0].value == "Ministério da Verdade"
     assert any("cartão" in warning.value for warning in at.warning)
-    assert load_game(db_path) == {"scene": "ministerio", "inventory": []}
+    assert load_game(db_path) == {"scene": "ministerio", "inventory": [], "decisions": {}}
