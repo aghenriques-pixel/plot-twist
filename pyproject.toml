@@ -1,0 +1,17 @@
+[project]
+name = "plot-twist"
+version = "0.1.0"
+description = "O Arquivo Proibido — a Plot Twist mystery"
+requires-python = ">=3.12"
+dependencies = [
+    "streamlit>=1.66.1",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+]
