@@ -28,7 +28,7 @@ def test_saved_game_can_be_loaded(tmp_path):
     save_game(db_path, state)
 
     assert has_save(db_path) is True
-    assert load_game(db_path) == {"scene": "ministerio", "inventory": ["cartao_acesso"]}
+    assert load_game(db_path) == {"scene": "ministerio", "inventory": ["cartao_acesso"], "decisions": {}}
 
 
 # Done when 4 / A4: restart restores scene and inventory
@@ -42,7 +42,7 @@ def test_progress_survives_restart(tmp_path):
     del state
     resumed = load_game(db_path)
 
-    assert resumed == {"scene": "arquivo", "inventory": ["cartao_acesso"]}
+    assert resumed == {"scene": "arquivo", "inventory": ["cartao_acesso"], "decisions": {}}
 
 
 def test_card_cannot_be_collected_again_after_resume(tmp_path):
@@ -65,7 +65,7 @@ def test_new_save_replaces_old_one(tmp_path):
 
     save_game(db_path, second)
 
-    assert load_game(db_path) == {"scene": "arquivo", "inventory": ["cartao_acesso"]}
+    assert load_game(db_path) == {"scene": "arquivo", "inventory": ["cartao_acesso"], "decisions": {}}
 
 
 def test_saving_twice_does_not_duplicate_items(tmp_path):
