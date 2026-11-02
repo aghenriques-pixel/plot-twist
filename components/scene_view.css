@@ -166,3 +166,46 @@
 .bubble .leave {
   opacity: 0.7;
 }
+
+/* Things to observe: a quieter marker than action spots */
+.spot.look::before {
+  content: "🔍";
+  width: auto;
+  height: auto;
+  margin: -9px 0 0 -8px;
+  background: none;
+  border-radius: 0;
+  font-size: 15px;
+  line-height: 1;
+  opacity: 0.85;
+  animation: none;
+}
+.spot.look:hover::before {
+  opacity: 1;
+}
+.spot.look:hover {
+  border-color: rgba(143, 179, 204, 0.8);
+  background: rgba(143, 179, 204, 0.1);
+}
+
+/* Keypad inside the bubble */
+.keypad {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+.keypad input {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 8px;
+  border: 1px solid rgba(243, 234, 214, 0.45);
+  border-radius: 6px;
+  background: #0c0d10;
+  color: #f3ead6;
+  font: 16px/1.2 monospace;
+  letter-spacing: 4px;
+}
+.keypad .choice {
+  width: auto;
+  margin-top: 0;
+}

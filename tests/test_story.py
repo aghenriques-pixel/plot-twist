@@ -26,16 +26,25 @@ TO_APARTMENT_WITH_DOCUMENT_AND_FILE = [
     "voltar_ministerio",
     "ir_apartamento",
 ]
-FINAL_1_PATH = TO_APARTMENT_WITH_DOCUMENT_AND_FILE + ["confrontar_colega", "ir_vigilancia", "ir_tunel", "entregar_documentos"]
+FINAL_1_PATH = TO_APARTMENT_WITH_DOCUMENT_AND_FILE + [
+    "confrontar_colega",
+    "ir_vigilancia",
+    "ir_tunel",
+    "seguir_agua",
+    "entregar_documentos",
+]
 FINAL_2_PATH = TO_APARTMENT_WITH_DOCUMENT + ["esconder_descoberta", "ir_vigilancia", "tentar_sozinho"]
 FINAL_3_PATH = TO_APARTMENT_WITH_DOCUMENT + ["confiar_colega", "ir_vigilancia", "seguir_tomas"]
+
+# The archive door, the drawer and the grate need codes (specs/puzzles.md)
+CODES = {"ir_arquivo": "1704", "apanhar_ficha": "47", "ir_tunel": "42"}
 
 
 def play(actions, state=None):
     """Apply each action from a new game; every one of them must be accepted."""
     state = new_game() if state is None else state
     for action_id in actions:
-        accepted, state, message = apply_action(state, action_id)
+        accepted, state, message = apply_action(state, action_id, CODES.get(action_id))
         assert accepted, f"{action_id} was rejected: {message}"
     return state
 

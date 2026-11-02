@@ -31,29 +31,74 @@ SCENES = {
             "Os teletelas zumbem por cima das secretárias. O teu trabalho é corrigir "
             "jornais antigos para que digam o que o Partido quer. Na secretária do teu "
             "chefe, meio escondido debaixo de um dossiê, brilha um cartão de acesso. "
-            "Ao fundo do corredor há uma porta sem placa: o Arquivo secreto."
+            "Ao fundo do corredor há uma porta sem placa, com um leitor de cartões e um "
+            "teclado numérico: o Arquivo secreto."
         ),
+        # Things to observe (clues live here). Observing never changes the state.
+        "looks": [
+            {
+                "label": "Secretária do Tomás", "x": 195, "y": 250, "w": 120, "h": 50, "stand": 255,
+                "text": "A secretária do Tomás, ao lado da tua. Uma caneca com o número 47 pintado à mão. "
+                "Ele passa o dia a olhar para ela.",
+            },
+            {
+                "label": "Calendário", "x": 296, "y": 92, "w": 70, "h": 82, "stand": 330,
+                "text": "O calendário oficial do Partido. Um dia está marcado a vermelho: "
+                "17 de Abril — Dia da Unidade.",
+            },
+            {
+                "label": "Teletela", "x": 420, "y": 90, "w": 120, "h": 80, "stand": 480,
+                "text": "O olho do Partido. Tens a sensação de que pisca quando desvias o olhar.",
+            },
+            {
+                "label": "Quadro de avisos", "x": 578, "y": 78, "w": 94, "h": 74, "stand": 620,
+                "text": "AVISO: por ordem superior, o teclado do Arquivo passa a usar a data do Dia "
+                "da Unidade. Primeiro o dia, depois o mês. Quatro dígitos.",
+            },
+        ],
         # Picture and text shown instead once the player has the item (PT R3)
         "image_after": {"cartao_acesso": "ministerio_sem_cartao.svg"},
         "text_after": {
             "cartao_acesso": (
                 "Os teletelas zumbem por cima das secretárias. A secretária do teu chefe "
                 "está como sempre, só falta o cartão que agora tens no bolso. Ao fundo do "
-                "corredor, a porta sem placa do Arquivo secreto espera."
+                "corredor, a porta sem placa do Arquivo secreto espera, com o seu teclado numérico."
             ),
         },
     },
     "arquivo": {
         "title": "Arquivo secreto",
         "image": "arquivo.svg",
+        "talks": {
+            "estante": {
+                "x": 588, "y": 50, "w": 205, "h": 290, "stand": 640,
+                "label": "Procurar nas caixas",
+                "line": "Quatro caixas com anos escritos à mão: 1980, 1981, 1982, 1983. O relatório só pode estar numa delas.",
+            },
+        },
         # Where the character walks in the 800x400 picture (clickable scenes)
         "walk": {"start": 260, "floor": 368, "scale": 1.0, "min": 30, "max": 760},
         "text": (
             "Estantes até ao teto, caixas com carimbos vermelhos. Aqui estão as versões "
-            "originais de tudo o que foi reescrito. Numa pasta aberta está um relatório "
-            "com a tua própria assinatura, sobre uma guerra que nunca aconteceu. Num "
-            "armário de metal, uma gaveta entreaberta tem uma etiqueta: TOMÁS."
+            "originais de tudo o que foi reescrito. Algures numa destas caixas está o "
+            "relatório com a tua própria assinatura, sobre uma guerra que nunca aconteceu. "
+            "Em cima da mesa, um jornal. Num armário de metal, uma gaveta com cadeado tem "
+            "uma etiqueta: TOMÁS."
         ),
+        "looks": [
+            {
+                "label": "Jornal", "x": 330, "y": 280, "w": 110, "h": 45, "stand": 410,
+                "text": "O jornal de hoje, 4 de Abril de 1984, já corrigido: «A guerra contra a "
+                "Lestásia, que começou há três anos, está quase ganha.» Mas tu sabes que essa "
+                "guerra nunca existiu.",
+            },
+            {
+                "label": "Caixas antigas", "x": 165, "y": 50, "w": 100, "h": 240, "stand": 215,
+                "text": "Caixas com um carimbo vermelho: CORRIGIDO. Milhares de verdades fechadas "
+                "em cartão.",
+            },
+        ],
+        # Choice puzzles reuse talk spots: each option is an action with "talk": "estante"
         # A tuple key needs all its items; the first match wins, so the tuple comes first
         "image_after": {
             ("documento_proibido", "ficha_tomas"): "arquivo_vazio.svg",
@@ -62,19 +107,19 @@ SCENES = {
         },
         "text_after": {
             ("documento_proibido", "ficha_tomas"): (
-                "Estantes até ao teto, caixas com carimbos vermelhos. A pasta está vazia e "
-                "a gaveta do Tomás fechada. Tens tudo o que vieste buscar. Os passos estão "
-                "quase a chegar."
+                "Estantes até ao teto, caixas com carimbos vermelhos. A caixa de 1981 está "
+                "aberta e a gaveta do Tomás vazia. Tens tudo o que vieste buscar. Os passos "
+                "estão quase a chegar."
             ),
             "documento_proibido": (
-                "Estantes até ao teto, caixas com carimbos vermelhos. A pasta onde estava "
-                "o relatório está vazia: o documento está agora debaixo do teu casaco. A "
-                "gaveta com a etiqueta TOMÁS continua entreaberta. Os passos aproximam-se."
+                "Estantes até ao teto, caixas com carimbos vermelhos. A caixa de 1981 está "
+                "aberta: o relatório está agora debaixo do teu casaco. A gaveta com a etiqueta "
+                "TOMÁS continua fechada a cadeado. Os passos aproximam-se."
             ),
             "ficha_tomas": (
-                "Estantes até ao teto, caixas com carimbos vermelhos. Fechaste a gaveta do "
-                "Tomás, mas não consegues esquecer o que leste. O relatório com a tua "
-                "assinatura continua na pasta aberta."
+                "Estantes até ao teto, caixas com carimbos vermelhos. A gaveta do Tomás está "
+                "aberta e vazia, mas não consegues esquecer o que leste. O relatório continua "
+                "algures numa das caixas."
             ),
         },
     },
@@ -97,6 +142,16 @@ SCENES = {
                 "decisão que tomaste. Lá fora, a noite está a cair."
             ),
         },
+        "looks": [
+            {
+                "label": "Janela", "x": 80, "y": 70, "w": 200, "h": 180, "stand": 180,
+                "text": "O bairro às escuras. Em cada janela, a luz azulada de um teletela.",
+            },
+            {
+                "label": "Teletela", "x": 330, "y": 80, "w": 100, "h": 70, "stand": 380,
+                "text": "Nunca se desliga. Aprendeste a falar baixo e a sorrir para ele.",
+            },
+        ],
         # Clickable characters: their actions are the ones with "talk": name
         "talks": {
             "tomas": {
@@ -113,18 +168,60 @@ SCENES = {
         "walk": {"start": 470, "floor": 375, "scale": 1.0, "min": 300, "max": 740},
         "text": (
             "A sala de onde se vigia o bairro inteiro. Dezenas de ecrãs, um guarda "
-            "sonolento e, ao fundo, uma grelha no chão que dá para os túneis antigos."
+            "sonolento e, ao fundo, uma grelha no chão, fechada com um cadeado, que dá "
+            "para os túneis antigos."
         ),
+        "looks": [
+            {
+                "label": "Ecrãs", "x": 40, "y": 30, "w": 730, "h": 200, "stand": 500,
+                "text": "Vinte e um ecrãs. Alguns estão apagados: câmaras avariadas. Num post-it "
+                "amarelo, a letra do guarda: «Grelha norte: nº de câmaras avariadas × 7.»",
+            },
+            {
+                "label": "Guarda", "x": 150, "y": 232, "w": 140, "h": 120, "stand": 310,
+                "text": "Ressona com a cabeça em cima da mesa. Tem chaves no cinto, mas nenhuma "
+                "serve para cadeados de números.",
+            },
+        ],
     },
     "tunel": {
         "title": "Túnel de fuga",
         "image": "tunel.svg",
         # Where the character walks in the 800x400 picture (clickable scenes)
+        "walk": {"start": 160, "floor": 395, "scale": 1.1, "min": 100, "max": 700},
+        "text": (
+            "Escuro, húmido, cheio de ecos. O túnel divide-se em três: à esquerda, um "
+            "corredor seco; em frente, uma luz que se mexe; à direita, ouve-se água a correr."
+        ),
+        "looks": [
+            {
+                "label": "Parede", "x": 20, "y": 140, "w": 90, "h": 150, "stand": 120,
+                "text": "Alguém riscou na pedra, há muito tempo: «A água nunca mente.»",
+            },
+        ],
+        "talks": {
+            "bifurcacao": {
+                "x": 230, "y": 110, "w": 380, "h": 240, "stand": 330,
+                "label": "Escolher um caminho",
+                "line": "Três caminhos na escuridão. Só um leva à resistência.",
+            },
+        },
+    },
+    "esconderijo": {
+        "title": "Esconderijo da resistência",
+        "image": "esconderijo.svg",
         "walk": {"start": 220, "floor": 395, "scale": 1.1, "min": 120, "max": 600},
         "text": (
-            "Escuro, húmido, cheio de ecos. Uma lanterna acende-se mais à frente: "
-            "alguém da resistência está à tua espera, de mão estendida."
+            "Uma porta de ferro abre-se para uma sala escondida debaixo da cidade. Uma "
+            "lanterna acende-se mais à frente: alguém da resistência está à tua espera, "
+            "de mão estendida."
         ),
+        "looks": [
+            {
+                "label": "Paredes", "x": 20, "y": 100, "w": 90, "h": 200, "stand": 130,
+                "text": "Cartazes do Partido, rasgados. Por cima, a tinta: A VERDADE É UM DIREITO.",
+            },
+        ],
     },
     "final_resistencia": {
         "title": "Final 1 — A verdade escapa",
@@ -166,7 +263,10 @@ SCENES = {
 # - decides: (decision, value) stored when accepted (only offered while undecided)
 # - only_if: (decision, value) the action is hidden unless that decision was made
 # - only_with: item; the action is hidden unless the player has it
-# - talk: name of a clickable character in SCENES[scene]["talks"]; the action is one of its options
+# - only_without: item; the action is hidden once the player has it
+# - rejects: the action is offered but always refused with this message (a wrong answer)
+# - code, code_prompt, wrong_code_message: the action also needs the right code typed in
+# - talk: name of a clickable character or object in SCENES[scene]["talks"]; the action is one of its options
 # - say: what the player says when this is chosen in a conversation
 # - goes_to: scene the player moves to
 # - hotspot: clickable spot in the scene picture; the character walks to x = stand first
@@ -184,6 +284,9 @@ ACTIONS = {
         "label": "Ir ao Arquivo secreto",
         "requires": "cartao_acesso",
         "blocked_message": "A porta não abre. Precisas de um cartão de acesso.",
+        "code": "1704",
+        "code_prompt": "Teclado da porta do Arquivo: 4 dígitos",
+        "wrong_code_message": "O teclado apita e a luz fica vermelha. Código errado.",
         "goes_to": "arquivo",
         "message": "Passas o cartão no leitor. A luz fica verde e a porta abre-se.",
     },
@@ -194,18 +297,52 @@ ACTIONS = {
         "goes_to": "apartamento",
         "message": "Sais do Ministério sem olhar para trás.",
     },
-    "apanhar_documento": {
-        "hotspot": {"x": 330, "y": 270, "w": 110, "h": 55, "stand": 470},
+    "caixa_1980": {
         "scene": "arquivo",
-        "label": "Apanhar documento proibido",
+        "talk": "estante",
+        "say": "Caixa de 1980",
+        "label": "Abrir a caixa de 1980",
+        "only_without": "documento_proibido",
+        "rejects": "Recibos de racionamento de 1980. Nada de útil. Fechas a caixa.",
+        "message": "",
+    },
+    "apanhar_documento": {
+        "scene": "arquivo",
+        "talk": "estante",
+        "say": "Caixa de 1981",
+        "label": "Abrir a caixa de 1981",
         "gives": "documento_proibido",
-        "message": "Escondes o relatório debaixo do casaco. O coração bate depressa.",
+        "message": (
+            "Lá dentro está o relatório original, com a tua assinatura, sobre uma guerra que "
+            "nunca aconteceu. Escondes o relatório debaixo do casaco. O coração bate depressa."
+        ),
+    },
+    "caixa_1982": {
+        "scene": "arquivo",
+        "talk": "estante",
+        "say": "Caixa de 1982",
+        "label": "Abrir a caixa de 1982",
+        "only_without": "documento_proibido",
+        "rejects": "Fotografias de pessoas que já não existem. Fechas a caixa depressa.",
+        "message": "",
+    },
+    "caixa_1983": {
+        "scene": "arquivo",
+        "talk": "estante",
+        "say": "Caixa de 1983",
+        "label": "Abrir a caixa de 1983",
+        "only_without": "documento_proibido",
+        "rejects": "Discursos antigos do Partido. Nenhum relatório.",
+        "message": "",
     },
     "apanhar_ficha": {
         "hotspot": {"x": 508, "y": 250, "w": 74, "h": 95, "stand": 560},
         "scene": "arquivo",
         "label": "Ler a ficha do Tomás",
         "gives": "ficha_tomas",
+        "code": "47",
+        "code_prompt": "Cadeado da gaveta do Tomás: 2 dígitos",
+        "wrong_code_message": "O cadeado não abre.",
         "message": (
             "Abres a gaveta. Uma ficha com a fotografia do Tomás: «Informador nº 47. "
             "Missão: ganhar a confiança dos curiosos.» Guardas a ficha. As mãos tremem-te."
@@ -249,7 +386,8 @@ ACTIONS = {
         "decides": ("colega", "confrontou"),
         "message": (
             "Mostras-lhe a ficha. O Tomás fica pálido e senta-se. Confessa que o obrigaram "
-            "a informar, mas jura que esta noite vai ajudar-te a sério. \"Na Estação. Confia em mim desta vez.\""
+            "a informar, mas jura que esta noite vai ajudar-te a sério. \"Na Estação. Eu distraio "
+            "o guarda; o código da grelha está algures nos ecrãs. E no túnel, segue sempre o som da água.\""
         ),
     },
     "regressar_ministerio": {
@@ -282,8 +420,11 @@ ACTIONS = {
         "scene": "vigilancia",
         "label": "Seguir o Tomás para o túnel",
         "only_if": ("colega", "confrontou"),
+        "code": "42",
+        "code_prompt": "Cadeado da grelha: 2 dígitos",
+        "wrong_code_message": "O cadeado não cede. O guarda resmunga a dormir...",
         "goes_to": "tunel",
-        "message": "O Tomás distrai o guarda e desliga as câmaras. Desces pela grelha.",
+        "message": "O Tomás distrai o guarda. O cadeado abre-se com um clique. Desces pela grelha.",
     },
     "tentar_sozinho": {
         "hotspot": {"x": 600, "y": 335, "w": 160, "h": 55, "stand": 680},
@@ -293,9 +434,33 @@ ACTIONS = {
         "goes_to": "final_descoberto",
         "message": "Avanças devagar, encostado à parede...",
     },
+    "tunel_seco": {
+        "scene": "tunel",
+        "talk": "bifurcacao",
+        "say": "À esquerda, pelo corredor seco",
+        "label": "Ir pelo corredor seco",
+        "rejects": "Um beco sem saída. Voltas atrás às apalpadelas.",
+        "message": "",
+    },
+    "tunel_luz": {
+        "scene": "tunel",
+        "talk": "bifurcacao",
+        "say": "Em frente, em direção à luz",
+        "label": "Ir em direção à luz",
+        "rejects": "A luz é a lanterna de uma patrulha! Escondes-te até passar e voltas atrás, com o coração aos saltos.",
+        "message": "",
+    },
+    "seguir_agua": {
+        "scene": "tunel",
+        "talk": "bifurcacao",
+        "say": "À direita, onde se ouve água",
+        "label": "Seguir o som da água",
+        "goes_to": "esconderijo",
+        "message": "Segues o som da água até uma porta de ferro. Do outro lado, alguém bate três vezes.",
+    },
     "entregar_documentos": {
         "hotspot": {"x": 385, "y": 235, "w": 90, "h": 110, "stand": 330},
-        "scene": "tunel",
+        "scene": "esconderijo",
         "label": "Entregar os documentos à resistência",
         "requires": "documento_proibido",
         "blocked_message": "Não tens nada para entregar.",
@@ -352,7 +517,11 @@ def scene_hotspots(state):
     for action_id in available_actions(state):
         action = ACTIONS[action_id]
         if "hotspot" in action:
-            spots.append({"action": action_id, "label": action["label"], **action["hotspot"]})
+            spot = {"action": action_id, "label": action["label"], **action["hotspot"]}
+            if "code" in action:
+                # Only the prompt goes to the browser, never the code itself
+                spot["code_prompt"] = action["code_prompt"]
+            spots.append(spot)
         if "talk" in action:
             name = action["talk"]
             if name not in talks:
@@ -360,6 +529,13 @@ def scene_hotspots(state):
                 spots.append(talks[name])
             talks[name]["options"].append({"action": action_id, "say": action["say"]})
     return spots
+
+
+def scene_looks(state):
+    """Things the player can observe in the current scene. Observing never changes the state."""
+    if is_finished(state):
+        return []
+    return list(SCENES[state["scene"]].get("looks", []))
 
 
 def journey(state):
@@ -382,7 +558,7 @@ def decision_labels(state):
 def is_offered(action, state):
     """Whether the action is shown. Hidden: other scenes, items already collected,
     decisions already made, routes that need a different decision, and actions
-    that need an item the player does not have (`only_with`)."""
+    that need an item the player does not have (`only_with`) or already has (`only_without`)."""
     if action["scene"] != state["scene"]:
         return False
     if "gives" in action and action["gives"] in state["inventory"]:
@@ -395,6 +571,8 @@ def is_offered(action, state):
             return False
     if "only_with" in action and action["only_with"] not in state["inventory"]:
         return False
+    if "only_without" in action and action["only_without"] in state["inventory"]:
+        return False
     return True
 
 
@@ -405,8 +583,9 @@ def available_actions(state):
     return [action_id for action_id, action in ACTIONS.items() if is_offered(action, state)]
 
 
-def apply_action(state, action_id):
-    """Try an action. Returns (accepted, new_state, message) and never modifies `state`."""
+def apply_action(state, action_id, code=None):
+    """Try an action. Returns (accepted, new_state, message) and never modifies `state`.
+    `code` is what the player typed, for actions that need a code."""
     if action_id not in ACTIONS:
         return False, copy_state(state), "Essa ação não existe."
     if is_finished(state):
@@ -421,10 +600,14 @@ def apply_action(state, action_id):
             return False, copy_state(state), "Já tomaste essa decisão."
         return False, copy_state(state), "Não podes fazer isso aqui."
 
+    if "rejects" in action:
+        return False, copy_state(state), action["rejects"]
     if "requires" in action and action["requires"] not in state["inventory"]:
         return False, copy_state(state), action["blocked_message"]
     if "needs_decision" in action and action["needs_decision"] not in state["decisions"]:
         return False, copy_state(state), action["blocked_message"]
+    if "code" in action and (code or "").strip() != action["code"]:
+        return False, copy_state(state), action["wrong_code_message"]
 
     new_state = copy_state(state)
     if "gives" in action:

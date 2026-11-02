@@ -18,16 +18,19 @@ ASSETS = Path(__file__).parent.parent / "assets"
 TO_APARTMENT_WITH_DOCUMENT = ["apanhar_cartao", "ir_arquivo", "apanhar_documento", "voltar_ministerio", "ir_apartamento"]
 FINAL_1_PATH = (
     ["apanhar_cartao", "ir_arquivo", "apanhar_documento", "apanhar_ficha", "voltar_ministerio", "ir_apartamento"]
-    + ["confrontar_colega", "ir_vigilancia", "ir_tunel", "entregar_documentos"]
+    + ["confrontar_colega", "ir_vigilancia", "ir_tunel", "seguir_agua", "entregar_documentos"]
 )
 FINAL_2_PATH = TO_APARTMENT_WITH_DOCUMENT + ["esconder_descoberta", "ir_vigilancia", "tentar_sozinho"]
 FINAL_3_PATH = TO_APARTMENT_WITH_DOCUMENT + ["confiar_colega", "ir_vigilancia", "seguir_tomas"]
+
+# The archive door, the drawer and the grate need codes (specs/puzzles.md)
+CODES = {"ir_arquivo": "1704", "apanhar_ficha": "47", "ir_tunel": "42"}
 
 
 def play(actions):
     state = new_game()
     for action_id in actions:
-        accepted, state, message = apply_action(state, action_id)
+        accepted, state, message = apply_action(state, action_id, CODES.get(action_id))
         assert accepted, f"{action_id} was rejected: {message}"
     return state
 
@@ -66,7 +69,7 @@ def test_grate_follows_the_decision():
     assert spot_ids(play(TO_APARTMENT_WITH_DOCUMENT + ["esconder_descoberta", "ir_vigilancia"])) == ["tentar_sozinho"]
     # Trusting without the file leads to the trap; confronting leads to the tunnel (specs/tomas-twist.md)
     assert spot_ids(play(TO_APARTMENT_WITH_DOCUMENT + ["confiar_colega", "ir_vigilancia"])) == ["seguir_tomas"]
-    assert spot_ids(play(FINAL_1_PATH[:-2])) == ["ir_tunel"]
+    assert spot_ids(play(FINAL_1_PATH[:-3])) == ["ir_tunel"]
 
 
 # Replaces test_decision_has_no_spot: Tomás is now a talk spot (specs/tomas-twist.md)
@@ -122,7 +125,7 @@ def test_spots_offered_together_never_overlap():
         state = new_game()
         for action_id in [None] + path:
             if action_id:
-                _, state, _ = apply_action(state, action_id)
+                _, state, _ = apply_action(state, action_id, CODES.get(action_id))
             spots = scene_hotspots(state)
             for i, a in enumerate(spots):
                 for b in spots[i + 1 :]:
