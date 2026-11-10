@@ -2,7 +2,7 @@
 
 A mystery game in the browser. You work at the Ministério da Verdade and discover that history is being rewritten. Observe the scenes, solve the puzzles, decide whether to trust your colleague Tomás, and reach one of three endings.
 
-**Two levels on a map.** Level 1 is "The Ministry". Reaching Ending 1 opens **Level 2 — "The Radio"**: the night after, take over the Party's radio. Find a safe route through the city, decipher the password, tune the right frequency, and choose whose voice the city will hear. The map shows which levels are open, completed (✓) and how many endings you found.
+**Three levels on a map.** Level 1 is "The Ministry". Reaching Ending 1 opens **Level 2 — "The Radio"**: the night after, take over the Party's radio. Find a safe route through the city, decipher the password, tune the right frequency, and choose whose voice the city will hear. Getting the truth on air opens **Level 3 — "The Ministry of Love"**: get Tomás's sister Clara out before dawn, disguised as laundry staff. Crack the service door and the officer's safe, pick the right cell, and decide whether to risk going back for the list of every prisoner. The map shows which levels are open, completed (✓) and how many endings you found (11 in all).
 
 **Chance:** some moments have a probability (Tomás may change his mind, the guard may keep sleeping, static may hide your voice), so replaying a level does not always end the same way.
 
@@ -62,7 +62,7 @@ The same tests run on GitHub Actions for every pull request and every push to `m
 | Screens | `app.py` | Streamlit pages: title screen, waiting room, the fullscreen game, and the **text mode** (the same game as plain buttons in the sidebar, closed by default). |
 | Fullscreen game | `components/scene_view.js`, `.css` | The whole game screen: top bar, the picture you click to walk, observe, talk and type codes, narration, endings, co-op chat. Sends actions, commands and chat messages to `app.py`; Python decides. |
 | Texts in two languages | `translations.py` | The Portuguese version of every story text (`STORY_PT`) and every screen text in both languages (`UI_TEXT`). |
-| Pictures | `assets/` | Original SVG illustrations. Chapter 2's are drawn by `scripts/art_chapter2.py`; `scripts/art_colour.py` then gives every picture its colours and ambient animation. |
+| Pictures | `assets/` | Original SVG illustrations. Chapters 2 and 3 are drawn by `scripts/art_chapter2.py` and `scripts/art_chapter3.py`; `scripts/art_colour.py` then gives every picture its colours and ambient animation, and `scripts/art_events.py` draws the event pictures on top of the coloured scenes. |
 | Specs | `specs/` | One spec per feature (Why / What / Out of scope / Done when). |
 | Tests | `tests/` | pytest: rules, puzzles, saving, players, and the app itself with Streamlit's `AppTest`. |
 

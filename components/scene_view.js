@@ -61,6 +61,7 @@ const VOICE_STYLE = {
   "Tomás": { pitch: 0.8, rate: 0.94, pick: 1 },
   "Júlia": { pitch: 1.2, rate: 1.0, pick: 2 },
   Seller: { pitch: 0.9, rate: 1.1, pick: 3 },
+  Clara: { pitch: 1.3, rate: 1.05, pick: 4 },
 };
 
 function speak(text, speaker, lang, onEnd) {
@@ -783,17 +784,20 @@ function menuScreen(data, setTriggerValue) {
       <path d="M0 200 Q150 170 300 205 T600 190 V260 H0Z" fill="#1d4d4f" opacity=".8"/>
       <path d="M30 150 L60 150 L60 110 L100 110 L100 150 L130 150" fill="none" stroke="#f7c873" stroke-width="3" opacity=".5"/>
       <g fill="#3b2f6e"><rect x="40" y="120" width="40" height="70"/><rect x="95" y="100" width="30" height="90"/>
-        <rect x="430" y="110" width="35" height="80"/><rect x="480" y="90" width="28" height="100"/></g>
+        <rect x="250" y="120" width="30" height="70"/></g>
       <g fill="#f7c873" opacity=".7"><rect x="48" y="130" width="6" height="8"/><rect x="66" y="150" width="6" height="8"/>
-        <rect x="103" y="115" width="6" height="8"/><rect x="440" y="125" width="6" height="8"/><rect x="488" y="105" width="6" height="8"/></g>
-      <path d="M520 190 L540 60 L560 190" fill="none" stroke="#e86a92" stroke-width="4"/>
-      <circle cx="540" cy="55" r="7" fill="#ff8fab" class="map-beacon"/>
-      <path class="map-road" d="M120 205 C220 120 330 250 470 150" fill="none" stroke="#ffe8a3" stroke-width="6" stroke-dasharray="4 14" stroke-linecap="round"/>
-      <text x="300" y="40" text-anchor="middle" fill="#ffe8a3" font-size="15" font-family="Georgia, serif" opacity=".85">✶ ✶ ✶</text>
+        <rect x="103" y="115" width="6" height="8"/><rect x="258" y="135" width="6" height="8"/></g>
+      <path d="M300 170 L320 50 L340 170" fill="none" stroke="#e86a92" stroke-width="4"/>
+      <circle cx="320" cy="45" r="7" fill="#ff8fab" class="map-beacon"/>
+      <path d="M470 150 L530 40 L590 150 Z" fill="#4a3f7a"/><path d="M500 95 L560 95" stroke="#8fb8ff" stroke-width="3"/>
+      <rect x="520" y="118" width="20" height="32" fill="#2b1d5c"/>
+      <path class="map-road" d="M84 205 C160 150 220 215 288 170 S 430 95 510 120" fill="none" stroke="#ffe8a3" stroke-width="6" stroke-dasharray="4 14" stroke-linecap="round"/>
+      <text x="170" y="40" text-anchor="middle" fill="#ffe8a3" font-size="15" font-family="Georgia, serif" opacity=".85">✶ ✶ ✶</text>
     </svg>`;
     const positions = [
-      [20, 78],
-      [74, 50],
+      [14, 79],
+      [48, 65],
+      [85, 46],
     ];
     menu.levels.forEach((level, i) => {
       const [left, top] = positions[i] || [50, 50];

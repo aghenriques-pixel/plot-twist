@@ -19,10 +19,11 @@ def db(tmp_path):
 # --- Levels -------------------------------------------------------------------------------
 
 
+# Changed (specs/level-3.md): there are three levels now
 def test_a_new_player_has_level_1_open_and_level_2_locked():
     status = level_status(set())
 
-    assert [(s["number"], s["unlocked"], s["completed"]) for s in status] == [(1, True, False), (2, False, False)]
+    assert [(s["number"], s["unlocked"], s["completed"]) for s in status] == [(1, True, False), (2, False, False), (3, False, False)]
 
 
 def test_ending_1_completes_level_1_and_opens_level_2():
@@ -40,7 +41,8 @@ def test_other_endings_do_not_open_the_next_level():
 
 
 def test_levels_match_chapters():
-    assert [level["chapter"] for level in LEVELS] == [1, 2]
+    # Changed (specs/level-3.md): three levels
+    assert [level["chapter"] for level in LEVELS] == [1, 2, 3]
     assert level_for_chapter(2)["number"] == 2
 
 
