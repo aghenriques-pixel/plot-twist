@@ -69,11 +69,15 @@ def test_hideout_picture_and_text_follow_what_was_taken():
 
 
 # Done when 3
+# Changed (specs/story-events-notebook.md): the wrong routes lead to events (the coffee
+# seller, a patrol), and from each the player returns to the street with nothing lost.
 def test_wrong_routes_are_refused():
     state = play(["sair_para_cidade"])
 
-    assert_rejected_and_unchanged(state, "beco_mercado")
-    assert_rejected_and_unchanged(state, "rua_fabricas")
+    for route, event, back in (("beco_mercado", "c2_mercado", "sair_beco"), ("rua_fabricas", "c2_patrulha", "esconder_portal")):
+        _, there, _ = apply_action(state, route)
+        assert there["scene"] == event
+        assert apply_action(there, back)[1] == state
 
 
 def test_tram_line_leads_to_the_tower():

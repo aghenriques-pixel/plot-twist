@@ -10,8 +10,8 @@ LEVELS = [
 ]
 
 ENDINGS_BY_CHAPTER = {
-    1: {"final_resistencia", "final_descoberto", "final_traido"},
-    2: {"final_c2_voz", "final_c2_reconhecido", "final_c2_estatica"},
+    1: {"final_resistencia", "final_descoberto", "final_traido", "final_apanhado"},
+    2: {"final_c2_voz", "final_c2_reconhecido", "final_c2_estatica", "final_c2_preso"},
 }
 
 

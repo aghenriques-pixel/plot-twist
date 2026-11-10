@@ -8,6 +8,10 @@ A mystery game in the browser. You work at the Ministério da Verdade and discov
 
 **Voices:** conversations are spoken by the browser's own speech voices (Tomás has a lower voice), and choosing a tunnel or a box makes the character walk there and come back if it was wrong. Voices can be turned off in Settings.
 
+**Events and danger:** wrong choices are not dead ends any more. A torch in the tunnel is a patrol, so hide, run or freeze before the clock runs out. Factory Street has a curfew patrol, Market Alley has a coffee seller who knows things, and a dead end hides a tin box. Getting caught is an ending of its own.
+
+**Notebook:** the 🎒 button opens a notebook from any scene. It shows every item with its full text, every conversation line by line, and your decisions.
+
 **Accounts (online):** create an account with a username and password to keep your levels when you come back, on any device.
 
 It starts on a main menu (**Play, How to Play, Settings, Exit**), goes fullscreen, has music and sound effects made in the browser, and can be played in **English or Portuguese**.

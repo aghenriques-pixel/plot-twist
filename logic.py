@@ -12,6 +12,26 @@ ITEMS = {
     "ficha_tomas": "Tomás's file",
     "mensagem_cifrada": "Ciphered message",
     "cassete": "Tomás's cassette",
+    "mapa_tuneis": "Scrap of tunnel map",
+}
+
+# The full text of each item, read in the notebook
+ITEM_DETAILS = {
+    "cartao_acesso": "Your boss's access card. The photo is ten years old and the plastic is cracked, but the Archive door doesn't care.",
+    "documento_proibido": (
+        "The original report on the war against Eastasia. Every battle invented, every casualty made up, "
+        "and your own signature at the bottom."
+    ),
+    "ficha_tomas": "A grey file with Tomás's photo clipped to it: \u201cInformer no. 47. Mission: win the trust of the curious.\u201d",
+    "mensagem_cifrada": (
+        "Today's message from the resistance, in old Julius's cipher: IUHHGRP. Each letter stands three "
+        "places further on in the alphabet than the real one."
+    ),
+    "cassete": "A cassette labelled in pencil, \u201cT. \u2014 the report\u201d. Tomás reads every word, so that nobody has to hear your voice.",
+    "mapa_tuneis": (
+        "A scrap of tunnel map, soft with damp. An arrow follows the water to a door, and underneath someone "
+        "has drawn three short lines."
+    ),
 }
 
 ITEM_ICONS = {
@@ -20,6 +40,7 @@ ITEM_ICONS = {
     "ficha_tomas": "🗂️",
     "mensagem_cifrada": "📜",
     "cassete": "📼",
+    "mapa_tuneis": "🗺️",
 }
 
 # Shown in the inventory panel once a decision is made
@@ -81,7 +102,7 @@ SCENES = {
             "estante": {
                 "x": 588, "y": 50, "w": 205, "h": 290, "stand": 640,
                 "label": "Search the boxes",
-                "line": "Four boxes with years written by hand: 1980, 1981, 1982, 1983. The report can only be in one of them.",
+                "line": "Four boxes, the years written on them by hand: 1980, 1981, 1982, 1983. The report has to be in one of them.",
             },
         },
         # Where the character walks in the 800x400 picture (clickable scenes)
@@ -164,7 +185,11 @@ SCENES = {
             "tomas": {
                 "x": 540, "y": 170, "w": 70, "h": 175, "stand": 470,
                 "label": "Talk to Tomás",
-                "line": "\u201cI know you've been asking questions. I'm with the resistance. Show me what you found.\u201d",
+                "speaker": "Tomás",
+                "line": (
+                    "\u201cClose the door. Look, I know you've been asking about the old files. I'm with the "
+                    "resistance. If you've found something, show me.\u201d"
+                ),
             },
         },
     },
@@ -259,6 +284,148 @@ SCENES = {
         "ending": True,
     },
 
+    "final_apanhado": {
+        "title": "Ending 7 — Caught",
+        "image": "final_descoberto.svg",
+        "text": (
+            "A hand closes on your shoulder. There is no trial and no shouting, only a quiet room at the "
+            "Ministry and a man who already knows your name. By morning the report is back in its box, and "
+            "someone new is sitting at your desk."
+        ),
+        "ending": True,
+    },
+
+    # ----- Events: wrong choices that turn into a moment of their own (specs/story-events-notebook.md) -----
+    # "danger": a clock runs in the picture; when it ends, the "timeout" action is sent
+    "arquivo_passos": {
+        "title": "Footsteps in the Archive",
+        "image": "arquivo_passos.svg",
+        "walk": {"start": 640, "floor": 368, "scale": 1.0, "min": 30, "max": 760},
+        "text": (
+            "Box 1982 is full of photographs of people who were later erased, their faces scratched out with "
+            "a pin. Then you hear it: footsteps in the corridor and the jingle of keys. A guard is doing his "
+            "rounds, and the door is ajar."
+        ),
+        "danger": {"seconds": 12, "timeout": "ficar_quieto_arquivo"},
+        "looks": [
+            {
+                "label": "Photographs", "x": 590, "y": 250, "w": 110, "h": 60, "stand": 620,
+                "text": "Dozens of faces, each one scratched out with a pin. On the back of one: \u201cUnperson, 1982.\u201d",
+            },
+        ],
+        "talks": {
+            "passos": {
+                "x": 20, "y": 60, "w": 150, "h": 290, "stand": 260,
+                "label": "The footsteps",
+                "line": "The footsteps stop right outside the door. You have a few seconds.",
+            },
+        },
+    },
+    "tunel_patrulha": {
+        "title": "A patrol in the tunnel",
+        "image": "tunel_patrulha.svg",
+        "walk": {"start": 330, "floor": 395, "scale": 1.1, "min": 100, "max": 700},
+        "text": (
+            "The light was never a way out. It is a torch, and behind it two patrolmen are walking straight "
+            "towards you, their boots splashing through the puddles."
+        ),
+        "danger": {"seconds": 10, "timeout": "ficar_quieto_tunel"},
+        "looks": [
+            {
+                "label": "Alcove", "x": 20, "y": 140, "w": 90, "h": 150, "stand": 120,
+                "text": "A gap in the wall, just wide enough for one person. It smells of rust and old water.",
+            },
+        ],
+        "talks": {
+            "patrulha": {
+                "x": 380, "y": 120, "w": 220, "h": 230, "stand": 300,
+                "label": "The patrol",
+                "line": "\u201cDid you hear that?\u201d one of them says. The torch swings your way.",
+            },
+        },
+    },
+    "tunel_beco": {
+        "title": "Dead end",
+        "image": "tunel_beco.svg",
+        "walk": {"start": 330, "floor": 395, "scale": 1.1, "min": 30, "max": 700},
+        "text": (
+            "The dry passage ends in a bricked-up wall. Someone has been here before you: there is a candle "
+            "stub on the ground and, wedged into a crack, a rusty tin box."
+        ),
+        "looks": [
+            {
+                "label": "Candle stub", "x": 300, "y": 330, "w": 60, "h": 40, "stand": 300,
+                "text": "The wax is still soft. Whoever lit it was here not long ago.",
+            },
+        ],
+        "talks": {
+            "lata": {
+                "x": 470, "y": 250, "w": 90, "h": 70, "stand": 430,
+                "label": "The tin box",
+                "line": "The tin is cold and rusty. Something shifts inside when you shake it.",
+            },
+        },
+    },
+    "c2_patrulha": {
+        "title": "Patrol on Factory Street",
+        "chapter": 2,
+        "image": "c2_patrulha.svg",
+        "walk": {"start": 495, "floor": 385, "scale": 0.95, "min": 30, "max": 760},
+        "text": (
+            "Factory Street is dark and quiet, until boots ring out on the cobbles. A patrol turns the "
+            "corner: two men, with a sergeant out in front."
+        ),
+        "danger": {"seconds": 10, "timeout": "ficar_quieto_rua"},
+        "looks": [
+            {
+                "label": "Doorway", "x": 90, "y": 190, "w": 80, "h": 150, "stand": 150,
+                "text": "A deep doorway, black as ink. Big enough to hide in, if you're quick.",
+            },
+        ],
+        "talks": {
+            "patrulha": {
+                "x": 560, "y": 170, "w": 200, "h": 180, "stand": 440,
+                "label": "The patrol",
+                "line": "\u201cCurfew was an hour ago,\u201d the sergeant calls out. \u201cWho's there?\u201d",
+            },
+        },
+    },
+    "c2_mercado": {
+        "title": "Market Alley",
+        "chapter": 2,
+        "image": "c2_mercado.svg",
+        "walk": {"start": 320, "floor": 385, "scale": 0.95, "min": 30, "max": 760},
+        "text": (
+            "The guards are at the far end of the alley, warming their hands at a brazier. Much closer, under "
+            "a torn awning, a man is selling coffee that was certainly not bought from the Party."
+        ),
+        "looks": [
+            {
+                "label": "Brazier", "x": 640, "y": 230, "w": 120, "h": 120, "stand": 620,
+                "text": "The guards laugh and pass a bottle round. None of them is looking this way. Yet.",
+            },
+        ],
+        "talks": {
+            "vendedor": {
+                "x": 470, "y": 190, "w": 90, "h": 160, "stand": 420,
+                "label": "Talk to the coffee seller",
+                "speaker": "Seller",
+                "line": "\u201cCoffee? Real coffee, not Victory coffee. Or are you just looking?\u201d",
+            },
+        },
+    },
+    "final_c2_preso": {
+        "title": "Ending 8 — Curfew",
+        "chapter": 2,
+        "image": "final_c2_reconhecido.svg",
+        "text": (
+            "They take you to the station on Factory Street and lock you in a cell with no window. Somewhere "
+            "above, the Party Radio is playing marches as usual. Júlia will have to find someone else to "
+            "carry the truth tonight."
+        ),
+        "ending": True,
+    },
+
     # ----- Chapter 2: "After the escape" (specs/chapter-2.md) -----
     "c2_esconderijo": {
         "title": "The hideout, next morning",
@@ -305,12 +472,15 @@ SCENES = {
                 "text": "In Júlia's handwriting: \u201cOur messages use old Julius's cipher: to read one, swap "
                 "each letter for the one three places back in the alphabet.\u201d",
             },
-            {
-                "label": "Júlia", "x": 610, "y": 170, "w": 70, "h": 170, "stand": 600,
-                "text": "The resistance leader. \u201cNobody believes paper. Tonight the truth goes out on "
-                "the Party's own radio.\u201d",
-            },
         ],
+        "talks": {
+            "julia": {
+                "x": 610, "y": 170, "w": 70, "h": 170, "stand": 560,
+                "label": "Talk to Júlia",
+                "speaker": "Júlia",
+                "line": "\u201cSit down, we haven't got long. What do you want to know?\u201d",
+            },
+        },
     },
     "c2_cidade": {
         "title": "City streets",
@@ -430,7 +600,9 @@ SCENES = {
 # - decision_message: shown when `needs_decision` is not met, if different from blocked_message
 # - talk: name of a clickable character or object in SCENES[scene]["talks"]; the action is one of its options
 # - say: what the player says when this is chosen in a conversation
-# - reply: what the other character answers, shown and spoken as a dialogue after an accepted choice
+# - reply: the conversation after `say`, as [(speaker, line), ...] ("you" is the player); shown and spoken
+#   after an accepted choice, and kept in the notebook under `conversation_title`
+# - decides ("conversa_...", "ouvida"): a conversation that was held; never shown as a decision
 # - x: for a talk option, where the character walks before choosing (the tunnel, the box, the street)
 # - goes_to: scene the player moves to
 # - hotspot: clickable spot in the scene picture; the character walks to x = stand first
@@ -470,7 +642,7 @@ ACTIONS = {
         "say": "The 1980 box",
         "label": "Open box 1980",
         "only_without": "documento_proibido",
-        "rejects": "Ration receipts from 1980. Nothing useful. You close the box.",
+        "rejects": "Ration cards from 1980, hundreds of them, every one stamped VOID. You put the lid back.",
         "message": "",
     },
     "apanhar_documento": {
@@ -481,8 +653,8 @@ ACTIONS = {
         "label": "Open box 1981",
         "gives": "documento_proibido",
         "message": (
-            "Inside is the original report, with your signature, about a war that never "
-            "happened. You hide it under your coat. Your heart is racing."
+            "Under a stack of carbon copies, there it is: the original report, with your own signature at "
+            "the bottom. A whole war, invented in your handwriting. You fold it and slide it under your coat."
         ),
     },
     "caixa_1982": {
@@ -492,8 +664,8 @@ ACTIONS = {
         "say": "The 1982 box",
         "label": "Open box 1982",
         "only_without": "documento_proibido",
-        "rejects": "Photographs of people who no longer exist. You close the box quickly.",
-        "message": "",
+        "goes_to": "arquivo_passos",
+        "message": "You lift the lid. Faces look up at you, and then, out in the corridor, keys jingle.",
     },
     "caixa_1983": {
         "x": 746,
@@ -502,7 +674,7 @@ ACTIONS = {
         "say": "The 1983 box",
         "label": "Open box 1983",
         "only_without": "documento_proibido",
-        "rejects": "Old Party speeches. No report.",
+        "rejects": "Speeches. Hundreds of them, all saying the same thing in slightly different words. No report.",
         "message": "",
     },
     "apanhar_ficha": {
@@ -514,8 +686,8 @@ ACTIONS = {
         "code_prompt": "Padlock on Tomás's drawer: 2 digits",
         "wrong_code_message": "The padlock does not open.",
         "message": (
-            "You open the drawer. A file with Tomás's photograph: \u201cInformer no. 47. "
-            "Mission: win the trust of the curious.\u201d You keep the file. Your hands are shaking."
+            "The padlock gives. In the drawer is a grey file with Tomás's photo clipped to it: \u201cInformer "
+            "no. 47. Mission: win the trust of the curious.\u201d You take it. Your hands won't stop shaking."
         ),
     },
     "voltar_ministerio": {
@@ -528,30 +700,48 @@ ACTIONS = {
     "confiar_colega": {
         "scene": "apartamento",
         "talk": "tomas",
-        "say": "\u201cAll right, I trust you. Look what I found.\u201d",
-        "reply": "\u201cI knew I could count on you. Tonight, at the Surveillance Station. Come alone, and don't be late.\u201d",
+        "say": "\u201cAll right. I'll trust you. Look at this.\u201d",
+        "conversation_title": "Tomás, in your flat",
+        "reply": [
+            ("Tomás", "\u201cThat's your signature... They had you write up a war that never happened.\u201d"),
+            ("you", "\u201cI didn't know what I was signing. I swear.\u201d"),
+            ("Tomás", "\u201cI believe you. Tonight, at the Surveillance Station. Come alone, and don't be late.\u201d"),
+        ],
         "label": "Trust Tomás",
         "requires": "documento_proibido",
         "blocked_message": "You have no proof to show. You need the document from the Archive first.",
         "decides": ("colega", "confiou"),
-        "message": "You show him the document. Tomás smiles: \u201cTonight, at the Surveillance Station.\u201d And he leaves.",
+        "message": "You show him the document. Tomás nods slowly and slips out without a sound.",
     },
     "esconder_descoberta": {
         "scene": "apartamento",
         "talk": "tomas",
-        "say": "\u201cI don't know what you're talking about, Tomás.\u201d",
-        "reply": "\u201cAs you wish. But be careful: the walls in this city have ears.\u201d",
+        "say": "\u201cTomás, I've no idea what you're on about.\u201d",
+        "conversation_title": "Tomás, in your flat",
+        "reply": [
+            ("Tomás", "\u201cNo? Then I was wrong about you.\u201d"),
+            ("you", "\u201cI correct newspapers. That's all I do.\u201d"),
+            ("Tomás", "\u201cThen be careful what you correct. In this city, the walls have ears.\u201d"),
+        ],
         "label": "Keep the discovery to yourself",
         "requires": "documento_proibido",
         "blocked_message": "There is nothing to hide yet. You need the document from the Archive first.",
         "decides": ("colega", "escondeu"),
-        "message": "You tell Tomás you know nothing. He leaves. You will investigate alone.",
+        "message": "Tomás shrugs and leaves. From now on, you are on your own.",
     },
     "confrontar_colega": {
         "scene": "apartamento",
         "talk": "tomas",
-        "say": "\u201cFirst, explain this.\u201d (show the file)",
-        "reply": "\u201cThey made me do it... they have my sister. But I'm done with them. Tonight I'll get you out, I swear.\u201d",
+        "say": "\u201cBefore anything else, explain this.\u201d (you show him the file)",
+        "conversation_title": "Tomás, in your flat",
+        "reply": [
+            ("Tomás", "\u201cWhere did you get... All right. Yes. It's true.\u201d"),
+            ("you", "\u201cInformer number 47. You were going to hand me in.\u201d"),
+            ("Tomás", "\u201cThey've got my sister. Every week I give them a name, and every week they let her live.\u201d"),
+            ("you", "\u201cAnd this week the name was mine.\u201d"),
+            ("Tomás", "\u201cNot any more. Tonight I'll keep the guard busy; the grate code is on the screens. In the tunnels, "
+                      "follow the water. I'll get you out, I swear.\u201d"),
+        ],
         "label": "Confront Tomás with the file",
         "only_with": "ficha_tomas",
         "requires": "documento_proibido",
@@ -626,8 +816,8 @@ ACTIONS = {
         "talk": "bifurcacao",
         "say": "Left, down the dry passage",
         "label": "Take the dry passage",
-        "rejects": "A dead end. You feel your way back.",
-        "message": "",
+        "goes_to": "tunel_beco",
+        "message": "The passage gets narrower and drier, until your hand meets bricks.",
     },
     "tunel_luz": {
         "x": 420,
@@ -635,8 +825,8 @@ ACTIONS = {
         "talk": "bifurcacao",
         "say": "Straight ahead, towards the light",
         "label": "Go towards the light",
-        "rejects": "The light is a patrol's torch! You hide until it passes and go back, heart pounding.",
-        "message": "",
+        "goes_to": "tunel_patrulha",
+        "message": "You walk towards the light... and the light starts walking towards you.",
     },
     "seguir_agua": {
         "x": 610,
@@ -646,6 +836,102 @@ ACTIONS = {
         "label": "Follow the sound of water",
         "goes_to": "esconderijo",
         "message": "You follow the sound of water to an iron door. On the other side, someone knocks three times.",
+    },
+    # ----- Events in level 1 -----
+    "esconder_estantes": {
+        "scene": "arquivo_passos",
+        "talk": "passos",
+        "say": "Squeeze in behind the shelves",
+        "label": "Hide behind the shelves",
+        "goes_to": "arquivo",
+        "message": (
+            "You press yourself between two shelves and hold your breath. A torch beam sweeps the room, "
+            "lingers on the open box... and moves on. The footsteps fade away."
+        ),
+    },
+    "continuar_procurar": {
+        "scene": "arquivo_passos",
+        "talk": "passos",
+        "say": "Keep looking through the box",
+        "label": "Keep searching",
+        "goes_to": "arquivo",
+        "message": (
+            "You keep turning the photos with trembling fingers. The footsteps stop at the door and then, "
+            "after a very long second, move on. There is nothing else in this box."
+        ),
+        "lucky": {
+            "chance": 0.5,
+            "goes_to": "final_apanhado",
+            "message": "The door swings open and a torch hits you full in the face. \u201cWell, well. Working late?\u201d",
+        },
+    },
+    "ficar_quieto_arquivo": {
+        "scene": "arquivo_passos",
+        "talk": "passos",
+        "say": "Freeze and don't make a sound",
+        "label": "Freeze",
+        "goes_to": "arquivo",
+        "message": "You don't move a muscle. The guard rattles the handle, mutters something about the night shift and walks on.",
+        "lucky": {
+            "chance": 0.35,
+            "goes_to": "final_apanhado",
+            "message": "You don't move a muscle, but the door creaks open anyway. \u201cWho's there?\u201d",
+        },
+    },
+    "esconder_nicho": {
+        "scene": "tunel_patrulha",
+        "talk": "patrulha",
+        "say": "Slip into the gap in the wall",
+        "label": "Hide in the alcove",
+        "goes_to": "tunel",
+        "message": (
+            "You squeeze into a gap in the stone. The torch passes a hand's breadth from your face... and "
+            "keeps going. When the echoes die away, you creep back to the fork."
+        ),
+    },
+    "fugir_tunel": {
+        "scene": "tunel_patrulha",
+        "talk": "patrulha",
+        "say": "Run back to the fork",
+        "label": "Run",
+        "goes_to": "tunel",
+        "message": "You run back the way you came, splashing through the dark. Behind you, a whistle, but nobody follows.",
+        "lucky": {
+            "chance": 0.35,
+            "goes_to": "final_apanhado",
+            "message": "You run, but the floor is slick. You go down hard, and a moment later the torch is on you.",
+        },
+    },
+    "ficar_quieto_tunel": {
+        "scene": "tunel_patrulha",
+        "talk": "patrulha",
+        "say": "Freeze against the wall",
+        "label": "Freeze",
+        "goes_to": "tunel",
+        "message": "You flatten yourself against the wet wall. \u201cRats,\u201d one of them grunts, and they turn down another passage.",
+        "lucky": {
+            "chance": 0.5,
+            "goes_to": "final_apanhado",
+            "message": "You hold your breath, but the torch finds your shoes first. \u201cDon't move!\u201d",
+        },
+    },
+    "abrir_lata": {
+        "scene": "tunel_beco",
+        "talk": "lata",
+        "say": "Open the tin",
+        "label": "Open the tin box",
+        "gives": "mapa_tuneis",
+        "message": (
+            "Inside, wrapped in oilcloth, is a scrap of map. An arrow follows the water to a door, and "
+            "underneath someone has drawn three short lines."
+        ),
+    },
+    "voltar_bifurcacao": {
+        "hotspot": {"x": 0, "y": 200, "w": 45, "h": 180, "stand": 30, "edge": "left"},
+        "scene": "tunel_beco",
+        "label": "Back to the fork",
+        "goes_to": "tunel",
+        "message": "You feel your way along the wall, back to where the tunnel splits.",
     },
     "entregar_documentos": {
         "hotspot": {"x": 385, "y": 235, "w": 90, "h": 110, "stand": 330},
@@ -663,14 +949,44 @@ ACTIONS = {
         "scene": "c2_esconderijo",
         "label": "Take the ciphered message",
         "gives": "mensagem_cifrada",
-        "message": "Júlia hands you today's message, ciphered as always: IUHHGRP. \u201cIt is the word that opens the tower.\u201d",
+        "message": "Júlia hands you today's message, in cipher as always: IUHHGRP. \u201cThat's the word that opens the tower. You'll have to work it out yourself.\u201d",
     },
     "apanhar_cassete": {
         "hotspot": {"x": 490, "y": 270, "w": 60, "h": 40, "stand": 470},
         "scene": "c2_esconderijo",
         "label": "Take Tomás's cassette",
         "gives": "cassete",
-        "message": "A cassette of Tomás reading the report. \u201cIf it goes wrong, at least it won't be your voice they hear.\u201d",
+        "message": "A cassette of Tomás reading the whole report. \u201cIf something goes wrong,\u201d Júlia says, \u201cat least it won't be your voice they recognise.\u201d",
+    },
+    "perguntar_plano": {
+        "scene": "c2_esconderijo",
+        "talk": "julia",
+        "say": "\u201cWhat exactly is the plan?\u201d",
+        "label": "Ask Júlia about the plan",
+        "decides": ("conversa_julia_plano", "ouvida"),
+        "conversation_title": "Júlia: the plan",
+        "reply": [
+            ("Júlia", "\u201cThe Party Radio is on in every kitchen in this city. Tonight, for once, it's going to tell the truth.\u201d"),
+            ("you", "\u201cAnd how do we get into the tower?\u201d"),
+            ("Júlia", "\u201cThe door has a letter lock. Today's message has the word, in cipher. And once you're in, "
+                      "use our frequency, not theirs.\u201d"),
+        ],
+        "message": "Júlia turns back to the map on the wall.",
+    },
+    "perguntar_tomas": {
+        "scene": "c2_esconderijo",
+        "talk": "julia",
+        "say": "\u201cHow is Tomás?\u201d",
+        "label": "Ask Júlia about Tomás",
+        "decides": ("conversa_julia_tomas", "ouvida"),
+        "conversation_title": "Júlia: about Tomás",
+        "reply": [
+            ("Júlia", "\u201cAlive. Ashamed. He hasn't slept.\u201d"),
+            ("you", "\u201cDo you trust him?\u201d"),
+            ("Júlia", "\u201cI trust that cassette. He recorded the whole report, so that if anyone is recognised tonight, "
+                      "it's him and not you.\u201d"),
+        ],
+        "message": "Júlia says nothing more about it.",
     },
     "sair_para_cidade": {
         "hotspot": {"x": 0, "y": 120, "w": 45, "h": 240, "stand": 30, "edge": "left"},
@@ -685,8 +1001,8 @@ ACTIONS = {
         "talk": "caminhos",
         "say": "Through Market Alley",
         "label": "Take Market Alley",
-        "rejects": "The alley is full of guards, as always. You back away before they see you.",
-        "message": "",
+        "goes_to": "c2_mercado",
+        "message": "You slip into Market Alley, keeping to the shadows.",
     },
     "rua_fabricas": {
         "x": 495,
@@ -694,8 +1010,8 @@ ACTIONS = {
         "talk": "caminhos",
         "say": "Along Factory Street",
         "label": "Take Factory Street",
-        "rejects": "Round the corner you hear boots: a patrol! You run back.",
-        "message": "",
+        "goes_to": "c2_patrulha",
+        "message": "You turn into Factory Street. For a moment, all you can hear is your own breathing.",
     },
     "seguir_eletrico": {
         "x": 658,
@@ -705,6 +1021,68 @@ ACTIONS = {
         "label": "Follow the tram line",
         "goes_to": "c2_torre",
         "message": "You follow the tram tracks. Not a single guard: after curfew, nobody watches the line.",
+    },
+    # ----- Events in level 2 -----
+    "esconder_portal": {
+        "scene": "c2_patrulha",
+        "talk": "patrulha",
+        "say": "Duck into a doorway",
+        "label": "Hide in a doorway",
+        "goes_to": "c2_cidade",
+        "message": (
+            "You slip into a doorway and hold your breath. The patrol marches past, close enough to touch. "
+            "When they have gone, you head back to the square."
+        ),
+    },
+    "mentir_patrulha": {
+        "scene": "c2_patrulha",
+        "talk": "patrulha",
+        "say": "\u201cNight shift at the Ministry, sir.\u201d",
+        "label": "Say you're on the night shift",
+        "goes_to": "c2_cidade",
+        "message": (
+            "The sergeant looks you up and down. \u201cThen get going. And take another street, we're closing "
+            "this one.\u201d You walk back to the square without looking round."
+        ),
+        "lucky": {
+            "chance": 0.5,
+            "goes_to": "final_c2_preso",
+            "message": "The sergeant smiles. \u201cFunny. The Ministry's night shift was cancelled a month ago.\u201d",
+        },
+    },
+    "ficar_quieto_rua": {
+        "scene": "c2_patrulha",
+        "talk": "patrulha",
+        "say": "Stay perfectly still in the shadows",
+        "label": "Freeze",
+        "goes_to": "c2_cidade",
+        "message": "You stay in the shadows without moving. The patrol stops, listens... and moves on. You go back to the square.",
+        "lucky": {
+            "chance": 0.5,
+            "goes_to": "final_c2_preso",
+            "message": "A torch sweeps across the shadows and stops on you. \u201cThere you are.\u201d",
+        },
+    },
+    "perguntar_vendedor": {
+        "scene": "c2_mercado",
+        "talk": "vendedor",
+        "say": "\u201cWhich way to the radio tower, without the guards?\u201d",
+        "label": "Ask the seller about the guards",
+        "decides": ("conversa_vendedor", "ouvida"),
+        "conversation_title": "The coffee seller",
+        "reply": [
+            ("Seller", "\u201cThe tower? Not through here, that's for sure. That lot never moves from the brazier.\u201d"),
+            ("you", "\u201cAnd Factory Street?\u201d"),
+            ("Seller", "\u201cPatrols, like clockwork. But the tram line... after curfew the guards there go home. Lazy lot.\u201d"),
+        ],
+        "message": "The seller goes back to his coffee pot as if you had never spoken.",
+    },
+    "sair_beco": {
+        "hotspot": {"x": 0, "y": 200, "w": 45, "h": 180, "stand": 30, "edge": "left"},
+        "scene": "c2_mercado",
+        "label": "Back to the square",
+        "goes_to": "c2_cidade",
+        "message": "You back out of the alley before the guards look up.",
     },
     "voltar_esconderijo": {
         "hotspot": {"x": 0, "y": 200, "w": 45, "h": 180, "stand": 30, "edge": "left"},
@@ -878,8 +1256,24 @@ def journey(state):
 
 
 def decision_labels(state):
-    """Readable descriptions of the decisions made so far."""
-    return [DECISION_LABELS[(name, value)] for name, value in state["decisions"].items()]
+    """Readable descriptions of the decisions made so far (conversations held are not decisions)."""
+    return [DECISION_LABELS[(name, value)] for name, value in state["decisions"].items() if not name.startswith("conversa_")]
+
+
+def notebook(state):
+    """What the player can re-read anywhere: items with their full text, the conversations held in
+    this game (the player's line first), and the decisions. Built only from the saved state."""
+    items = [
+        {"id": item, "name": ITEMS[item], "icon": ITEM_ICONS[item], "text": ITEM_DETAILS[item]}
+        for item in state["inventory"]
+    ]
+    conversations = []
+    for name, value in state["decisions"].items():
+        for action in ACTIONS.values():
+            if action.get("decides") == (name, value) and "reply" in action:
+                lines = [("you", action["say"])] + [tuple(line) for line in action["reply"]]
+                conversations.append({"title": action["conversation_title"], "lines": lines})
+    return {"items": items, "conversations": conversations, "decisions": decision_labels(state)}
 
 
 def is_offered(action, state):

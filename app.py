@@ -38,6 +38,7 @@ from logic import (
     is_finished,
     journey,
     new_game,
+    notebook,
     scene_hotspots,
     scene_image,
     scene_looks,
@@ -98,7 +99,11 @@ st.markdown(
     """<style>
     [data-testid="stToolbarActions"], [data-testid="stMainMenu"], [data-testid="stAppDeployButton"],
     [data-testid="stDecoration"], footer { display: none !important; }
+    /* The header is see-through and lies over the game's top bar: let clicks pass through it,
+       except on its own buttons (the text-mode toggle) */
     header[data-testid="stHeader"] { background: transparent !important; }
+    header[data-testid="stHeader"], header[data-testid="stHeader"] * { pointer-events: none !important; }
+    header[data-testid="stHeader"] button, header[data-testid="stHeader"] a { pointer-events: auto !important; }
     [data-testid="stSidebar"] h1 { font-size: 1.4rem; }
     /* Co-op screens refresh every 2 s: never dim the game while Streamlit reruns */
     [data-stale="true"], .stale-element { opacity: 1 !important; transition: none !important; }
@@ -266,7 +271,7 @@ def choose(action_id, code=None, code_key=None, came_from=None):
             # The other character answers over the picture as it was (Tomás still there)
             st.session_state.dialogue = {
                 "background": svg_data_uri(ART_DIR / scene_image(before)),
-                "lines": [{"who": "you", "text": action["say"]}, {"who": "Tomás", "text": action["reply"]}],
+                "lines": [{"who": "you", "text": action["say"]}] + [{"who": who, "text": line} for who, line in action["reply"]],
             }
         if is_finished(game):
             record_progress(game)
@@ -528,6 +533,44 @@ def scene_key(*parts):
     return hashlib.md5(json.dumps(parts, sort_keys=True, default=str).encode()).hexdigest()
 
 
+def speaker_name(who):
+    return t("you") if who == "you" else say(who)
+
+
+def notebook_data(game):
+    """The notebook, translated: items with their text, conversations held, decisions."""
+    book = notebook(game)
+    return {
+        "title": t("notebook"),
+        "labels": {key: t(key) for key in ("nb_items", "nb_conversations", "nb_decisions", "nb_empty", "close")},
+        "items": [{"icon": item["icon"], "name": say(item["name"]), "text": say(item["text"])} for item in book["items"]],
+        "conversations": [
+            {
+                "title": say(talk["title"]),
+                "lines": [{"who": speaker_name(who), "mine": who == "you", "text": say(line)} for who, line in talk["lines"]],
+            }
+            for talk in book["conversations"]
+        ],
+        "decisions": [say(label) for label in book["decisions"]],
+    }
+
+
+def notebook_markdown(game):
+    """The notebook for the text mode, as one markdown block."""
+    book = notebook_data(game)
+    parts = [f"**{book['labels']['nb_items']}**"]
+    parts += [f"- {item['icon']} **{item['name']}**: {item['text']}" for item in book["items"]] or [f"- {book['labels']['nb_empty']}"]
+    parts.append(f"\n**{book['labels']['nb_conversations']}**")
+    for talk in book["conversations"]:
+        parts.append(f"\n*{talk['title']}*")
+        parts += [f"- **{line['who']}:** {line['text']}" for line in talk["lines"]]
+    if not book["conversations"]:
+        parts.append(f"- {book['labels']['nb_empty']}")
+    parts.append(f"\n**{book['labels']['nb_decisions']}**")
+    parts += [f"- {label}" for label in book["decisions"]] or [f"- {book['labels']['nb_empty']}"]
+    return "\n".join(parts)
+
+
 def view_data(game, role, message, chat):
     """Everything the fullscreen game needs, as plain data. The puzzle codes are never included."""
     scene = SCENES[game["scene"]]
@@ -558,7 +601,10 @@ def view_data(game, role, message, chat):
         "clues": None,
         "ending": ending_data(game) if finished else None,
         "chat": chat,
-        "ui": {key: t(key) for key in ("talk_leave", "keypad_try", "cancel", "close", "dialogue_continue")},
+        "ui": {key: t(key) for key in ("talk_leave", "keypad_try", "cancel", "close", "dialogue_continue", "danger_hurry")},
+        "notebook": notebook_data(game),
+        # A danger scene: a clock in the picture; when it ends, the browser sends the timeout action
+        "danger": None if finished or watching or "danger" not in scene else dict(scene["danger"]),
         "voice_lang": "pt-PT" if LANG == "pt" else "en-GB",
         # A refused action: the character says it and, after a choice, walks back
         "speech": message["text"] if message and not message["ok"] and not watching else None,
@@ -570,7 +616,7 @@ def view_data(game, role, message, chat):
         data["dialogue"] = {
             "background": dialogue["background"],
             "lines": [
-                {"who": t("you") if line["who"] == "you" else line["who"], "speaker": line["who"], "text": say(line["text"])}
+                {"who": speaker_name(line["who"]), "speaker": line["who"], "text": say(line["text"])}
                 for line in dialogue["lines"]
             ],
         }
@@ -686,6 +732,8 @@ def show_text_mode(game, role=None):
         st.markdown(f"**{t('inventory')}:** {inventory}")
         for label in decision_labels(game):
             st.caption(f"{t('decision')}: {say(label)}")
+        with st.expander(f"🎒 {t('notebook')}"):
+            st.markdown(notebook_markdown(game))
 
         if is_finished(game):
             st.subheader(t("the_end"))
