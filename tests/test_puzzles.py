@@ -72,12 +72,18 @@ def test_door_with_card_needs_the_right_code():
 
 
 # Done when 2: the boxes
+# Changed (specs/story-events-notebook.md): box 1982 now leads to the footsteps event;
+# 1980 and 1983 are still refused.
 def test_wrong_boxes_are_refused():
     state = play(IN_ARCHIVE)
 
     for box in ("caixa_1980", "caixa_1982", "caixa_1983"):
         assert box in available_actions(state)
+    for box in ("caixa_1980", "caixa_1983"):
         assert_rejected_and_unchanged(state, box)
+    _, event, _ = apply_action(state, "caixa_1982")
+    assert event["scene"] == "arquivo_passos"
+    assert "documento_proibido" not in event["inventory"]
 
 
 def test_box_1981_holds_the_document_and_closes_the_puzzle():
@@ -119,11 +125,16 @@ def test_grate_code_is_the_dark_screens_in_the_picture_times_seven():
 
 
 # Done when 5: the tunnel fork and the hideout
+# Changed (specs/story-events-notebook.md): the wrong passages lead to events, and from
+# each one the player returns to the fork with nothing lost.
 def test_wrong_passages_are_refused():
     state = play(AT_STATION_CONFRONTED + ["ir_tunel"])
 
-    assert_rejected_and_unchanged(state, "tunel_seco")
-    assert_rejected_and_unchanged(state, "tunel_luz")
+    for passage, event, back in (("tunel_seco", "tunel_beco", "voltar_bifurcacao"), ("tunel_luz", "tunel_patrulha", "esconder_nicho")):
+        _, there, _ = apply_action(state, passage)
+        assert there["scene"] == event
+        _, returned, _ = apply_action(there, back)
+        assert returned == state
 
 
 def test_water_leads_to_the_hideout_where_the_documents_are_delivered():

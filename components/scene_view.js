@@ -55,7 +55,13 @@ function saveSettings(settings) {
 // --- Voices: the browser's own speech (no audio files, nothing sent anywhere) -------------
 
 // Each speaker gets a different pitch, so the hero and Tomás do not sound the same
-const VOICE_STYLE = { you: { pitch: 1.15, rate: 1.02 }, "Tomás": { pitch: 0.65, rate: 0.92 } };
+// `pick` chooses a different installed voice for each speaker when the browser has several
+const VOICE_STYLE = {
+  you: { pitch: 1.05, rate: 1.0, pick: 0 },
+  "Tomás": { pitch: 0.8, rate: 0.94, pick: 1 },
+  "Júlia": { pitch: 1.2, rate: 1.0, pick: 2 },
+  Seller: { pitch: 0.9, rate: 1.1, pick: 3 },
+};
 
 function speak(text, speaker, lang, onEnd) {
   const synth = globalThis.speechSynthesis;
@@ -63,9 +69,11 @@ function speak(text, speaker, lang, onEnd) {
   synth.cancel();
   const line = new SpeechSynthesisUtterance(text);
   line.lang = lang || "en-GB";
-  const voice = synth.getVoices().find((v) => v.lang === line.lang) || synth.getVoices().find((v) => v.lang.startsWith(line.lang.slice(0, 2)));
-  if (voice) line.voice = voice;
   const style = VOICE_STYLE[speaker] || VOICE_STYLE.you;
+  const all = synth.getVoices();
+  let voices = all.filter((v) => v.lang === line.lang);
+  if (!voices.length) voices = all.filter((v) => v.lang.startsWith(line.lang.slice(0, 2)));
+  if (voices.length) line.voice = voices[style.pick % voices.length];
   line.pitch = style.pitch;
   line.rate = style.rate;
   line.volume = Math.min(1, 0.4 + loadSettings().volume);
@@ -202,6 +210,7 @@ function createSound() {
     applySettings,
     music: (name) => startMusic(name, false),
     click: () => tone(720, 0.06, "square", 0.08),
+    tick: () => tone(1180, 0.04, "square", 0.05),
     step: () => noise(0.06, 0.25, 260 + Math.random() * 120),
     success: () => {
       tone(660, 0.18, "sine", 0.2);
@@ -302,9 +311,10 @@ function topBar(data, setTriggerValue) {
   titles.append(el("div", "title", data.hud.title), el("div", "subtitle", data.hud.subtitle));
   const items = el("div", "items");
   for (const item of data.hud.inventory) {
-    const chip = el("span", "chip", item.icon);
+    const chip = el("button", "chip", item.icon);
     chip.title = item.name;
     chip.setAttribute("aria-label", item.name);
+    chip.onclick = () => openNotebook(bar.closest(".game"), data.notebook, "items");
     items.append(chip);
   }
   for (const decision of data.hud.decisions) items.append(el("span", "chip decision", decision));
@@ -313,8 +323,82 @@ function topBar(data, setTriggerValue) {
     Sound.click();
     setTriggerValue("command", { name: "menu" });
   };
-  bar.append(titles, items, menu);
+  const book = el("button", "menu-button notebook-button", `🎒 ${data.notebook.title}`);
+  const count = data.notebook.items.length + data.notebook.conversations.length;
+  if (count) book.append(el("span", "badge", String(count)));
+  book.onclick = () => openNotebook(bar.closest(".game"), data.notebook, "items");
+  const buttons = el("div", "bar-buttons");
+  buttons.append(menu, book);
+  bar.append(buttons, titles, items);
   return bar;
+}
+
+// --- The notebook: items with their text, conversations, decisions, from any scene --------
+
+function openNotebook(game, book, tab) {
+  Sound.click();
+  game.querySelector(".notebook")?.remove();
+  const L = book.labels;
+  const overlay = el("div", "notebook");
+  const panel = el("div", "notebook-panel");
+  const head = el("div", "notebook-head");
+  head.append(el("h2", "", `🎒 ${book.title}`));
+  const close = el("button", "menu-button", "✕");
+  close.setAttribute("aria-label", L.close);
+  close.onclick = () => overlay.remove();
+  head.append(close);
+  const tabs = el("div", "notebook-tabs");
+  const body = el("div", "notebook-body");
+  const pages = {
+    items: [L.nb_items, () => {
+      if (!book.items.length) return [el("p", "nb-empty", L.nb_empty)];
+      return book.items.map((item) => {
+        const card = el("div", "nb-item");
+        card.append(el("div", "nb-icon", item.icon));
+        const words = el("div", "");
+        words.append(el("strong", "", item.name), el("p", "", item.text));
+        card.append(words);
+        return card;
+      });
+    }],
+    conversations: [L.nb_conversations, () => {
+      if (!book.conversations.length) return [el("p", "nb-empty", L.nb_empty)];
+      return book.conversations.map((talk) => {
+        const block = el("div", "nb-talk");
+        block.append(el("h3", "", talk.title));
+        for (const line of talk.lines) {
+          const row = el("p", line.mine ? "nb-line mine" : "nb-line");
+          row.append(el("strong", "", `${line.who}: `), document.createTextNode(line.text));
+          block.append(row);
+        }
+        return block;
+      });
+    }],
+    decisions: [L.nb_decisions, () => {
+      if (!book.decisions.length) return [el("p", "nb-empty", L.nb_empty)];
+      return book.decisions.map((label) => el("p", "nb-decision", `✔ ${label}`));
+    }],
+  };
+  function show(name) {
+    for (const b of tabs.children) b.classList.toggle("on", b.dataset.tab === name);
+    body.replaceChildren(...pages[name][1]());
+  }
+  for (const [name, [label]] of Object.entries(pages)) {
+    const b = el("button", "nb-tab", label);
+    b.dataset.tab = name;
+    b.onclick = () => {
+      Sound.click();
+      show(name);
+    };
+    tabs.append(b);
+  }
+  panel.append(head, tabs, body);
+  overlay.append(panel);
+  overlay.onclick = (event) => {
+    if (event.target === overlay) overlay.remove();
+  };
+  game.append(overlay);
+  show(tab);
 }
 
 // --- Narration under the picture: scene text, result of the last action, clues ------------
@@ -482,6 +566,7 @@ function buildPicture(stage, data, setTriggerValue) {
     const options = spot.options.map((option) =>
       choice(option.say, () => {
         closeBubble();
+        stage.dispatchEvent(new Event("choice-sent"));
         if (option.x === undefined || !hero) {
           setTriggerValue("action", { id: option.action, x: spot.stand });
           return;
@@ -495,7 +580,7 @@ function buildPicture(stage, data, setTriggerValue) {
     );
     openBubble(spot.line, options, data.ui.talk_leave);
     // A person answers aloud; objects (a shelf, a fork in the tunnel) are read by the hero
-    speak(spot.line, spot.talk === "tomas" ? "Tomás" : "you", data.voice_lang);
+    speak(spot.line, spot.speaker || "you", data.voice_lang);
   }
 
   function openKeypad(spot) {
@@ -551,6 +636,42 @@ function buildPicture(stage, data, setTriggerValue) {
     const box = stage.getBoundingClientRect();
     walkTo(((event.clientX - box.left) / box.width) * WIDTH);
   };
+
+  if (data.danger) startDanger();
+
+  // A danger scene: the choices open at once and a clock runs; at zero the timeout action is sent
+  function startDanger() {
+    const { seconds, timeout } = data.danger;
+    const spot = spots.find((s) => s.talk);
+    const clock = el("div", "danger-clock");
+    const bar = el("div", "danger-bar");
+    const label = el("span", "danger-label", `⏱ ${data.ui.danger_hurry} ${seconds}`);
+    clock.append(bar, label);
+    stage.append(clock);
+    let left = seconds;
+    let done = false;
+    const stop = () => {
+      done = true;
+      clearInterval(timer);
+    };
+    stage.addEventListener("choice-sent", stop);
+    requestAnimationFrame(() => {
+      bar.style.transitionDuration = `${seconds}s`;
+      bar.classList.add("running");
+    });
+    const timer = setInterval(() => {
+      if (done) return;
+      left -= 1;
+      label.textContent = `⏱ ${data.ui.danger_hurry} ${Math.max(left, 0)}`;
+      Sound.tick();
+      if (left <= 0) {
+        stop();
+        closeBubble();
+        setTriggerValue("action", { id: timeout, x });
+      }
+    }, 1000);
+    if (spot) setTimeout(() => !done && openTalk(spot), 600);
+  }
 
   if (hero) {
     stage.append(hero);

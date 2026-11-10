@@ -69,7 +69,9 @@ def test_static_can_hide_your_voice():
 def test_chances_are_probabilities_and_lead_somewhere():
     lucky = {action_id: action["lucky"] for action_id, action in ACTIONS.items() if "lucky" in action}
 
-    assert set(lucky) == {"seguir_tomas", "tentar_sozinho", "emitir_direto"}
+    # Changed (specs/story-events-notebook.md): the danger choices also use chance
+    assert set(lucky) == {"seguir_tomas", "tentar_sozinho", "emitir_direto", "continuar_procurar", "ficar_quieto_arquivo",
+                          "fugir_tunel", "ficar_quieto_tunel", "mentir_patrulha", "ficar_quieto_rua"}
     for outcome in lucky.values():
         assert 0 < outcome["chance"] < 1
         assert outcome["goes_to"] in SCENES

@@ -10,11 +10,14 @@ WITH_TARGETS = ("caixa_1980", "apanhar_documento", "caixa_1982", "caixa_1983", "
 
 
 # Done when 4
+# Changed (specs/story-events-notebook.md): a reply is now a list of (speaker, line)
 def test_every_decision_with_tomas_has_his_reply_in_both_languages():
     for action_id in TOMAS_DECISIONS:
         reply = ACTIONS[action_id]["reply"]
         assert reply
-        assert tr(reply, "pt") != reply
+        assert reply[0][0] == "Tomás"
+        for _, line in reply:
+            assert tr(line, "pt") != line
 
 
 # Done when 5
