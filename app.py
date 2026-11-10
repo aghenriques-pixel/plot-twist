@@ -10,11 +10,21 @@ import base64
 import hashlib
 import json
 import os
+import random
 from pathlib import Path
 
 import streamlit as st
 
-from db import DEFAULT_DB_PATH, StorageError, has_save, load_game, save_game
+from accounts import AccountError, create_account, log_in
+from db import (
+    DEFAULT_DB_PATH,
+    StorageError,
+    endings_reached,
+    load_game,
+    record_ending,
+    save_game,
+)
+from levels import level_status
 from logic import (
     ACTIONS,
     ITEM_ICONS,
@@ -33,8 +43,18 @@ from logic import (
     scene_looks,
     scene_text,
 )
-from players import player_from_link
-from rooms import RoomError, create_room, join_room, normalise, room_members, room_messages, room_role, room_save_key, send_message
+from players import new_player_id, player_from_link
+from rooms import (
+    RoomError,
+    create_room,
+    join_room,
+    normalise,
+    room_members,
+    room_messages,
+    room_role,
+    room_save_key,
+    send_message,
+)
 from translations import LANGUAGES, UI_TEXT, tr, ui
 
 
@@ -111,8 +131,16 @@ if "game" not in st.session_state:
     st.session_state.character = None
     st.session_state.db_error = False
     st.session_state.room_error = None
-    # Which chapter "New game" / "Chapter 2" will start once confirmed
+    # Which chapter "New game" / a level on the map will start once confirmed
     st.session_state.pending_chapter = 1
+    # Shown over the picture after an accepted conversation, until the next action
+    st.session_state.dialogue = None
+    # Counts actions: the dialogue and walking back belong to the last one
+    st.session_state.turn = 0
+    # Where the character walked for a refused choice, so it can walk back
+    st.session_state.walk_back_from = None
+    # Which menu screen to open (the map after an ending)
+    st.session_state.menu_screen = "main"
 
 # Cooperative room from the link (?sala=CODE), used only if this player is a member of it
 ROOM, ROLE = None, None
@@ -144,20 +172,57 @@ def start_new_game(chapter=None):
     st.session_state.message = None
     st.session_state.confirm_restart = False
     st.session_state.character = None
+    st.session_state.dialogue = None
+    st.session_state.walk_back_from = None
 
 
 def ask_new_game(chapter=1):
-    """Start right away when there is nothing to lose; otherwise ask first (A6)."""
+    """Start right away when there is nothing to lose; otherwise ask first (A6).
+    A finished game is not lost progress (its ending is already recorded), so it is not asked about."""
     st.session_state.pending_chapter = chapter
     try:
-        saved = has_save(DB_PATH, SAVE_KEY)
+        saved = load_game(DB_PATH, SAVE_KEY)
     except StorageError:
         st.session_state.db_error = True
         return
-    if saved:
+    if saved and not is_finished(saved):
         st.session_state.confirm_restart = True
     else:
         start_new_game()
+
+
+def open_level(number):
+    """A level on the map: continue its unfinished game, or start it."""
+    level = next((s for s in player_levels() if s["number"] == number), None)
+    if not level or not level["unlocked"]:
+        return
+    try:
+        saved = load_game(DB_PATH, SAVE_KEY)
+    except StorageError:
+        st.session_state.db_error = True
+        return
+    if saved and not is_finished(saved) and chapter_of(saved) == level["chapter"]:
+        resume_game()
+    else:
+        ask_new_game(level["chapter"])
+
+
+def player_levels():
+    try:
+        return level_status(endings_reached(DB_PATH, PLAYER))
+    except StorageError:
+        st.session_state.db_error = True
+        return level_status(set())
+
+
+def record_progress(game):
+    """At an ending, remember it for the player (both players in a room)."""
+    try:
+        players = list(room_members(DB_PATH, ROOM).values()) if ROOM else [PLAYER]
+        for player in players:
+            record_ending(DB_PATH, player, game["scene"])
+    except StorageError:
+        st.session_state.db_error = True
 
 
 def cancel_new_game():
@@ -173,15 +238,21 @@ def resume_game():
     st.session_state.message = None
 
 
-def choose(action_id, code=None, code_key=None):
-    """Run an action. A code comes from the keypad in the picture, or from a text field (code_key)."""
+def choose(action_id, code=None, code_key=None, came_from=None):
+    """Run an action. A code comes from the keypad in the picture, or from a text field (code_key).
+    came_from: where the character walked for a choice (the tunnel, the box), to walk back if refused."""
     if not can_act(ROLE):
         # Checked here, where the action happens, not only by hiding buttons
         st.session_state.message = (False, "Only the agent can act. Help them through the chat.")
         return
     if code_key is not None:
         code = st.session_state.get(code_key, "")
-    accepted, game, message = apply_action(st.session_state.game, action_id, code)
+    before = st.session_state.game
+    st.session_state.turn += 1
+    st.session_state.dialogue = None
+    st.session_state.walk_back_from = None
+    # Chance: some actions have a lucky outcome; the roll is only used by those
+    accepted, game, message = apply_action(before, action_id, code, random.random())
     if accepted:
         try:
             save_game(DB_PATH, game, SAVE_KEY)
@@ -190,6 +261,17 @@ def choose(action_id, code=None, code_key=None):
             st.session_state.db_error = True
             return
         st.session_state.game = game
+        action = ACTIONS[action_id]
+        if action.get("reply"):
+            # The other character answers over the picture as it was (Tomás still there)
+            st.session_state.dialogue = {
+                "background": svg_data_uri(ART_DIR / scene_image(before)),
+                "lines": [{"who": "you", "text": action["say"]}, {"who": "Tomás", "text": action["reply"]}],
+            }
+        if is_finished(game):
+            record_progress(game)
+    elif came_from is not None:
+        st.session_state.walk_back_from = came_from
     st.session_state.message = (accepted, message)
 
 
@@ -202,9 +284,11 @@ def play_again():
     st.session_state.confirm_restart = True
 
 
-def back_to_menu():
+def back_to_menu(screen="main"):
     st.session_state.game = None
     st.session_state.message = None
+    st.session_state.dialogue = None
+    st.session_state.menu_screen = screen
 
 
 def new_room_game(chapter=1):
@@ -224,6 +308,40 @@ def set_language(lang):
         st.query_params["lang"] = lang
 
 
+def account_create(username, password):
+    try:
+        create_account(DB_PATH, username, password, PLAYER)
+    except AccountError as error:
+        st.session_state.room_error = str(error)
+        return
+    except StorageError:
+        st.session_state.db_error = True
+        return
+    st.query_params["conta"] = username.lower()
+
+
+def account_log_in(username, password):
+    try:
+        player = log_in(DB_PATH, username, password)
+    except AccountError as error:
+        st.session_state.room_error = str(error)
+        return
+    except StorageError:
+        st.session_state.db_error = True
+        return
+    st.query_params["jogador"] = player
+    st.query_params["conta"] = username.lower()
+    st.session_state.game = None
+
+
+def account_log_out():
+    # A fresh anonymous code: the account's games stay with the account
+    st.query_params["jogador"] = new_player_id()
+    if "conta" in st.query_params:
+        del st.query_params["conta"]
+    st.session_state.game = None
+
+
 def run_command(command):
     """Buttons drawn inside the game send a command; each maps to the same function as a text-mode button."""
     name = command.get("name")
@@ -232,6 +350,8 @@ def run_command(command):
         leave_room()
     elif name == "menu":
         back_to_menu()
+    elif name == "map":
+        back_to_menu("map")
     elif name == "play_again" and not ROOM:
         play_again()
     elif name == "next_chapter" and game and game["scene"] == "final_resistencia":
@@ -240,8 +360,8 @@ def run_command(command):
         new_room_game(chapter_of(game))
     elif name == "new_game":
         ask_new_game(1)
-    elif name == "chapter_2":
-        ask_new_game(2)
+    elif name == "open_level":
+        open_level(command.get("level"))
     elif name == "continue":
         resume_game()
     elif name == "confirm_restart":
@@ -254,6 +374,15 @@ def run_command(command):
         join_code(command.get("code", ""))
     elif name == "set_language":
         set_language(command.get("lang"))
+    elif name == "create_account" and ONLINE:
+        st.session_state.menu_screen = "map"
+        account_create(command.get("username", ""), command.get("password", ""))
+    elif name == "log_in" and ONLINE:
+        st.session_state.menu_screen = "map"
+        account_log_in(command.get("username", ""), command.get("password", ""))
+    elif name == "log_out" and ONLINE:
+        st.session_state.menu_screen = "map"
+        account_log_out()
 
 
 # --- Cooperative mode actions -------------------------------------------------------------
@@ -366,12 +495,15 @@ def ending_data(game):
     scene = SCENES[game["scene"]]
     buttons = []
     if game["scene"] == "final_resistencia" and can_act(ROLE):
-        buttons.append({"name": "next_chapter", "label": t("next_chapter"), "primary": True})
+        buttons.append({"name": "next_chapter", "label": t("next_level"), "primary": True})
     if ROOM and can_act(ROLE):
         buttons.append({"name": "new_room_game", "label": t("new_round"), "primary": not buttons})
     elif not ROOM:
         buttons.append({"name": "play_again", "label": t("play_again"), "primary": not buttons})
-    buttons.append({"name": "menu", "label": t("leave_room") if ROOM else t("main_menu"), "primary": False})
+    if ROOM:
+        buttons.append({"name": "menu", "label": t("leave_room"), "primary": False})
+    else:
+        buttons.append({"name": "map", "label": t("map"), "primary": False})
     return {
         "kicker": t("ending_kicker", n=chapter_of(game)),
         "title": say(scene["title"]),
@@ -401,7 +533,7 @@ def view_data(game, role, message, chat):
     scene = SCENES[game["scene"]]
     finished = is_finished(game)
     watching = role == "contacto"
-    subtitle = t("chapter_n", n=chapter_of(game))
+    subtitle = t("level_n", n=chapter_of(game))
     if ROOM:
         subtitle += f" · {t('room_n', room=ROOM)} · {role_name(role)}"
     data = {
@@ -426,8 +558,22 @@ def view_data(game, role, message, chat):
         "clues": None,
         "ending": ending_data(game) if finished else None,
         "chat": chat,
-        "ui": {key: t(key) for key in ("talk_leave", "keypad_try", "cancel", "close")},
+        "ui": {key: t(key) for key in ("talk_leave", "keypad_try", "cancel", "close", "dialogue_continue")},
+        "voice_lang": "pt-PT" if LANG == "pt" else "en-GB",
+        # A refused action: the character says it and, after a choice, walks back
+        "speech": message["text"] if message and not message["ok"] and not watching else None,
+        "walk_back_from": None if watching else st.session_state.walk_back_from,
+        "dialogue": None,
     }
+    dialogue = st.session_state.dialogue
+    if dialogue and not watching:
+        data["dialogue"] = {
+            "background": dialogue["background"],
+            "lines": [
+                {"who": t("you") if line["who"] == "you" else line["who"], "speaker": line["who"], "text": say(line["text"])}
+                for line in dialogue["lines"]
+            ],
+        }
     if watching and not finished:
         clues = [look for look in scene_looks(game, "contacto") if look.get("clue")]
         data["clues"] = {
@@ -436,7 +582,11 @@ def view_data(game, role, message, chat):
             "items": [{"label": say(look["label"]), "text": say(look["text"])} for look in clues],
         }
         data["narration"] = f"{t('contact_intro')} {say(scene_text(game))}"
-    data["scene_key"] = scene_key(game, data["message"], role, data["hint"], st.session_state.character, LANG)
+    # The turn changes with every action, so the same refusal twice still walks back; co-op
+    # refreshes keep the same key, so an open conversation is not drawn again
+    data["scene_key"] = scene_key(
+        game, data["message"], role, data["hint"], st.session_state.character, LANG, st.session_state.turn
+    )
     return data
 
 
@@ -447,7 +597,7 @@ def handle_result(result, game=None):
     chat = getattr(result, "chat", None)
     if action and game:
         st.session_state.character = {"scene": game["scene"], "x": action["x"]}
-        choose(action["id"], action.get("code"))
+        choose(action["id"], action.get("code"), came_from=action.get("from"))
         st.rerun()
     if command:
         run_command(command)
@@ -471,9 +621,26 @@ def show_fullscreen(game, role=None):
     handle_result(result, game)
 
 
+def menu_levels():
+    levels = []
+    for level in player_levels():
+        levels.append(
+            {
+                **level,
+                "name": t("level_n", n=level["number"]),
+                "title": t(f"level_{level['number']}"),
+                "progress": t("endings_found", found=level["endings_found"], total=level["endings_total"]),
+            }
+        )
+    return levels
+
+
 def menu_data(can_continue):
     labels = {key: t(key) for key, value in UI_TEXT.items() if isinstance(value["en"], str) and "{" not in value["en"]}
+    account = st.query_params.get("conta")
     menu = {
+        "levels": menu_levels(),
+        "account": t("logged_in_as", name=account) if account else None,
         "title": t("game_title"),
         "tagline": t("tagline"),
         "labels": labels,
@@ -484,8 +651,9 @@ def menu_data(can_continue):
         "error": pending_problem(),
         "language": LANG,
         "background": svg_data_uri(ART_DIR / "c2_cidade.svg"),
-        "screen": "main",
+        "screen": st.session_state.menu_screen,
     }
+    st.session_state.menu_screen = "main"
     return {"mode": "menu", "menu": menu, "scene_key": scene_key("menu", menu)}
 
 
@@ -523,7 +691,7 @@ def show_text_mode(game, role=None):
             st.subheader(t("the_end"))
             st.markdown(f"**{t('your_path')}:** " + " · ".join(say(step) for step in journey(game)))
             if game["scene"] == "final_resistencia":
-                st.button(t("next_chapter"), key="continuar_capitulo_2", on_click=continue_to_chapter_2, type="primary")
+                st.button(t("next_level"), key="continuar_capitulo_2", on_click=continue_to_chapter_2, type="primary")
             if role:
                 st.button(t("new_round"), key="nova_partida", on_click=new_room_game, args=(chapter_of(game),))
             else:
@@ -605,9 +773,16 @@ def show_menu_text_mode(saved, problem):
         st.button(t("new_game"), key="novo_jogo", on_click=ask_new_game, type="primary")
         if saved:
             st.button(t("continue"), key="continuar_jogo", on_click=resume_game)
-        st.button(t("chapter_2"), key="capitulo_2", on_click=ask_new_game, args=(2,))
+        st.subheader(t("map_title"))
+        for level in player_levels():
+            number = level["number"]
+            label = f"{t('level_n', n=number)} — {t(f'level_{number}')}"
+            st.button(label, key=f"nivel_{level['number']}", on_click=open_level, args=(level["number"],), disabled=not level["unlocked"])
+            if not level["unlocked"]:
+                st.caption(t("level_locked"))
         with st.expander(t("how_to_play")):
             st.markdown("\n".join(f"- {rule}" for rule in UI_TEXT["how_to_play_rules"][LANG]))
+        show_account_text_mode()
         st.subheader(t("coop"))
         if not ONLINE:
             st.caption(t("coop_offline"))
@@ -618,16 +793,46 @@ def show_menu_text_mode(saved, problem):
         st.button(t("join_room"), key="entrar_sala", on_click=join_room_clicked)
 
 
+def account_clicked(kind):
+    username = st.session_state.get("conta_nome", "")
+    password = st.session_state.get("conta_pass", "")
+    if kind == "create":
+        account_create(username, password)
+    else:
+        account_log_in(username, password)
+    # The password is not kept in the session after use
+    st.session_state.conta_pass = ""
+
+
+def show_account_text_mode():
+    st.subheader(t("account"))
+    if not ONLINE:
+        st.caption(t("account_offline"))
+        return
+    account = st.query_params.get("conta")
+    if account:
+        st.write(t("logged_in_as", name=account))
+        st.button(t("log_out"), key="sair_conta", on_click=account_log_out)
+        return
+    st.caption(t("account_hint"))
+    st.text_input(t("username"), key="conta_nome", max_chars=20)
+    st.text_input(t("password"), key="conta_pass", type="password", max_chars=128)
+    st.button(t("create_account"), key="criar_conta", on_click=account_clicked, args=("create",))
+    st.button(t("log_in"), key="entrar_conta", on_click=account_clicked, args=("log_in",))
+
+
 # --- Screens ----------------------------------------------------------------------------------
 
 
 def show_start_screen():
     try:
-        saved = has_save(DB_PATH, SAVE_KEY)
+        game = load_game(DB_PATH, SAVE_KEY)
     except StorageError:
-        saved = False
+        game = None
         st.session_state.db_error = True
-    data = menu_data(saved)
+    saved = game is not None
+    # The map offers "Continue" only for a game still in progress (an ending is on the map already)
+    data = menu_data(saved and not is_finished(game))
     show_menu_text_mode(saved, data["menu"]["error"])
     result = scene_view(data=data, key="menu_view", on_command_change=lambda: None)
     handle_result(result)

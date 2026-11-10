@@ -13,6 +13,8 @@ A browser mystery game (Nova SBE Intro to Programming): the player works at the 
 - `app.py` — Streamlit screens only. Calls `logic` for rules, `db` for saving, `players` for who is playing.
 - `logic.py` — story content (scenes, items, actions, puzzles, endings) and game rules. Pure Python: no Streamlit, no database.
 - `players.py` — player identity: a secret code in the link (`?jogador=...`) online, `"local"` offline.
+- `accounts.py` — username + password (salted PBKDF2 hash only) that own a player code; logging in puts that code in the link.
+- `levels.py` — levels = chapters; a level opens when an ending in the previous level's `completes_with` was reached. Endings are recorded per player in `db.level_progress`.
 - `db.py` — saves and loads each player's progress. Every query filters by player.
 - `rooms.py` — cooperative rooms: codes, roles (agente acts, contacto sees clues), chat. Conflicts are decided by the database's unique rules (first saved wins).
 - `components/` — JavaScript/CSS of the fullscreen game. It only sends action ids (with typed codes), commands and chat text to Python; it never decides rules. It rebuilds only when `scene_key` changes, so co-op refreshes keep open bubbles.
@@ -35,6 +37,8 @@ A browser mystery game (Nova SBE Intro to Programming): the player works at the 
 
 - Story content lives in `logic.py`; only player progress goes in the database.
 - `apply_action` never modifies the state it receives. Save only after an accepted action; a rejected action changes nothing.
+- Chance: `apply_action(..., roll)` takes the random number from outside (`app.py` passes `random.random()`); without a roll the main outcome happens, so tests stay deterministic.
+- Voices use the browser's `speechSynthesis` only (`components/scene_view.js`); nothing is sent to an outside service.
 - Puzzle codes stay on the server: `scene_hotspots` sends only `code_prompt` to the browser, never `code`.
 - Permissions are checked in Python where the action happens, not by hiding buttons. In co-op, `can_act(role)` is checked in `choose()`.
 - In `st.fragment` screens that refresh by themselves, show a variable-length list as one element (e.g. one markdown); a shorter list of separate elements leaves old items on screen.

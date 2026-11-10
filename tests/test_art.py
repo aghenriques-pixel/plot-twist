@@ -71,3 +71,19 @@ def test_every_scene_picture_is_coloured_and_animated(scene_id):
 
     assert "<!-- coloured -->" in text
     assert "@keyframes" in text
+
+
+# Animations change `opacity`; a shape that relies on opacity="..." for its transparency would turn
+# solid while animating (the yellow disc bug), so animated shapes must use fill-opacity instead
+OPACITY_ANIMATIONS = {"pulse", "flicker", "twinkle", "blink", "wave", "rise"}
+
+
+@pytest.mark.parametrize("scene_id", list(SCENES))
+def test_animated_lights_never_turn_solid(scene_id):
+    root = ET.parse(ART_DIR / SCENES[scene_id]["image"]).getroot()
+    solid = [
+        el.get("class")
+        for el in root.iter()
+        if el.get("class") in OPACITY_ANIMATIONS and el.get("opacity") not in (None, "1")
+    ]
+    assert solid == []

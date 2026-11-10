@@ -2,7 +2,13 @@
 
 A mystery game in the browser. You work at the Ministério da Verdade and discover that history is being rewritten. Observe the scenes, solve the puzzles, decide whether to trust your colleague Tomás, and reach one of three endings.
 
-**Chapter 2 — "After the escape":** the night after, take over the Party's radio. Find a safe route through the city, decipher the password, tune the right frequency, and choose whose voice the city will hear (two more endings).
+**Two levels on a map.** Level 1 is "The Ministry". Reaching Ending 1 opens **Level 2 — "The Radio"**: the night after, take over the Party's radio. Find a safe route through the city, decipher the password, tune the right frequency, and choose whose voice the city will hear. The map shows which levels are open, completed (✓) and how many endings you found.
+
+**Chance:** some moments have a probability (Tomás may change his mind, the guard may keep sleeping, static may hide your voice), so replaying a level does not always end the same way.
+
+**Voices:** conversations are spoken by the browser's own speech voices (Tomás has a lower voice), and choosing a tunnel or a box makes the character walk there and come back if it was wrong. Voices can be turned off in Settings.
+
+**Accounts (online):** create an account with a username and password to keep your levels when you come back, on any device.
 
 It starts on a main menu (**Play, How to Play, Settings, Exit**), goes fullscreen, has music and sound effects made in the browser, and can be played in **English or Portuguese**.
 
@@ -45,6 +51,8 @@ The same tests run on GitHub Actions for every pull request and every push to `m
 |---|---|---|
 | Story and rules | `logic.py` | Scenes, items, actions, puzzles, endings. `apply_action(state, action_id, code)` decides what is allowed. Pure Python. |
 | Players | `players.py` | Online, each player is identified by a secret code in their link (`?jogador=...`). |
+| Accounts | `accounts.py` | A username and password that own a player code. Passwords are stored only as salted PBKDF2-SHA256 hashes. |
+| Levels | `levels.py` | Which chapter each level is, which endings complete it, and which levels are open (from the endings a player reached). |
 | Cooperative rooms | `rooms.py` | Create/join a room (`?sala=...`), roles (agente, contacto), the room chat. The room's game is a save under `sala_<CODE>`. |
 | Storage | `db.py` | Saves each player's progress. SQLite locally, hosted Postgres online. |
 | Screens | `app.py` | Streamlit pages: title screen, waiting room, the fullscreen game, and the **text mode** (the same game as plain buttons in the sidebar, closed by default). |
@@ -59,11 +67,12 @@ The same tests run on GitHub Actions for every pull request and every push to `m
 - **Online:** a hosted Postgres database. Its connection string is the secret `DATABASE_URL`, set in the Streamlit Cloud app settings — never in this repository.
 - **Locally:** `data/game.db` (SQLite, ignored by git). Delete it to reset local progress. If `.streamlit/secrets.toml` holds a `DATABASE_URL`, the local app uses that database instead.
 - **Tests:** a temporary SQLite file per test.
-- Only player progress is stored (scene, items, decisions). The story is code in `logic.py`.
+- Only player progress is stored (scene, items, decisions, the endings each player reached, accounts). The story is code in `logic.py`.
 
 ## Limits
 
-- **No accounts:** whoever has a player's link can continue that game. Losing the link loses the save.
+- **Accounts are simple:** no e-mail and no password reset; a forgotten password cannot be recovered. Without an account, whoever has a player's link can continue that game, and losing the link loses the save.
+- **Voices depend on the browser:** they use the speech voices installed on the device, so they sound different on each computer, and some browsers have none.
 - **Cooperative mode refreshes every 2 seconds** (polling, as the course guide recommends for Streamlit), so the other player's moves and messages appear with a short delay. A room holds exactly two players; room codes can be guessed with enough tries.
 - **Sleeping app:** the free host sleeps when unused and the free database pauses after inactivity. Open the link a few minutes before a demo.
 - **If the database is unavailable**, the game gives up after 10 seconds and shows a message instead of crashing; nothing is lost.

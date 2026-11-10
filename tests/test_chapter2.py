@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 from streamlit.testing.v1 import AppTest
 
-from db import load_game, save_game
+from db import load_game, record_ending, save_game
 from logic import ACTIONS, SCENES, apply_action, available_actions, is_finished, journey, new_game, scene_image, scene_looks, scene_text
 
 APP_PATH = str(Path(__file__).parent.parent / "app.py")
@@ -173,11 +173,18 @@ def db(tmp_path, monkeypatch):
     return path
 
 
+# Changed (specs/levels-dialogue-accounts.md): chapter 2 is level 2 on the map, locked until
+# level 1 is completed, instead of a "Chapter 2" button in the menu.
 def test_start_screen_starts_chapter_2(db):
     at = AppTest.from_file(APP_PATH, default_timeout=10)
     at.run()
+    assert at.button(key="nivel_2").disabled
+    assert not [b for b in at.button if b.key == "capitulo_2"]
 
-    at.button(key="capitulo_2").click().run()
+    record_ending(db, "local", "final_resistencia")
+    at = AppTest.from_file(APP_PATH, default_timeout=10)
+    at.run()
+    at.button(key="nivel_2").click().run()
 
     assert at.title[0].value == SCENES["c2_esconderijo"]["title"]
     assert load_game(db) == new_game(2)

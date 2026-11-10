@@ -34,7 +34,7 @@ function el(tag, className, text) {
 // --- Settings kept in this browser --------------------------------------------------------
 
 const SETTINGS_KEY = "forbiddenArchive.settings";
-const DEFAULT_SETTINGS = { music: true, volume: 0.5, sfx: true, fullscreen: true };
+const DEFAULT_SETTINGS = { music: true, volume: 0.5, sfx: true, fullscreen: true, voices: true };
 
 function loadSettings() {
   try {
@@ -50,6 +50,31 @@ function saveSettings(settings) {
   } catch {
     // private window or storage blocked: the settings just last until the page closes
   }
+}
+
+// --- Voices: the browser's own speech (no audio files, nothing sent anywhere) -------------
+
+// Each speaker gets a different pitch, so the hero and Tomás do not sound the same
+const VOICE_STYLE = { you: { pitch: 1.15, rate: 1.02 }, "Tomás": { pitch: 0.65, rate: 0.92 } };
+
+function speak(text, speaker, lang, onEnd) {
+  const synth = globalThis.speechSynthesis;
+  if (!text || !synth || !loadSettings().voices) return onEnd && setTimeout(onEnd, 0);
+  synth.cancel();
+  const line = new SpeechSynthesisUtterance(text);
+  line.lang = lang || "en-GB";
+  const voice = synth.getVoices().find((v) => v.lang === line.lang) || synth.getVoices().find((v) => v.lang.startsWith(line.lang.slice(0, 2)));
+  if (voice) line.voice = voice;
+  const style = VOICE_STYLE[speaker] || VOICE_STYLE.you;
+  line.pitch = style.pitch;
+  line.rate = style.rate;
+  line.volume = Math.min(1, 0.4 + loadSettings().volume);
+  if (onEnd) line.onend = onEnd;
+  synth.speak(line);
+}
+
+function stopSpeaking() {
+  globalThis.speechSynthesis?.cancel();
 }
 
 function goFullscreen() {
@@ -197,6 +222,7 @@ export default function ({ data, parentElement, setTriggerValue }) {
     return;
   }
   existing?.remove();
+  stopSpeaking();
 
   if (data.mode === "menu") {
     Sound.music("menu");
@@ -223,6 +249,49 @@ export default function ({ data, parentElement, setTriggerValue }) {
 
   buildPicture(stage, data, setTriggerValue);
   if (data.ending) stage.append(endingCard(data.ending, setTriggerValue));
+  if (data.dialogue) {
+    const overlay = dialogueOverlay(data.dialogue, data);
+    // The hero stays where it stood while they talk
+    const hero = stage.querySelector(".hero")?.cloneNode(true);
+    if (hero) overlay.insertBefore(hero, overlay.querySelector(".dialogue-box"));
+    stage.append(overlay);
+  }
+}
+
+// --- A conversation: shown over the picture as it was, one line at a time, spoken ---------
+
+function dialogueOverlay(dialogue, data) {
+  const overlay = el("div", "dialogue");
+  overlay.onclick = (event) => event.stopPropagation();
+  overlay.innerHTML = `<img class="bg" src="${dialogue.background}" alt="">`;
+  const box = el("div", "dialogue-box");
+  const who = el("div", "dialogue-who");
+  const text = el("p", "dialogue-text");
+  const next = el("button", "choice dialogue-next", data.ui.dialogue_continue);
+  box.append(who, text, next);
+  overlay.append(box);
+  let index = -1;
+  function nextLine() {
+    index += 1;
+    if (index >= dialogue.lines.length) {
+      stopSpeaking();
+      overlay.classList.add("closing");
+      setTimeout(() => overlay.remove(), 400);
+      return;
+    }
+    const line = dialogue.lines[index];
+    who.textContent = line.who;
+    box.dataset.speaker = line.speaker === "you" ? "you" : "other";
+    text.textContent = line.text;
+    speak(line.text, line.speaker, data.voice_lang);
+  }
+  next.onclick = () => {
+    Sound.click();
+    nextLine();
+  };
+  // Starts once the browser has drawn it (voices need the page to be visible)
+  setTimeout(nextLine, 250);
+  return overlay;
 }
 
 // --- Top bar: title, inventory, decisions, menu ------------------------------------------
@@ -377,6 +446,16 @@ function buildPicture(stage, data, setTriggerValue) {
 
   const closeBubble = () => stage.querySelector(".bubble")?.remove();
 
+  // The character says something: a small bubble over the head, and the voice
+  function heroSays(text) {
+    if (!hero || !text) return;
+    hero.querySelector(".say")?.remove();
+    const bubble = el("div", "say", text);
+    hero.append(bubble);
+    speak(text, "you", data.voice_lang);
+    setTimeout(() => bubble.remove(), Math.min(9000, 2500 + text.length * 60));
+  }
+
   // A bubble with a text and buttons; clicks inside it never make the character walk
   function openBubble(text, buttons, leaveText) {
     closeBubble();
@@ -401,9 +480,22 @@ function buildPicture(stage, data, setTriggerValue) {
 
   function openTalk(spot) {
     const options = spot.options.map((option) =>
-      choice(option.say, () => setTriggerValue("action", { id: option.action, x: spot.stand }))
+      choice(option.say, () => {
+        closeBubble();
+        if (option.x === undefined || !hero) {
+          setTriggerValue("action", { id: option.action, x: spot.stand });
+          return;
+        }
+        // A place to go (a tunnel, a box): say it, walk there, then Python decides
+        heroSays(option.say);
+        walkTo(option.x, () =>
+          setTimeout(() => setTriggerValue("action", { id: option.action, x: spot.stand, from: option.x }), 350)
+        );
+      })
     );
     openBubble(spot.line, options, data.ui.talk_leave);
+    // A person answers aloud; objects (a shelf, a fork in the tunnel) are read by the hero
+    speak(spot.line, spot.talk === "tomas" ? "Tomás" : "you", data.voice_lang);
   }
 
   function openKeypad(spot) {
@@ -460,7 +552,16 @@ function buildPicture(stage, data, setTriggerValue) {
     walkTo(((event.clientX - box.left) / box.width) * WIDTH);
   };
 
-  if (hero) stage.append(hero);
+  if (hero) {
+    stage.append(hero);
+    // A refused choice: the character says why and walks back from where it went
+    if (data.walk_back_from !== null && data.walk_back_from !== undefined && walk) {
+      x = clamp(data.walk_back_from);
+      place(x);
+      setTimeout(() => walkTo(startX), 900);
+    }
+    if (data.speech) setTimeout(() => heroSays(data.speech), 200);
+  }
 }
 
 // --- Main menu -------------------------------------------------------------------------------
@@ -515,7 +616,7 @@ function menuScreen(data, setTriggerValue) {
     if (screen === "main") {
       heading(true);
       panel.append(
-        button(L.play, () => show("play"), "menu-item primary"),
+        button(L.play, () => show("map"), "menu-item primary"),
         button(L.how_to_play, () => show("how")),
         button(L.settings, () => show("settings")),
         button(L.exit, () => {
@@ -523,34 +624,14 @@ function menuScreen(data, setTriggerValue) {
           show("goodbye");
         }),
       );
-    } else if (screen === "play") {
-      heading(false);
-      panel.append(button(L.new_game, () => startCommand("new_game"), "menu-item primary"));
-      if (menu.can_continue) panel.append(button(L.continue, () => startCommand("continue")));
-      panel.append(button(L.chapter_2, () => startCommand("chapter_2")));
-      const coop = el("div", "coop-box");
-      coop.append(el("div", "coop-title", L.coop));
-      if (menu.online) {
-        coop.append(el("p", "coop-text", L.coop_text));
-        coop.append(button(L.create_room, () => startCommand("create_room"), "menu-item small"));
-        const form = el("form", "join-form");
-        const input = el("input", "join-input");
-        input.placeholder = L.room_code_placeholder;
-        input.maxLength = 6;
-        input.setAttribute("aria-label", L.room_code);
-        const join = el("button", "menu-item small", L.join_room);
-        join.type = "submit";
-        form.append(input, join);
-        form.onsubmit = (event) => {
-          event.preventDefault();
-          Sound.click();
-          startCommand("join_room", { code: input.value });
-        };
-        coop.append(form);
-      } else {
-        coop.append(el("p", "coop-text", L.coop_offline));
-      }
-      panel.append(coop, button(L.back, () => show("main"), "menu-item ghost"));
+    } else if (screen === "map") {
+      panel.append(el("h2", "menu-heading", L.map_title));
+      if (menu.error) panel.append(el("p", "menu-error", menu.error));
+      panel.append(levelMap());
+      if (menu.can_continue) panel.append(button(L.continue, () => startCommand("continue"), "menu-item primary"));
+      const extras = el("div", "map-extras");
+      extras.append(coopBox(), accountBox());
+      panel.append(extras, button(L.back, () => show("main"), "menu-item ghost"));
     } else if (screen === "how") {
       heading(false);
       const list = el("ul", "rules");
@@ -569,6 +650,120 @@ function menuScreen(data, setTriggerValue) {
     } else if (screen === "goodbye") {
       panel.append(el("h1", "game-name", L.goodbye_title), el("p", "tagline", L.goodbye_text), button(L.back_to_menu, () => show("main")));
     }
+  }
+
+  // An original map of the city: a road from the Ministry (level 1) to the radio tower (level 2)
+  function levelMap() {
+    const map = el("div", "level-map");
+    map.innerHTML = `<svg class="map-art" viewBox="0 0 600 260" aria-hidden="true">
+      <defs><linearGradient id="mapSky" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#2b1d5c"/><stop offset="1" stop-color="#16324f"/></linearGradient></defs>
+      <rect width="600" height="260" rx="18" fill="url(#mapSky)"/>
+      <path d="M0 200 Q150 170 300 205 T600 190 V260 H0Z" fill="#1d4d4f" opacity=".8"/>
+      <path d="M30 150 L60 150 L60 110 L100 110 L100 150 L130 150" fill="none" stroke="#f7c873" stroke-width="3" opacity=".5"/>
+      <g fill="#3b2f6e"><rect x="40" y="120" width="40" height="70"/><rect x="95" y="100" width="30" height="90"/>
+        <rect x="430" y="110" width="35" height="80"/><rect x="480" y="90" width="28" height="100"/></g>
+      <g fill="#f7c873" opacity=".7"><rect x="48" y="130" width="6" height="8"/><rect x="66" y="150" width="6" height="8"/>
+        <rect x="103" y="115" width="6" height="8"/><rect x="440" y="125" width="6" height="8"/><rect x="488" y="105" width="6" height="8"/></g>
+      <path d="M520 190 L540 60 L560 190" fill="none" stroke="#e86a92" stroke-width="4"/>
+      <circle cx="540" cy="55" r="7" fill="#ff8fab" class="map-beacon"/>
+      <path class="map-road" d="M120 205 C220 120 330 250 470 150" fill="none" stroke="#ffe8a3" stroke-width="6" stroke-dasharray="4 14" stroke-linecap="round"/>
+      <text x="300" y="40" text-anchor="middle" fill="#ffe8a3" font-size="15" font-family="Georgia, serif" opacity=".85">✶ ✶ ✶</text>
+    </svg>`;
+    const positions = [
+      [20, 78],
+      [74, 50],
+    ];
+    menu.levels.forEach((level, i) => {
+      const [left, top] = positions[i] || [50, 50];
+      const state = level.completed ? "done" : level.unlocked ? "open" : "locked";
+      const node = el("button", `level-node ${state}`);
+      node.style.left = `${left}%`;
+      node.style.top = `${top}%`;
+      node.disabled = !level.unlocked;
+      node.append(el("span", "level-badge", level.completed ? "✓" : level.unlocked ? String(level.number) : "🔒"));
+      const card = el("span", "level-card");
+      card.append(el("strong", "", level.name), el("span", "", level.title));
+      card.append(el("small", "", level.unlocked ? level.progress : L.level_locked));
+      node.append(card);
+      node.setAttribute("aria-label", `${level.name} — ${level.title}${level.unlocked ? "" : " — " + L.level_locked}`);
+      node.onclick = () => {
+        Sound.click();
+        startCommand("open_level", { level: level.number });
+      };
+      map.append(node);
+    });
+    return map;
+  }
+
+  function coopBox() {
+    const coop = el("div", "coop-box");
+    coop.append(el("div", "coop-title", L.coop));
+    if (!menu.online) {
+      coop.append(el("p", "coop-text", L.coop_offline));
+      return coop;
+    }
+    coop.append(el("p", "coop-text", L.coop_text));
+    coop.append(button(L.create_room, () => startCommand("create_room"), "menu-item small"));
+    const form = el("form", "join-form");
+    const input = el("input", "join-input");
+    input.placeholder = L.room_code_placeholder;
+    input.maxLength = 6;
+    input.setAttribute("aria-label", L.room_code);
+    const join = el("button", "menu-item small", L.join_room);
+    join.type = "submit";
+    form.append(input, join);
+    form.onsubmit = (event) => {
+      event.preventDefault();
+      Sound.click();
+      startCommand("join_room", { code: input.value });
+    };
+    coop.append(form);
+    return coop;
+  }
+
+  function accountBox() {
+    const box = el("div", "coop-box");
+    box.append(el("div", "coop-title", L.account));
+    if (!menu.online) {
+      box.append(el("p", "coop-text", L.account_offline));
+      return box;
+    }
+    if (menu.account) {
+      box.append(el("p", "coop-text", menu.account), button(L.log_out, () => command("log_out"), "menu-item small"));
+      return box;
+    }
+    box.append(el("p", "coop-text", L.account_hint));
+    const form = el("form", "account-form");
+    const name = el("input", "join-input");
+    name.placeholder = L.username;
+    name.maxLength = 20;
+    name.autocomplete = "username";
+    name.setAttribute("aria-label", L.username);
+    const pass = el("input", "join-input");
+    pass.type = "password";
+    pass.placeholder = L.password;
+    pass.maxLength = 128;
+    pass.autocomplete = "current-password";
+    pass.setAttribute("aria-label", L.password);
+    const send = (name_) => {
+      Sound.click();
+      command(name_, { username: name.value, password: pass.value });
+      pass.value = "";
+    };
+    const create = el("button", "menu-item small", L.create_account);
+    create.type = "button";
+    create.onclick = () => send("create_account");
+    const login = el("button", "menu-item small", L.log_in);
+    login.type = "submit";
+    form.onsubmit = (event) => {
+      event.preventDefault();
+      send("log_in");
+    };
+    form.append(name, pass, el("div", "account-buttons"));
+    form.lastChild.append(login, create);
+    box.append(form);
+    return box;
   }
 
   function settingsForm() {
@@ -590,6 +785,7 @@ function menuScreen(data, setTriggerValue) {
         save();
         Sound.click();
         if (key === "fullscreen") (settings.fullscreen ? goFullscreen : leaveFullscreen)();
+        if (key === "voices" && settings.voices) speak(L.voices, "you", menu.language === "pt" ? "pt-PT" : "en-GB");
       };
       row.append(el("span", "setting-name", label), b);
       return row;
@@ -621,7 +817,7 @@ function menuScreen(data, setTriggerValue) {
     }
     languageRow.append(el("span", "setting-name", L.language), languages);
 
-    form.append(toggle(L.music, "music"), volumeRow, toggle(L.effects, "sfx"), languageRow, toggle(L.fullscreen, "fullscreen"));
+    form.append(toggle(L.music, "music"), volumeRow, toggle(L.effects, "sfx"), toggle(L.voices, "voices"), languageRow, toggle(L.fullscreen, "fullscreen"));
     return form;
   }
 

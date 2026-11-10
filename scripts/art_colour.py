@@ -5,6 +5,8 @@ Run from the project folder, after scripts/art_chapter2.py if that was run:
 
 It is safe to run more than once: a file is only changed if it has no "coloured" marker yet.
 The animation is CSS inside the SVG, so it plays even when the picture is shown with <img>.
+Animated shapes keep their transparency in fill-opacity, because the animations change `opacity`:
+a shape with opacity="0.1" would become solid when an animation sets opacity to 1.
 Clue details are not touched: the six dark screens (#050608) stay dark, numbers and texts stay.
 """
 
@@ -61,7 +63,7 @@ STYLE = """<style>
 @keyframes drift { from { transform: translateX(-30px); } to { transform: translateX(30px); } }
 @keyframes rise { 0% { transform: translateY(0); opacity: 0; } 20% { opacity: 0.8; } 100% { transform: translateY(-160px); opacity: 0; } }
 @keyframes fall { 0% { transform: translateY(0); opacity: 0; } 10% { opacity: 1; } 100% { transform: translateY(240px); opacity: 0; } }
-@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.15; } }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
 @keyframes sweep { from { transform: rotate(-25deg); } to { transform: rotate(25deg); } }
 @keyframes wave { 0% { transform: scale(0.6); opacity: 0.8; } 100% { transform: scale(1.6); opacity: 0; } }
 @keyframes bounce { from { transform: scaleY(0.3); } to { transform: scaleY(1); } }
@@ -73,7 +75,7 @@ def rng(name):
 
 
 def glow(cx, cy, r, color, cls="pulse", delay=0.0):
-    return f'<circle class="{cls}" cx="{cx}" cy="{cy}" r="{r}" fill="{color}" opacity="0.5" style="animation-delay:{delay}s"/>'
+    return f'<circle class="{cls}" cx="{cx}" cy="{cy}" r="{r}" fill="{color}" fill-opacity="0.5" style="animation-delay:{delay}s"/>'
 
 
 def eye_lid(cx, cy, rx, ry, delay=0.0):
@@ -141,7 +143,7 @@ def screens_flicker():
                 continue
             x, y = 44 + col * 105, 34 + row * 70
             out.append(
-                f'<rect class="flicker" x="{x}" y="{y}" width="87" height="52" fill="#7fe8ff" opacity="0.18" '
+                f'<rect class="flicker" x="{x}" y="{y}" width="87" height="52" fill="#7fe8ff" fill-opacity="0.18" '
                 f'style="animation-delay:-{r.uniform(0, 4):.1f}s;animation-duration:{r.uniform(2.5, 5):.1f}s"/>'
             )
     return "".join(out)
@@ -160,7 +162,7 @@ def ambient(name):
         )
     if base.startswith("arquivo"):
         return (
-            '<path class="flicker" d="M 388 80 L 412 80 L 520 340 L 280 340 Z" fill="#ffd36e" opacity="0.18"/>'
+            '<path class="flicker" d="M 388 80 L 412 80 L 520 340 L 280 340 Z" fill="#ffd36e" fill-opacity="0.18"/>'
             + light(400, 300, 260, "#ff9a3c", 0.25)
             + dust(name, 24, (300, 100, 500, 330))
         )
@@ -170,7 +172,7 @@ def ambient(name):
             + rain_lines(name, 30, (85, 75, 270, 240), "#bfe6ff")
             + twinkles(name, [(94 + i * 22, 190 + (i * 13) % 40) for i in range(8)])
             + glow(380, 115, 12, "#ff4d6d") + eye_lid(380, 115, 25, 12)
-            + '<rect class="flicker" x="660" y="110" width="100" height="220" fill="#fff1b8" opacity="0.15"/>'
+            + '<rect class="flicker" x="660" y="110" width="100" height="220" fill="#fff1b8" fill-opacity="0.15"/>'
         )
     if base.startswith("vigilancia"):
         return (
@@ -186,7 +188,7 @@ def ambient(name):
         )
         return (
             light(610, 330, 150, "#36c5f0", 0.35)
-            + '<circle class="drift" cx="430" cy="250" r="30" fill="#fff4dc" opacity="0.35"/>'
+            + '<circle class="drift" cx="430" cy="250" r="30" fill="#fff4dc" fill-opacity="0.35"/>'
             + light(430, 250, 120, "#fff4dc", 0.2)
             + drops
         )
@@ -196,13 +198,13 @@ def ambient(name):
         return light(400, 215, 300, "#ffb347", 0.45) + glow(400, 215, 70, "#ffd36e") + dust(name, 20, (60, 60, 760, 340), "#fff4dc")
     if base in ("final_descoberto", "final_traido"):
         return (
-            '<rect class="blink" width="800" height="400" fill="#ff1f3d" opacity="0.12"/>'
+            '<rect class="blink" width="800" height="400" fill="#ff1f3d" fill-opacity="0.12"/>'
             + glow(80, 150, 50, "#ff3b30") + glow(720, 150, 50, "#ff3b30", delay=0.6)
             + light(400, 200, 300, "#ff4d6d", 0.25)
         )
     if base.startswith("c2_esconderijo"):
         return (
-            '<circle class="flicker" cx="470" cy="200" r="230" fill="#ffc94d" opacity="0.10"/>'
+            '<circle class="flicker" cx="470" cy="200" r="230" fill="#ffc94d" fill-opacity="0.08"/>'
             + light(470, 60, 300, "#ffb347", 0.3)
             + dust(name, 20, (300, 80, 640, 330))
             + glow(236, 92, 9, "#ff4d6d")
@@ -212,14 +214,14 @@ def ambient(name):
             light(680, 60, 160, "#cfe3ff", 0.45)
             + twinkles(name, [(432 + i * 34, 200) for i in range(4)], "#ffd36e", (18, 24))
             + light(250, 330, 160, "#ffc94d", 0.3)
-            + '<rect class="drift" x="0" y="250" width="800" height="70" fill="#b8a9ff" opacity="0.12"/>'
+            + '<rect class="drift" x="0" y="250" width="800" height="70" fill="#b8a9ff" fill-opacity="0.12"/>'
             + rain_lines(name, 80)
         )
     if base == "c2_torre":
         stars = twinkles(name, [((i * 97) % 800, (i * 53) % 120) for i in range(30)], "#ffffff", (2, 2))
         return (
             stars
-            + '<path class="sweep" d="M 360 20 L 250 400 L 470 400 Z" fill="#fff4dc" opacity="0.10"/>'
+            + '<path class="sweep" d="M 360 20 L 250 400 L 470 400 Z" fill="#fff4dc" fill-opacity="0.10"/>'
             + '<circle class="blink" cx="360" cy="18" r="10" fill="#ff3b30"/>'
             + light(360, 18, 90, "#ff3b30", 0.4)
             + light(600, 250, 220, "#7b8cff", 0.25)
@@ -231,7 +233,7 @@ def ambient(name):
             for i, c in enumerate(["#2ecc71", "#2ecc71", "#a3e635", "#ffcf3f", "#ff7b54", "#e63946"])
         )
         return (
-            '<rect class="blink" x="380" y="10" width="90" height="24" rx="4" fill="#ff1f3d" opacity="0.45"/>'
+            '<rect class="blink" x="380" y="10" width="90" height="24" rx="4" fill="#ff1f3d" fill-opacity="0.45"/>'
             + light(425, 20, 120, "#ff3b30", 0.35)
             + light(450, 220, 260, "#9b5de5", 0.25)
             + bars
@@ -244,7 +246,7 @@ def ambient(name):
         return waves + light(400, 400, 360, "#ffb347", 0.35)
     if base == "final_c2_reconhecido":
         return (
-            '<rect class="blink" width="800" height="400" fill="#ff1f3d" opacity="0.12"/>'
+            '<rect class="blink" width="800" height="400" fill="#ff1f3d" fill-opacity="0.12"/>'
             + light(675, 200, 220, "#ffc94d", 0.35)
         )
     return ""
@@ -252,7 +254,7 @@ def ambient(name):
 
 def colour(path):
     text = path.read_text(encoding="utf-8")
-    if MARKER in text:
+    if text.rstrip().endswith(f"{MARKER}</svg>"):
         return False
     text = re.sub(r"#[0-9a-fA-F]{6}\b", lambda m: PALETTE.get(m.group(0).lower(), m.group(0)), text)
     if path.parent.name == "scenes":

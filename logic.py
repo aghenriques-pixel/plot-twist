@@ -391,6 +391,17 @@ SCENES = {
         ),
         "ending": True,
     },
+    "final_c2_estatica": {
+        "title": "Ending 6 — Lost in the static",
+        "chapter": 2,
+        "image": "final_c2_voz.svg",
+        "text": (
+            "A storm crackles over the city and the signal breaks up. Every home hears the truth, but "
+            "nobody can make out whose voice it is. When the police reach the studio, it is empty, and "
+            "you are walking home in the rain."
+        ),
+        "ending": True,
+    },
     "final_c2_reconhecido": {
         "title": "Ending 5 — Recognised",
         "chapter": 2,
@@ -419,8 +430,12 @@ SCENES = {
 # - decision_message: shown when `needs_decision` is not met, if different from blocked_message
 # - talk: name of a clickable character or object in SCENES[scene]["talks"]; the action is one of its options
 # - say: what the player says when this is chosen in a conversation
+# - reply: what the other character answers, shown and spoken as a dialogue after an accepted choice
+# - x: for a talk option, where the character walks before choosing (the tunnel, the box, the street)
 # - goes_to: scene the player moves to
 # - hotspot: clickable spot in the scene picture; the character walks to x = stand first
+# - lucky: {"chance", "goes_to", "message"}: with that probability this happens instead of goes_to/message
+#   (the roll is passed in by the caller, so tests can choose it)
 ACTIONS = {
     "apanhar_cartao": {
         "hotspot": {"x": 515, "y": 232, "w": 140, "h": 58, "stand": 470},
@@ -449,6 +464,7 @@ ACTIONS = {
         "message": "You leave the Ministry without looking back.",
     },
     "caixa_1980": {
+        "x": 608,
         "scene": "arquivo",
         "talk": "estante",
         "say": "The 1980 box",
@@ -458,6 +474,7 @@ ACTIONS = {
         "message": "",
     },
     "apanhar_documento": {
+        "x": 636,
         "scene": "arquivo",
         "talk": "estante",
         "say": "The 1981 box",
@@ -469,6 +486,7 @@ ACTIONS = {
         ),
     },
     "caixa_1982": {
+        "x": 718,
         "scene": "arquivo",
         "talk": "estante",
         "say": "The 1982 box",
@@ -478,6 +496,7 @@ ACTIONS = {
         "message": "",
     },
     "caixa_1983": {
+        "x": 746,
         "scene": "arquivo",
         "talk": "estante",
         "say": "The 1983 box",
@@ -510,6 +529,7 @@ ACTIONS = {
         "scene": "apartamento",
         "talk": "tomas",
         "say": "\u201cAll right, I trust you. Look what I found.\u201d",
+        "reply": "\u201cI knew I could count on you. Tonight, at the Surveillance Station. Come alone, and don't be late.\u201d",
         "label": "Trust Tomás",
         "requires": "documento_proibido",
         "blocked_message": "You have no proof to show. You need the document from the Archive first.",
@@ -520,6 +540,7 @@ ACTIONS = {
         "scene": "apartamento",
         "talk": "tomas",
         "say": "\u201cI don't know what you're talking about, Tomás.\u201d",
+        "reply": "\u201cAs you wish. But be careful: the walls in this city have ears.\u201d",
         "label": "Keep the discovery to yourself",
         "requires": "documento_proibido",
         "blocked_message": "There is nothing to hide yet. You need the document from the Archive first.",
@@ -530,6 +551,7 @@ ACTIONS = {
         "scene": "apartamento",
         "talk": "tomas",
         "say": "\u201cFirst, explain this.\u201d (show the file)",
+        "reply": "\u201cThey made me do it... they have my sister. But I'm done with them. Tonight I'll get you out, I swear.\u201d",
         "label": "Confront Tomás with the file",
         "only_with": "ficha_tomas",
         "requires": "documento_proibido",
@@ -565,6 +587,14 @@ ACTIONS = {
         "only_if": ("colega", "confiou"),
         "goes_to": "final_traido",
         "message": "Tomás signals for you to go down first...",
+        "lucky": {
+            "chance": 0.25,
+            "goes_to": "tunel",
+            "message": (
+                "Tomás stops at the grate. His hands are shaking. \u201cI can't do this to you. Go, and "
+                "follow the water.\u201d He switches off the cameras and lets you through."
+            ),
+        },
     },
     "ir_tunel": {
         "hotspot": {"x": 600, "y": 335, "w": 160, "h": 55, "stand": 680},
@@ -584,8 +614,14 @@ ACTIONS = {
         "only_if": ("colega", "escondeu"),
         "goes_to": "final_descoberto",
         "message": "You move slowly, pressed against the wall...",
+        "lucky": {
+            "chance": 0.30,
+            "goes_to": "tunel",
+            "message": "The guard keeps snoring. You lift the grate inch by inch and slip into the tunnel. Alone, but free.",
+        },
     },
     "tunel_seco": {
+        "x": 250,
         "scene": "tunel",
         "talk": "bifurcacao",
         "say": "Left, down the dry passage",
@@ -594,6 +630,7 @@ ACTIONS = {
         "message": "",
     },
     "tunel_luz": {
+        "x": 420,
         "scene": "tunel",
         "talk": "bifurcacao",
         "say": "Straight ahead, towards the light",
@@ -602,6 +639,7 @@ ACTIONS = {
         "message": "",
     },
     "seguir_agua": {
+        "x": 610,
         "scene": "tunel",
         "talk": "bifurcacao",
         "say": "Right, where you hear water",
@@ -642,6 +680,7 @@ ACTIONS = {
         "message": "You wait for nightfall and climb the stairs to the street.",
     },
     "beco_mercado": {
+        "x": 320,
         "scene": "c2_cidade",
         "talk": "caminhos",
         "say": "Through Market Alley",
@@ -650,6 +689,7 @@ ACTIONS = {
         "message": "",
     },
     "rua_fabricas": {
+        "x": 495,
         "scene": "c2_cidade",
         "talk": "caminhos",
         "say": "Along Factory Street",
@@ -658,6 +698,7 @@ ACTIONS = {
         "message": "",
     },
     "seguir_eletrico": {
+        "x": 658,
         "scene": "c2_cidade",
         "talk": "caminhos",
         "say": "Along the tram line",
@@ -709,6 +750,11 @@ ACTIONS = {
         "blocked_message": "First you have to tune in to the right frequency.",
         "goes_to": "final_c2_reconhecido",
         "message": "You take a deep breath, lean towards the microphone and start reading...",
+        "lucky": {
+            "chance": 0.30,
+            "goes_to": "final_c2_estatica",
+            "message": "Thunder rolls over the city and the signal starts to crackle...",
+        },
     },
     "tocar_cassete": {
         "hotspot": {"x": 555, "y": 240, "w": 110, "h": 65, "stand": 520},
@@ -791,7 +837,10 @@ def scene_hotspots(state):
             if name not in talks:
                 talks[name] = {"talk": name, "action": None, **SCENES[state["scene"]]["talks"][name], "options": []}
                 spots.append(talks[name])
-            talks[name]["options"].append({"action": action_id, "say": action["say"]})
+            option = {"action": action_id, "say": action["say"]}
+            if "x" in action:
+                option["x"] = action["x"]
+            talks[name]["options"].append(option)
     return spots
 
 
@@ -861,9 +910,10 @@ def available_actions(state):
     return [action_id for action_id, action in ACTIONS.items() if is_offered(action, state)]
 
 
-def apply_action(state, action_id, code=None):
+def apply_action(state, action_id, code=None, roll=None):
     """Try an action. Returns (accepted, new_state, message) and never modifies `state`.
-    `code` is what the player typed, for actions that need a code."""
+    `code` is what the player typed, for actions that need a code.
+    `roll` is a random number in [0, 1) for actions with a lucky outcome; None means the main outcome."""
     if action_id not in ACTIONS:
         return False, copy_state(state), "That action does not exist."
     if is_finished(state):
@@ -893,9 +943,13 @@ def apply_action(state, action_id, code=None):
     if "decides" in action:
         name, value = action["decides"]
         new_state["decisions"][name] = value
-    if "goes_to" in action:
-        new_state["scene"] = action["goes_to"]
-    return True, new_state, action["message"]
+    goes_to, message = action.get("goes_to"), action["message"]
+    lucky = action.get("lucky")
+    if lucky and roll is not None and roll < lucky["chance"]:
+        goes_to, message = lucky["goes_to"], lucky["message"]
+    if goes_to:
+        new_state["scene"] = goes_to
+    return True, new_state, message
 
 
 def copy_state(state):
