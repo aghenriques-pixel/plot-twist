@@ -1,0 +1,74 @@
+# O Arquivo Proibido
+
+A mystery game in the browser. You work at the Ministério da Verdade and discover that history is being rewritten. Observe the scenes, solve the puzzles, decide whether to trust your colleague Tomás, and reach one of three endings.
+
+**Play online:** _(link do Streamlit Cloud — a preencher depois do deploy)_
+
+Started as a *Plot Twist* solo project and extended by the team (Nova SBE, Introduction to Programming, 2026).
+
+## Team
+
+| Name | Student number |
+|---|---|
+| _(nome)_ | _(número)_ |
+| _(nome)_ | _(número)_ |
+| _(nome)_ | _(número)_ |
+
+## Run it locally
+
+Needs [uv](https://docs.astral.sh/uv/) (it installs the right Python by itself).
+
+```bash
+uv sync
+uv run streamlit run app.py
+```
+
+The game opens at http://localhost:8501. On a Mac you can also double-click `Jogar.command`.
+
+## Run the tests
+
+```bash
+uv run pytest
+```
+
+The same tests run on GitHub Actions for every pull request and every push to `main` (`.github/workflows/tests.yml`).
+
+## How it is built
+
+| Part | File | What it does |
+|---|---|---|
+| Story and rules | `logic.py` | Scenes, items, actions, puzzles, endings. `apply_action(state, action_id, code)` decides what is allowed. Pure Python. |
+| Players | `players.py` | Online, each player is identified by a secret code in their link (`?jogador=...`). |
+| Storage | `db.py` | Saves each player's progress. SQLite locally, hosted Postgres online. |
+| Screens | `app.py` | Streamlit pages: start screen, game screen, endings. |
+| Clickable scenes | `components/scene_view.js`, `.css` | The picture you click to walk, observe, talk and type codes. Sends the chosen action to `app.py`. |
+| Pictures | `assets/` | Original SVG illustrations. |
+| Specs | `specs/` | One spec per feature (Why / What / Out of scope / Done when). |
+| Tests | `tests/` | pytest: rules, puzzles, saving, players, and the app itself with Streamlit's `AppTest`. |
+
+## Where the data is stored
+
+- **Online:** a hosted Postgres database. Its connection string is the secret `DATABASE_URL`, set in the Streamlit Cloud app settings — never in this repository.
+- **Locally:** `data/game.db` (SQLite, ignored by git). Delete it to reset local progress.
+- **Tests:** a temporary SQLite file per test.
+- Only player progress is stored (scene, items, decisions). The story is code in `logic.py`.
+
+## Limits
+
+- **No accounts:** whoever has a player's link can continue that game. Losing the link loses the save.
+- **Sleeping app:** the free host sleeps when unused and the free database pauses after inactivity. Open the link a few minutes before a demo.
+- **If the database is unavailable**, the game shows a message instead of crashing, and nothing is lost.
+- The tests run on SQLite only; the Postgres connection is checked by hand on the deployed app.
+- The JavaScript of the clickable scenes is checked by hand in the browser, not by automated tests.
+
+## Deploy (Streamlit Community Cloud)
+
+1. Create a free Postgres database (Neon or Supabase) and copy its connection string.
+2. On [share.streamlit.io](https://share.streamlit.io), create an app from this repository, branch `main`, file `app.py`, Python 3.12.
+3. In the app's **Settings → Secrets**, add:
+
+   ```toml
+   DATABASE_URL = "postgresql://..."
+   ```
+
+4. Every merge to `main` deploys automatically.
