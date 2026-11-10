@@ -201,3 +201,32 @@ def test_app_explains_when_the_database_is_down(monkeypatch):
 
     assert not at.exception
     assert any("base de dados" in error.value.lower() for error in at.error)
+
+
+# A non-routable address: the connection neither succeeds nor is refused, it just waits
+BLACKHOLE = "postgresql://user:secret@10.255.255.1:5432/game"
+
+
+def test_a_silent_database_gives_up_after_the_connect_timeout(monkeypatch):
+    import time
+
+    import db
+
+    monkeypatch.setattr(db, "CONNECT_TIMEOUT", 2)
+    start = time.time()
+    with pytest.raises(StorageError):
+        load_game(BLACKHOLE, ALICE)
+    assert time.time() - start < 10
+
+
+def test_an_explicit_test_database_wins_over_database_url(tmp_path, monkeypatch):
+    # Tests set PLOT_TWIST_DB; a DATABASE_URL in the environment or in local secrets must not be used
+    monkeypatch.setenv("PLOT_TWIST_DB", str(tmp_path / "game.db"))
+    monkeypatch.setenv("DATABASE_URL", UNREACHABLE)
+
+    at = open_app()
+    at.button(key="novo_jogo").click().run()
+
+    assert not at.error
+    assert at.title[0].value == "Ministério da Verdade"
+    assert load_game(tmp_path / "game.db") == new_game()

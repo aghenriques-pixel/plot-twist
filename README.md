@@ -49,7 +49,7 @@ The same tests run on GitHub Actions for every pull request and every push to `m
 ## Where the data is stored
 
 - **Online:** a hosted Postgres database. Its connection string is the secret `DATABASE_URL`, set in the Streamlit Cloud app settings — never in this repository.
-- **Locally:** `data/game.db` (SQLite, ignored by git). Delete it to reset local progress.
+- **Locally:** `data/game.db` (SQLite, ignored by git). Delete it to reset local progress. If `.streamlit/secrets.toml` holds a `DATABASE_URL`, the local app uses that database instead.
 - **Tests:** a temporary SQLite file per test.
 - Only player progress is stored (scene, items, decisions). The story is code in `logic.py`.
 
@@ -57,7 +57,8 @@ The same tests run on GitHub Actions for every pull request and every push to `m
 
 - **No accounts:** whoever has a player's link can continue that game. Losing the link loses the save.
 - **Sleeping app:** the free host sleeps when unused and the free database pauses after inactivity. Open the link a few minutes before a demo.
-- **If the database is unavailable**, the game shows a message instead of crashing, and nothing is lost.
+- **If the database is unavailable**, the game gives up after 10 seconds and shows a message instead of crashing; nothing is lost.
+- **Some networks (e.g. university or company Wi-Fi) block Postgres connections.** The deployed app is not affected, because it runs on Streamlit's servers. To check the connection from a laptop, run `uv run python scripts/check_db.py` (it never prints the password).
 - The tests run on SQLite only; the Postgres connection is checked by hand on the deployed app.
 - The JavaScript of the clickable scenes is checked by hand in the browser, not by automated tests.
 

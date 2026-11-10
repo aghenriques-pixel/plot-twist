@@ -37,10 +37,11 @@ def secret(name):
         return None
 
 
-# Online (deployed): saves go to hosted Postgres. Locally and in tests: a SQLite file.
-DATABASE_URL = secret("DATABASE_URL")
-# Tests point PLOT_TWIST_DB at a temporary file so they never touch the real save
-DB_PATH = DATABASE_URL or os.environ.get("PLOT_TWIST_DB", DEFAULT_DB_PATH)
+# Online (deployed): saves go to hosted Postgres. Locally: a SQLite file.
+# Tests set PLOT_TWIST_DB to a temporary file; it wins, so tests never touch a real database.
+TEST_DB = os.environ.get("PLOT_TWIST_DB")
+DATABASE_URL = None if TEST_DB else secret("DATABASE_URL")
+DB_PATH = TEST_DB or DATABASE_URL or DEFAULT_DB_PATH
 ONLINE = bool(DATABASE_URL) or os.environ.get("PLOT_TWIST_ONLINE") == "1"
 DB_DOWN = "Não foi possível ligar à base de dados. O teu progresso está guardado; tenta outra vez daqui a pouco."
 ASSETS_DIR = Path(__file__).parent / "assets"
