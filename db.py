@@ -10,6 +10,8 @@ from contextlib import contextmanager
 from pathlib import Path
 
 DEFAULT_DB_PATH = Path(__file__).parent / "data" / "game.db"
+# Seconds to wait for a hosted database before giving up (the app then shows a message)
+CONNECT_TIMEOUT = 10
 
 TABLES = [
     "CREATE TABLE IF NOT EXISTS saves (player TEXT PRIMARY KEY, scene TEXT NOT NULL)",
@@ -49,7 +51,7 @@ def transaction(target):
         if is_postgres(target):
             import psycopg
 
-            with psycopg.connect(target) as conn, conn.cursor() as cursor:
+            with psycopg.connect(target, connect_timeout=CONNECT_TIMEOUT) as conn, conn.cursor() as cursor:
                 db = Cursor(cursor, postgres=True)
                 create_tables(db)
                 yield db

@@ -21,7 +21,8 @@ A browser mystery game (Nova SBE Intro to Programming): the player works at the 
 
 - Online: hosted Postgres, connection string in the secret `DATABASE_URL` (Streamlit Cloud settings or local `.streamlit/secrets.toml`, which git ignores).
 - Locally: SQLite at `data/game.db`; delete the file to reset local progress.
-- Tests: a temporary SQLite file (`tmp_path`, `PLOT_TWIST_DB`); never the real database. `PLOT_TWIST_ONLINE=1` turns on per-player links with SQLite.
+- Tests: a temporary SQLite file (`tmp_path`, `PLOT_TWIST_DB`); never the real database. `PLOT_TWIST_DB` wins over `DATABASE_URL`, so local secrets never reach the tests. `PLOT_TWIST_ONLINE=1` turns on per-player links with SQLite.
+- Check a hosted database from a laptop: `uv run python scripts/check_db.py` (never prints the connection string).
 - One member owns changes to the tables in `db.py` at a time; announce them to the team.
 
 ## Rules
