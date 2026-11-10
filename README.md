@@ -2,6 +2,8 @@
 
 A mystery game in the browser. You work at the Ministério da Verdade and discover that history is being rewritten. Observe the scenes, solve the puzzles, decide whether to trust your colleague Tomás, and reach one of three endings.
 
+Play **alone**, or **with a friend in cooperative mode**: one player is the *agente* who acts, the other is the *contacto da resistência* who sees the clues through the cameras. You only get through by talking in the room's chat.
+
 **Play online:** _(link do Streamlit Cloud — a preencher depois do deploy)_
 
 Started as a *Plot Twist* solo project and extended by the team (Nova SBE, Introduction to Programming, 2026).
@@ -39,6 +41,7 @@ The same tests run on GitHub Actions for every pull request and every push to `m
 |---|---|---|
 | Story and rules | `logic.py` | Scenes, items, actions, puzzles, endings. `apply_action(state, action_id, code)` decides what is allowed. Pure Python. |
 | Players | `players.py` | Online, each player is identified by a secret code in their link (`?jogador=...`). |
+| Cooperative rooms | `rooms.py` | Create/join a room (`?sala=...`), roles (agente, contacto), the room chat. The room's game is a save under `sala_<CODE>`. |
 | Storage | `db.py` | Saves each player's progress. SQLite locally, hosted Postgres online. |
 | Screens | `app.py` | Streamlit pages: start screen, game screen, endings. |
 | Clickable scenes | `components/scene_view.js`, `.css` | The picture you click to walk, observe, talk and type codes. Sends the chosen action to `app.py`. |
@@ -56,6 +59,7 @@ The same tests run on GitHub Actions for every pull request and every push to `m
 ## Limits
 
 - **No accounts:** whoever has a player's link can continue that game. Losing the link loses the save.
+- **Cooperative mode refreshes every 2 seconds** (polling, as the course guide recommends for Streamlit), so the other player's moves and messages appear with a short delay. A room holds exactly two players; room codes can be guessed with enough tries.
 - **Sleeping app:** the free host sleeps when unused and the free database pauses after inactivity. Open the link a few minutes before a demo.
 - **If the database is unavailable**, the game gives up after 10 seconds and shows a message instead of crashing; nothing is lost.
 - **Some networks (e.g. university or company Wi-Fi) block Postgres connections.** The deployed app is not affected, because it runs on Streamlit's servers. To check the connection from a laptop, run `uv run python scripts/check_db.py` (it never prints the password).

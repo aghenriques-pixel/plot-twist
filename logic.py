@@ -37,12 +37,12 @@ SCENES = {
         # Things to observe (clues live here). Observing never changes the state.
         "looks": [
             {
-                "label": "Secretária do Tomás", "x": 195, "y": 250, "w": 120, "h": 50, "stand": 255,
+                "label": "Secretária do Tomás", "clue": True, "x": 195, "y": 250, "w": 120, "h": 50, "stand": 255,
                 "text": "A secretária do Tomás, ao lado da tua. Uma caneca com o número 47 pintado à mão. "
                 "Ele passa o dia a olhar para ela.",
             },
             {
-                "label": "Calendário", "x": 296, "y": 92, "w": 70, "h": 82, "stand": 330,
+                "label": "Calendário", "clue": True, "x": 296, "y": 92, "w": 70, "h": 82, "stand": 330,
                 "text": "O calendário oficial do Partido. Um dia está marcado a vermelho: "
                 "17 de Abril — Dia da Unidade.",
             },
@@ -51,7 +51,7 @@ SCENES = {
                 "text": "O olho do Partido. Tens a sensação de que pisca quando desvias o olhar.",
             },
             {
-                "label": "Quadro de avisos", "x": 578, "y": 78, "w": 94, "h": 74, "stand": 620,
+                "label": "Quadro de avisos", "clue": True, "x": 578, "y": 78, "w": 94, "h": 74, "stand": 620,
                 "text": "AVISO: por ordem superior, o teclado do Arquivo passa a usar a data do Dia "
                 "da Unidade. Primeiro o dia, depois o mês. Quatro dígitos.",
             },
@@ -87,7 +87,7 @@ SCENES = {
         ),
         "looks": [
             {
-                "label": "Jornal", "x": 330, "y": 280, "w": 110, "h": 45, "stand": 410,
+                "label": "Jornal", "clue": True, "x": 330, "y": 280, "w": 110, "h": 45, "stand": 410,
                 "text": "O jornal de hoje, 4 de Abril de 1984, já corrigido: «A guerra contra a "
                 "Lestásia, que começou há três anos, está quase ganha.» Mas tu sabes que essa "
                 "guerra nunca existiu.",
@@ -173,7 +173,7 @@ SCENES = {
         ),
         "looks": [
             {
-                "label": "Ecrãs", "x": 40, "y": 30, "w": 730, "h": 200, "stand": 500,
+                "label": "Ecrãs", "clue": True, "x": 40, "y": 30, "w": 730, "h": 200, "stand": 500,
                 "text": "Vinte e um ecrãs. Alguns estão apagados: câmaras avariadas. Num post-it "
                 "amarelo, a letra do guarda: «Grelha norte: nº de câmaras avariadas × 7.»",
             },
@@ -195,7 +195,7 @@ SCENES = {
         ),
         "looks": [
             {
-                "label": "Parede", "x": 20, "y": 140, "w": 90, "h": 150, "stand": 120,
+                "label": "Parede", "clue": True, "x": 20, "y": 140, "w": 90, "h": 150, "stand": 120,
                 "text": "Alguém riscou na pedra, há muito tempo: «A água nunca mente.»",
             },
         ],
@@ -531,11 +531,20 @@ def scene_hotspots(state):
     return spots
 
 
-def scene_looks(state):
-    """Things the player can observe in the current scene. Observing never changes the state."""
+def scene_looks(state, role=None):
+    """Things the player can observe in the current scene. Observing never changes the state.
+    In cooperative mode the clues ("clue": True) are only for the contacto, never the agente."""
     if is_finished(state):
         return []
-    return list(SCENES[state["scene"]].get("looks", []))
+    looks = SCENES[state["scene"]].get("looks", [])
+    if role == "agente":
+        return [look for look in looks if not look.get("clue")]
+    return list(looks)
+
+
+def can_act(role):
+    """Solo players (role None) and the agente act; the contacto only watches and talks."""
+    return role in (None, "agente")
 
 
 def journey(state):
