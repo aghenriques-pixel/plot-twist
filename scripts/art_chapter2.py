@@ -32,7 +32,9 @@ def person(x, y, scale=1.0, flip=False, coat=None):
     """A character with feet at (x, y). `coat` = (main, dark) recolours the protagonist's coat."""
     body = SPRITE
     if coat:
-        body = body.replace(COAT, coat[0]).replace("#4a3824", coat[1])
+        # The sprite's coat colours, before and after scripts/art_colour.py
+        for main, dark in ((COAT, "#4a3824"), ("#a0592c", "#6e3b1c")):
+            body = body.replace(main, coat[0]).replace(dark, coat[1])
     sx = -scale if flip else scale
     return f'<g transform="translate({x} {y}) scale({sx} {scale})">{body}</g>'
 
