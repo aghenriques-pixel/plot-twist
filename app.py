@@ -15,6 +15,7 @@ from logic import (
     apply_action,
     available_actions,
     can_act,
+    chapter_of,
     decision_labels,
     is_finished,
     journey,
@@ -74,6 +75,8 @@ if "game" not in st.session_state:
     st.session_state.character = None
     st.session_state.db_error = False
     st.session_state.room_error = None
+    # Which chapter "Novo jogo" / "Capítulo 2" will start once confirmed
+    st.session_state.pending_chapter = 1
 
 # Cooperative room from the link (?sala=CODE), used only if this player is a member of it
 ROOM, ROLE = None, None
@@ -91,8 +94,8 @@ if ONLINE and st.query_params.get("sala"):
 SAVE_KEY = room_save_key(ROOM) if ROOM else PLAYER
 
 
-def start_new_game():
-    game = new_game()
+def start_new_game(chapter=None):
+    game = new_game(chapter or st.session_state.pending_chapter)
     try:
         save_game(DB_PATH, game, SAVE_KEY)
     except StorageError:
@@ -103,8 +106,9 @@ def start_new_game():
     st.session_state.confirm_restart = False
 
 
-def ask_new_game():
+def ask_new_game(chapter=1):
     """Start right away when there is nothing to lose; otherwise ask first (A6)."""
+    st.session_state.pending_chapter = chapter
     try:
         saved = has_save(DB_PATH, SAVE_KEY)
     except StorageError:
@@ -185,7 +189,9 @@ def show_scene_picture(game, role=None):
 
 
 def play_again():
-    """After an ending: back to the start screen with the new-game confirmation open (A6)."""
+    """After an ending: back to the start screen with the new-game confirmation open (A6),
+    ready to replay the same chapter."""
+    st.session_state.pending_chapter = chapter_of(st.session_state.game)
     st.session_state.game = None
     st.session_state.message = None
     st.session_state.confirm_restart = True
@@ -233,10 +239,16 @@ def leave_room():
     st.session_state.character = None
 
 
-def new_room_game():
+def new_room_game(chapter=1):
     """After an ending in a room: the agente starts a new game for both."""
     if can_act(ROLE):
-        start_new_game()
+        start_new_game(chapter)
+
+
+def continue_to_chapter_2():
+    """At Final 1 the story goes on: start chapter 2 (the finished chapter 1 game is replaced)."""
+    if can_act(ROLE):
+        start_new_game(2)
 
 
 def send_chat():
@@ -386,6 +398,10 @@ def show_start_screen():
     st.button("Novo jogo", key="novo_jogo", on_click=ask_new_game, type="primary")
     if saved:
         st.button("Continuar jogo", key="continuar_jogo", on_click=resume_game)
+    st.button(
+        "📖 Capítulo 2 — Depois da fuga", key="capitulo_2", on_click=ask_new_game, args=(2,),
+        help="A história continua depois do Final 1. Podes começar já por aqui.",
+    )
 
     st.divider()
     show_coop_entry()
@@ -425,17 +441,19 @@ def show_game_screen(game, role=None):
     if is_finished(game):
         st.subheader("Fim do jogo")
         st.markdown("**O teu caminho:** " + " · ".join(journey(game)))
+        if game["scene"] == "final_resistencia":
+            st.button("Continuar: Capítulo 2 →", key="continuar_capitulo_2", on_click=continue_to_chapter_2, type="primary")
         if role:
-            st.button("Nova partida na sala", key="nova_partida", on_click=new_room_game, type="primary")
+            st.button("Nova partida na sala", key="nova_partida", on_click=new_room_game, args=(chapter_of(game),))
         else:
-            st.button("Jogar outra vez", key="jogar_outra_vez", on_click=play_again, type="primary")
+            st.button("Jogar outra vez", key="jogar_outra_vez", on_click=play_again)
         return
 
     for action_id in available_actions(game):
         action = ACTIONS[action_id]
         if "code" in action:
             # Same lock as the keypad in the picture
-            st.text_input(action["code_prompt"], key=f"code_{action_id}", max_chars=6)
+            st.text_input(action["code_prompt"], key=f"code_{action_id}", max_chars=12)
             st.button(action["label"], key=action_id, on_click=choose, args=(action_id,), kwargs={"code_key": f"code_{action_id}"})
         else:
             st.button(action["label"], key=action_id, on_click=choose, args=(action_id,))

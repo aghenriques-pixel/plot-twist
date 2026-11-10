@@ -1,17 +1,25 @@
 """Story content and game rules. No Streamlit and no SQLite here."""
 
+import re
+
 START_SCENE = "ministerio"
+# Where each chapter's new game starts
+CHAPTER_STARTS = {1: "ministerio", 2: "c2_esconderijo"}
 
 ITEMS = {
     "cartao_acesso": "Cartão de acesso",
     "documento_proibido": "Documento proibido",
     "ficha_tomas": "Ficha do Tomás",
+    "mensagem_cifrada": "Mensagem cifrada",
+    "cassete": "Cassete do Tomás",
 }
 
 ITEM_ICONS = {
     "cartao_acesso": "🪪",
     "documento_proibido": "📄",
     "ficha_tomas": "🗂️",
+    "mensagem_cifrada": "📜",
+    "cassete": "📼",
 }
 
 # Shown in the inventory panel once a decision is made
@@ -19,6 +27,7 @@ DECISION_LABELS = {
     ("colega", "confiou"): "Confiaste no Tomás",
     ("colega", "escondeu"): "Escondeste a descoberta",
     ("colega", "confrontou"): "Confrontaste o Tomás",
+    ("frequencia", "sintonizada"): "Sintonizaste a rádio dos teus",
 }
 
 SCENES = {
@@ -253,6 +262,150 @@ SCENES = {
         ),
         "ending": True,
     },
+
+    # ----- Chapter 2: "Depois da fuga" (specs/chapter-2.md) -----
+    "c2_esconderijo": {
+        "title": "Esconderijo, na manhã seguinte",
+        "chapter": 2,
+        "image": "c2_esconderijo.svg",
+        "walk": {"start": 200, "floor": 380, "scale": 1.0, "min": 30, "max": 760},
+        "text": (
+            "A manhã seguinte, no esconderijo. A Júlia, líder da resistência, explica o plano: "
+            "esta noite, tomar a rádio do próprio Partido. Em cima da mesa estão a mensagem "
+            "cifrada de hoje e uma cassete com a voz do Tomás."
+        ),
+        "image_after": {
+            ("mensagem_cifrada", "cassete"): "c2_esconderijo_vazio.svg",
+            "mensagem_cifrada": "c2_esconderijo_sem_mensagem.svg",
+            "cassete": "c2_esconderijo_sem_cassete.svg",
+        },
+        "text_after": {
+            ("mensagem_cifrada", "cassete"): (
+                "A mesa está vazia. Tens a mensagem e a cassete. A Júlia acena: "
+                "«Quando for noite, sai pela escada. Boa sorte.»"
+            ),
+            "mensagem_cifrada": (
+                "A manhã seguinte, no esconderijo. Já tens a mensagem cifrada. Em cima da mesa "
+                "só resta a cassete com a voz do Tomás."
+            ),
+            "cassete": (
+                "A manhã seguinte, no esconderijo. Já tens a cassete do Tomás. Em cima da mesa "
+                "só resta a mensagem cifrada de hoje."
+            ),
+        },
+        "looks": [
+            {
+                "label": "Mapa da cidade", "clue": True, "x": 90, "y": 70, "w": 160, "h": 120, "stand": 170,
+                "text": "Um mapa da cidade com notas da Júlia: «Rua das Fábricas: patrulha às horas pares. "
+                "Beco do Mercado: vigiado sempre. Linha do elétrico: guardas só até ao recolher.»",
+            },
+            {
+                "label": "Rádio velho", "clue": True, "x": 330, "y": 110, "w": 90, "h": 60, "stand": 375,
+                "text": "Um rádio velho com um papel colado: «Os nossos ouvem sempre na frequência do "
+                "Partido menos 13,7.»",
+            },
+            {
+                "label": "Bilhete da Júlia", "clue": True, "x": 560, "y": 90, "w": 70, "h": 60, "stand": 590,
+                "text": "A letra da Júlia: «As nossas mensagens usam a cifra do velho Júlio: para ler, troca "
+                "cada letra pela que está três para trás no alfabeto.»",
+            },
+            {
+                "label": "Júlia", "x": 610, "y": 170, "w": 70, "h": 170, "stand": 600,
+                "text": "A líder da resistência. «Ninguém acredita em papel. Esta noite, a verdade vai passar "
+                "na rádio do próprio Partido.»",
+            },
+        ],
+    },
+    "c2_cidade": {
+        "title": "Ruas da cidade",
+        "chapter": 2,
+        "image": "c2_cidade.svg",
+        "walk": {"start": 120, "floor": 385, "scale": 0.95, "min": 30, "max": 760},
+        "text": (
+            "Ruas vazias, candeeiros fracos. Até à torre da rádio há três caminhos: o Beco do "
+            "Mercado, a Rua das Fábricas e a Linha do elétrico."
+        ),
+        "looks": [
+            {
+                "label": "Relógio da praça", "x": 60, "y": 40, "w": 90, "h": 120, "stand": 110,
+                "text": "O relógio da praça marca dez da noite.",
+            },
+            {
+                "label": "Cartaz do recolher", "clue": True, "x": 160, "y": 170, "w": 60, "h": 70, "stand": 190,
+                "text": "Um cartaz do Partido: «RECOLHER OBRIGATÓRIO a partir das 21h. Quem estiver na rua "
+                "será detido.»",
+            },
+        ],
+        "talks": {
+            "caminhos": {
+                "x": 230, "y": 120, "w": 520, "h": 220, "stand": 330,
+                "label": "Escolher um caminho",
+                "line": "Três caminhos até à torre da rádio. A esta hora, só um está livre de guardas.",
+            },
+        },
+    },
+    "c2_torre": {
+        "title": "Torre da rádio",
+        "chapter": 2,
+        "image": "c2_torre.svg",
+        "walk": {"start": 150, "floor": 385, "scale": 1.0, "min": 30, "max": 700},
+        "text": (
+            "A torre da Rádio do Partido, enorme e silenciosa. A porta não tem leitor de cartões: "
+            "tem uma fechadura de letras."
+        ),
+        "looks": [
+            {
+                "label": "Antena", "x": 300, "y": 20, "w": 120, "h": 200, "stand": 360,
+                "text": "A antena da Rádio do Partido pisca a vermelho, uma vez por segundo.",
+            },
+            {
+                "label": "Guarita", "x": 120, "y": 232, "w": 100, "h": 108, "stand": 170,
+                "text": "Uma guarita vazia. Na parede, um aviso: «A palavra da fechadura muda todas as semanas.»",
+            },
+        ],
+    },
+    "c2_estudio": {
+        "title": "Estúdio de emissão",
+        "chapter": 2,
+        "image": "c2_estudio.svg",
+        "walk": {"start": 130, "floor": 380, "scale": 1.0, "min": 30, "max": 720},
+        "text": (
+            "O estúdio de emissão. Um mostrador de frequência, um microfone e um leitor de cassetes. "
+            "Na parede, o cartaz da rádio do Partido."
+        ),
+        "looks": [
+            {
+                "label": "Cartaz da rádio", "x": 600, "y": 70, "w": 120, "h": 80, "stand": 640,
+                "text": "Um cartaz enorme: «RÁDIO DO PARTIDO, 101.4 FM. A única voz que precisas de ouvir.»",
+            },
+            {
+                "label": "Janela do estúdio", "x": 40, "y": 60, "w": 110, "h": 120, "stand": 100,
+                "text": "Lá em baixo, a cidade às escuras. Em cada casa há um rádio ligado.",
+            },
+        ],
+    },
+    "final_c2_voz": {
+        "title": "Final 4 — A voz da verdade",
+        "chapter": 2,
+        "image": "final_c2_voz.svg",
+        "text": (
+            "Em cada casa, a voz do Tomás conta a verdade sobre a guerra que nunca existiu. Quando a "
+            "polícia arromba a porta do estúdio, só encontra a cassete a tocar. Tu e a Júlia já estão "
+            "longe, a ouvir a cidade acordar."
+        ),
+        "ending": True,
+    },
+    "final_c2_reconhecido": {
+        "title": "Final 5 — Reconhecido",
+        "chapter": 2,
+        "image": "final_c2_reconhecido.svg",
+        "text": (
+            "A cidade inteira ouve a tua voz, e o Ministério também. Em minutos reconhecem-te: o "
+            "funcionário exemplar da secretária do canto. A verdade passou, mas tu não vais sair do "
+            "estúdio. Se ao menos tivesses trazido a cassete."
+        ),
+        "ending": True,
+    },
 }
 
 # Each action belongs to one scene. Optional keys:
@@ -266,6 +419,8 @@ SCENES = {
 # - only_without: item; the action is hidden once the player has it
 # - rejects: the action is offered but always refused with this message (a wrong answer)
 # - code, code_prompt, wrong_code_message: the action also needs the right code typed in
+#   (compared ignoring case, spaces, dots and commas); code_kind "text" lets the keypad take letters
+# - decision_message: shown when `needs_decision` is not met, if different from blocked_message
 # - talk: name of a clickable character or object in SCENES[scene]["talks"]; the action is one of its options
 # - say: what the player says when this is chosen in a conversation
 # - goes_to: scene the player moves to
@@ -467,12 +622,124 @@ ACTIONS = {
         "goes_to": "final_resistencia",
         "message": "A mão estendida agarra o documento.",
     },
+
+    # ----- Chapter 2 -----
+    "apanhar_mensagem": {
+        "hotspot": {"x": 390, "y": 270, "w": 80, "h": 40, "stand": 360},
+        "scene": "c2_esconderijo",
+        "label": "Apanhar a mensagem cifrada",
+        "gives": "mensagem_cifrada",
+        "message": "A Júlia entrega-te a mensagem de hoje, cifrada como sempre: OLEHUGDGH. «É a palavra que abre a torre.»",
+    },
+    "apanhar_cassete": {
+        "hotspot": {"x": 490, "y": 270, "w": 60, "h": 40, "stand": 470},
+        "scene": "c2_esconderijo",
+        "label": "Levar a cassete do Tomás",
+        "gives": "cassete",
+        "message": "Uma cassete com a voz do Tomás a ler o relatório. «Se correr mal, ao menos não é a tua voz que eles ouvem.»",
+    },
+    "sair_para_cidade": {
+        "hotspot": {"x": 0, "y": 120, "w": 45, "h": 240, "stand": 30, "edge": "left"},
+        "scene": "c2_esconderijo",
+        "label": "Sair para a cidade",
+        "goes_to": "c2_cidade",
+        "message": "Esperas pela noite e sobes as escadas para a rua.",
+    },
+    "beco_mercado": {
+        "scene": "c2_cidade",
+        "talk": "caminhos",
+        "say": "Pelo Beco do Mercado",
+        "label": "Ir pelo Beco do Mercado",
+        "rejects": "O beco está cheio de guardas, como sempre. Recuas antes que te vejam.",
+        "message": "",
+    },
+    "rua_fabricas": {
+        "scene": "c2_cidade",
+        "talk": "caminhos",
+        "say": "Pela Rua das Fábricas",
+        "label": "Ir pela Rua das Fábricas",
+        "rejects": "Ao virar a esquina ouves botas: uma patrulha! Voltas para trás a correr.",
+        "message": "",
+    },
+    "seguir_eletrico": {
+        "scene": "c2_cidade",
+        "talk": "caminhos",
+        "say": "Pela Linha do elétrico",
+        "label": "Seguir a Linha do elétrico",
+        "goes_to": "c2_torre",
+        "message": "Segues os carris do elétrico. Nem um guarda: depois do recolher, ninguém vigia a linha.",
+    },
+    "voltar_esconderijo": {
+        "hotspot": {"x": 0, "y": 200, "w": 45, "h": 180, "stand": 30, "edge": "left"},
+        "scene": "c2_cidade",
+        "label": "Voltar ao esconderijo",
+        "goes_to": "c2_esconderijo",
+        "message": "Voltas ao esconderijo para pensar melhor.",
+    },
+    "ir_estudio": {
+        "hotspot": {"x": 560, "y": 170, "w": 80, "h": 170, "stand": 520},
+        "scene": "c2_torre",
+        "label": "Abrir a porta da torre",
+        "code": "LIBERDADE",
+        "code_kind": "text",
+        "code_prompt": "Fechadura de letras: escreve a palavra",
+        "wrong_code_message": "A fechadura recusa a palavra. Uma luz vermelha acende-se por um segundo.",
+        "goes_to": "c2_estudio",
+        "message": "A fechadura aceita a palavra. Sobes as escadas até ao estúdio de emissão.",
+    },
+    "voltar_cidade": {
+        "hotspot": {"x": 0, "y": 200, "w": 45, "h": 180, "stand": 30, "edge": "left"},
+        "scene": "c2_torre",
+        "label": "Voltar para a cidade",
+        "goes_to": "c2_cidade",
+        "message": "Afastas-te da torre e voltas às ruas.",
+    },
+    "sintonizar": {
+        "hotspot": {"x": 195, "y": 225, "w": 140, "h": 80, "stand": 260},
+        "scene": "c2_estudio",
+        "label": "Sintonizar a frequência",
+        "code": "87.7",
+        "code_kind": "text",
+        "code_prompt": "Mostrador de frequência (ex.: 99.9)",
+        "wrong_code_message": "Só se ouve estática. Essa não é a frequência dos teus.",
+        "decides": ("frequencia", "sintonizada"),
+        "message": "A estática desaparece. Do outro lado, alguém sussurra: «Estamos a ouvir.»",
+    },
+    "emitir_direto": {
+        "hotspot": {"x": 420, "y": 170, "w": 60, "h": 150, "stand": 400},
+        "scene": "c2_estudio",
+        "label": "Ler o relatório em direto",
+        "needs_decision": "frequencia",
+        "blocked_message": "Primeiro tens de sintonizar a frequência certa.",
+        "goes_to": "final_c2_reconhecido",
+        "message": "Respiras fundo, aproximas-te do microfone e começas a ler...",
+    },
+    "tocar_cassete": {
+        "hotspot": {"x": 555, "y": 240, "w": 110, "h": 65, "stand": 520},
+        "scene": "c2_estudio",
+        "label": "Pôr a cassete do Tomás a tocar",
+        "requires": "cassete",
+        "blocked_message": "Não tens nenhuma cassete. Ficou no esconderijo.",
+        "needs_decision": "frequencia",
+        "decision_message": "Primeiro tens de sintonizar a frequência certa.",
+        "goes_to": "final_c2_voz",
+        "message": "Carregas no botão. A voz do Tomás enche a cidade, e tu já estás a descer as escadas.",
+    },
 }
 
 
-def new_game():
-    """Progress for a fresh game: opening scene, empty inventory, no decisions."""
-    return {"scene": START_SCENE, "inventory": [], "decisions": {}}
+def new_game(chapter=1):
+    """Progress for a fresh game of a chapter: its first scene, empty inventory, no decisions."""
+    return {"scene": CHAPTER_STARTS[chapter], "inventory": [], "decisions": {}}
+
+
+def chapter_of(state):
+    return SCENES[state["scene"]].get("chapter", 1)
+
+
+def normalise_code(value):
+    """Typed codes are compared without case, spaces, dots or commas: 87.7 = 877, liberdade = LIBERDADE."""
+    return re.sub(r"[\s.,]", "", value or "").upper()
 
 
 def is_finished(state):
@@ -521,6 +788,7 @@ def scene_hotspots(state):
             if "code" in action:
                 # Only the prompt goes to the browser, never the code itself
                 spot["code_prompt"] = action["code_prompt"]
+                spot["code_kind"] = action.get("code_kind", "number")
             spots.append(spot)
         if "talk" in action:
             name = action["talk"]
@@ -550,6 +818,11 @@ def can_act(role):
 def journey(state):
     """Short sentences describing the path taken, shown at the ending."""
     steps = []
+    if chapter_of(state) == 2:
+        if "cassete" in state["inventory"]:
+            steps.append("Levaste a cassete do Tomás")
+        else:
+            steps.append("Deixaste a cassete no esconderijo")
     if "colega" in state["decisions"]:
         if "ficha_tomas" in state["inventory"]:
             steps.append("Leste a ficha do Tomás")
@@ -614,8 +887,8 @@ def apply_action(state, action_id, code=None):
     if "requires" in action and action["requires"] not in state["inventory"]:
         return False, copy_state(state), action["blocked_message"]
     if "needs_decision" in action and action["needs_decision"] not in state["decisions"]:
-        return False, copy_state(state), action["blocked_message"]
-    if "code" in action and (code or "").strip() != action["code"]:
+        return False, copy_state(state), action.get("decision_message", action["blocked_message"])
+    if "code" in action and normalise_code(code) != normalise_code(action["code"]):
         return False, copy_state(state), action["wrong_code_message"]
 
     new_state = copy_state(state)
