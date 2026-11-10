@@ -7,16 +7,28 @@ LEVELS = [
     # completes_with: endings that complete the level (the story only continues from these)
     {"number": 1, "chapter": 1, "completes_with": {"final_resistencia"}},
     {"number": 2, "chapter": 2, "completes_with": {"final_c2_voz", "final_c2_estatica"}},
+    {"number": 3, "chapter": 3, "completes_with": {"final_c3_nomes", "final_c3_dois"}},
 ]
 
 ENDINGS_BY_CHAPTER = {
     1: {"final_resistencia", "final_descoberto", "final_traido", "final_apanhado"},
     2: {"final_c2_voz", "final_c2_reconhecido", "final_c2_estatica", "final_c2_preso"},
+    3: {"final_c3_nomes", "final_c3_dois", "final_c3_apanhados"},
 }
 
 
 def level_for_chapter(chapter):
     return next(level for level in LEVELS if level["chapter"] == chapter)
+
+
+def next_chapter(chapter, ending):
+    """The chapter that follows when `ending` completes `chapter`'s level, or None (no next level,
+    or an ending that does not complete the level)."""
+    level = level_for_chapter(chapter)
+    following = [other for other in LEVELS if other["chapter"] == chapter + 1]
+    if ending in level["completes_with"] and following:
+        return following[0]["chapter"]
+    return None
 
 
 def level_status(endings):

@@ -31,6 +31,8 @@ CARLA = "carla_cccccccccccccccccccccc"
 CLUES = {"Tomás's desk", "Calendar", "Notice board", "Newspaper", "Screens", "Wall"}
 # Chapter 2 adds four clue looks (specs/chapter-2.md)
 CHAPTER_2_CLUES = {"City map", "Júlia's note", "Old radio", "Curfew poster"}
+# Added (specs/level-3.md): the clues of level 3
+CHAPTER_3_CLUES = {"Notice", "Van docket", "Night roster", "Photograph", "Note"}
 
 
 @pytest.fixture
@@ -117,7 +119,7 @@ def test_every_clue_look_is_marked():
     from logic import SCENES
 
     marked = {look["label"] for scene in SCENES.values() for look in scene.get("looks", []) if look.get("clue")}
-    assert marked == CLUES | CHAPTER_2_CLUES
+    assert marked == CLUES | CHAPTER_2_CLUES | CHAPTER_3_CLUES
 
 
 # Done when 4: only the agent acts

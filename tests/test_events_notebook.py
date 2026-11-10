@@ -118,7 +118,8 @@ def test_caught_endings_are_numbered_and_belong_to_their_level():
 def test_level_endings_count_and_being_caught_does_not_open_the_next_level():
     status = level_status({"final_apanhado"})
 
-    assert [level["endings_total"] for level in status] == [4, 4]
+    # Changed (specs/level-3.md): level 3 has 3 endings
+    assert [level["endings_total"] for level in status] == [4, 4, 3]
     assert not status[1]["unlocked"]
 
 

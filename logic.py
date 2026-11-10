@@ -4,7 +4,7 @@ import re
 
 START_SCENE = "ministerio"
 # Where each chapter's new game starts
-CHAPTER_STARTS = {1: "ministerio", 2: "c2_esconderijo"}
+CHAPTER_STARTS = {1: "ministerio", 2: "c2_esconderijo", 3: "c3_patio"}
 
 ITEMS = {
     "cartao_acesso": "Access card",
@@ -13,6 +13,8 @@ ITEMS = {
     "mensagem_cifrada": "Ciphered message",
     "cassete": "Tomás's cassette",
     "mapa_tuneis": "Scrap of tunnel map",
+    "uniforme": "Laundry uniform",
+    "lista_prisioneiros": "List of prisoners",
 }
 
 # The full text of each item, read in the notebook
@@ -32,6 +34,11 @@ ITEM_DETAILS = {
         "A scrap of tunnel map, soft with damp. An arrow follows the water to a door, and underneath someone "
         "has drawn three short lines."
     ),
+    "uniforme": "A grey laundry uniform, two sizes too big. It smells of bleach, and it makes you invisible.",
+    "lista_prisioneiros": (
+        "The officer's ledger: every prisoner in the building, with real names, dates and cell numbers. "
+        "Two hundred people the Party says never existed."
+    ),
 }
 
 ITEM_ICONS = {
@@ -41,6 +48,8 @@ ITEM_ICONS = {
     "mensagem_cifrada": "📜",
     "cassete": "📼",
     "mapa_tuneis": "🗺️",
+    "uniforme": "🧺",
+    "lista_prisioneiros": "📒",
 }
 
 # Shown in the inventory panel once a decision is made
@@ -49,6 +58,7 @@ DECISION_LABELS = {
     ("colega", "escondeu"): "You kept the discovery to yourself",
     ("colega", "confrontou"): "You confronted Tomás",
     ("frequencia", "sintonizada"): "You tuned in to your own people",
+    ("clara", "libertada"): "You freed Clara",
 }
 
 SCENES = {
@@ -580,6 +590,230 @@ SCENES = {
             "The whole city hears your voice, and so does the Ministry. Within minutes they know it "
             "is you: the model employee from the corner desk. The truth got out, but you will not "
             "leave the studio. If only you had brought the cassette."
+        ),
+        "ending": True,
+    },
+
+    # ----- Chapter 3: "The Ministry of Love" (specs/level-3.md) -----
+    "c3_patio": {
+        "title": "The laundry yard",
+        "chapter": 3,
+        "image": "c3_patio.svg",
+        "walk": {"start": 110, "floor": 380, "scale": 1.0, "min": 30, "max": 760},
+        "text": (
+            "Three in the morning, behind the Ministry of Love. No windows, just a searchlight sweeping the yard "
+            "and a laundry van with its back doors open. Tomás is waiting in the shadows. Somewhere inside is "
+            "his sister, Clara, and at dawn she will be moved."
+        ),
+        "image_after": {"uniforme": "c3_patio_sem_uniforme.svg"},
+        "text_after": {
+            "uniforme": (
+                "The yard, three in the morning. You are wearing a laundry uniform that smells of bleach. The "
+                "service door, with its keypad, is the only way in."
+            ),
+        },
+        "looks": [
+            {
+                "label": "Notice", "clue": True, "x": 590, "y": 110, "w": 80, "h": 64, "stand": 630,
+                "text": "A typed notice, damp at the corners: \u201cWing B. Guard change: 03:15. No exceptions.\u201d",
+            },
+            {
+                "label": "Van docket", "clue": True, "x": 350, "y": 245, "w": 70, "h": 45, "stand": 385,
+                "text": "The laundry docket, clipped to the van: \u201cService door code: the guard change, read "
+                "backwards.\u201d Someone has underlined backwards twice.",
+            },
+            {
+                "label": "Searchlight", "x": 30, "y": 20, "w": 130, "h": 110, "stand": 100,
+                "text": "The searchlight sweeps the yard every eight seconds. You find yourself counting.",
+            },
+        ],
+        "talks": {
+            "tomas": {
+                "x": 185, "y": 205, "w": 70, "h": 175, "stand": 290,
+                "label": "Talk to Tomás",
+                "speaker": "Tomás",
+                "line": "\u201cYou came. I didn't think you would.\u201d",
+            },
+        },
+    },
+    "c3_corredor": {
+        "title": "Wing B",
+        "chapter": 3,
+        "image": "c3_corredor.svg",
+        "walk": {"start": 60, "floor": 380, "scale": 1.0, "min": 30, "max": 770},
+        "text": (
+            "Wing B. A long corridor that smells of disinfectant, steel doors on one side and a radio murmuring "
+            "somewhere. Cells 15 to 18. At the end, a door marked OFFICER ON DUTY; by the entrance, the laundry cart."
+        ),
+        "text_after_decision": {
+            "clara": (
+                "Wing B, with Clara right behind you, barefoot so her steps make no noise. The laundry cart waits "
+                "by the entrance, and the officer's door is still at the end of the corridor."
+            ),
+        },
+        "looks": [
+            {
+                "label": "Night roster", "clue": True, "x": 70, "y": 110, "w": 90, "h": 70, "stand": 120,
+                "text": "The night roster, in neat capitals: \u201cB-15: night guard (resting). B-16: Petrov. "
+                "B-17: Clara M. B-18: empty, being cleaned.\u201d",
+            },
+            {
+                "label": "Radio", "x": 665, "y": 295, "w": 45, "h": 50, "stand": 650,
+                "text": "A radio on a stool, turned down low. The Party news: \u201cLast night's broadcast was a "
+                "foreign forgery.\u201d You almost laugh.",
+            },
+        ],
+        "talks": {
+            "celas": {
+                "x": 190, "y": 140, "w": 470, "h": 210, "stand": 420,
+                "label": "Choose a cell",
+                "line": "Four steel doors with little hatches: cells 15 to 18. The wrong door could wake the whole wing.",
+            },
+        },
+    },
+    "c3_ronda": {
+        "title": "Night round",
+        "chapter": 3,
+        "image": "c3_ronda.svg",
+        "walk": {"start": 330, "floor": 380, "scale": 1.0, "min": 30, "max": 770},
+        "text": (
+            "Cell 15 wasn't a cell. It is where the night guard sleeps, and now he is awake, pulling on his "
+            "boots, his torch already sweeping the corridor."
+        ),
+        "danger": {"seconds": 10, "timeout": "ficar_quieto_ronda"},
+        "looks": [
+            {
+                "label": "Cleaning cupboard", "x": 272, "y": 180, "w": 46, "h": 160, "stand": 330,
+                "text": "A narrow cupboard full of mops and buckets. Just enough room for one person who doesn't mind the smell.",
+            },
+        ],
+        "talks": {
+            "guarda": {
+                "x": 190, "y": 140, "w": 80, "h": 210, "stand": 330,
+                "label": "The guard",
+                "line": "\u201cWho's there? Laundry doesn't come till half past three.\u201d",
+            },
+        },
+    },
+    "c3_cela": {
+        "title": "Cell 17",
+        "chapter": 3,
+        "image": "c3_cela.svg",
+        "walk": {"start": 140, "floor": 380, "scale": 1.0, "min": 30, "max": 740},
+        "text": (
+            "A bare cell, a bucket and a narrow bed. Clara looks up, terrified, then sees the uniform and frowns. "
+            "She has Tomás's eyes."
+        ),
+        "image_after_decision": {"clara": "c3_cela_vazia.svg"},
+        "text_after_decision": {
+            "clara": (
+                "The cell is empty now. On the wall, the scratches Clara made to count the days: two hundred and fourteen."
+            ),
+        },
+        "looks": [
+            {
+                "label": "Wall", "x": 240, "y": 140, "w": 130, "h": 90, "stand": 300,
+                "text": "Scratches in the plaster, in groups of five. Somebody has been counting days: two hundred and fourteen.",
+            },
+            {
+                "label": "Window", "x": 600, "y": 50, "w": 100, "h": 80, "stand": 650,
+                "text": "A slit of a window, high up and barred. Beyond it, the searchlight goes round and round.",
+            },
+        ],
+        "talks": {
+            "clara": {
+                "x": 485, "y": 205, "w": 70, "h": 175, "stand": 430,
+                "label": "Talk to Clara",
+                "speaker": "Clara",
+                "line": "\u201cWho are you? Did they send you?\u201d",
+            },
+        },
+    },
+    "c3_gabinete": {
+        "title": "The officer's office",
+        "chapter": 3,
+        "image": "c3_gabinete.svg",
+        "walk": {"start": 110, "floor": 380, "scale": 1.0, "min": 30, "max": 740},
+        "text": (
+            "A tidy office. A desk lamp, a portrait of the Leader, a photograph in a silver frame and, in the "
+            "corner, a heavy green safe with a dial."
+        ),
+        "image_after": {"lista_prisioneiros": "c3_gabinete_aberto.svg"},
+        "text_after": {
+            "lista_prisioneiros": "The safe stands open and empty. The list is inside your uniform, against your chest. Time to go.",
+        },
+        "looks": [
+            {
+                "label": "Photograph", "clue": True, "x": 315, "y": 232, "w": 50, "h": 48, "stand": 340,
+                "text": "A little girl in a party dress, blowing out candles. On the back, in the officer's handwriting: "
+                "\u201cAnna, 9 March.\u201d",
+            },
+            {
+                "label": "Note", "clue": True, "x": 450, "y": 240, "w": 60, "h": 38, "stand": 480,
+                "text": "A note stuck to the lamp: \u201cSafe: her birthday, day first. Stop forgetting it! \u2014 K.\u201d",
+            },
+            {
+                "label": "Portrait", "x": 360, "y": 50, "w": 90, "h": 115, "stand": 400,
+                "text": "The Leader looks down at the desk. In this room, even the portrait seems tired.",
+            },
+        ],
+    },
+    "c3_portao": {
+        "title": "The laundry gate",
+        "chapter": 3,
+        "image": "c3_portao.svg",
+        "walk": {"start": 330, "floor": 385, "scale": 1.0, "min": 30, "max": 760},
+        "text": (
+            "The laundry gate: a barrier and a guard booth lit by a single bulb. The guard steps out, stamping "
+            "his feet against the cold, and looks at your cart."
+        ),
+        "danger": {"seconds": 12, "timeout": "ficar_quieto_portao"},
+        "looks": [
+            {
+                "label": "Laundry cart", "x": 230, "y": 270, "w": 120, "h": 80, "stand": 300,
+                "text": "Sheets piled high. Underneath them, Clara is holding her breath.",
+            },
+            {
+                "label": "Barrier", "x": 640, "y": 250, "w": 150, "h": 40, "stand": 700,
+                "text": "A striped barrier and, beyond it, the dark street where Tomás is waiting with the van.",
+            },
+        ],
+        "talks": {
+            "guarda": {
+                "x": 520, "y": 180, "w": 80, "h": 180, "stand": 440,
+                "label": "The gate guard",
+                "line": "\u201cLaundry out already? Let's have a look in that cart.\u201d",
+            },
+        },
+    },
+    "final_c3_nomes": {
+        "title": "Ending 9 — Every name",
+        "chapter": 3,
+        "image": "final_c3_nomes.svg",
+        "text": (
+            "Tomás's van rattles away as the sky turns grey. Clara sleeps against her brother's shoulder. On your "
+            "knees, the ledger: two hundred names the Party said never existed. By tonight, every one of them "
+            "will be read out on the radio."
+        ),
+        "ending": True,
+    },
+    "final_c3_dois": {
+        "title": "Ending 10 — Two out of hundreds",
+        "chapter": 3,
+        "image": "final_c3_dois.svg",
+        "text": (
+            "The van pulls away into the dawn. Tomás can't let go of his sister's hand. You got her out, and that "
+            "is not nothing. But behind you, in Wing B, the others are still counting days on the walls."
+        ),
+        "ending": True,
+    },
+    "final_c3_apanhados": {
+        "title": "Ending 11 — Room 101",
+        "chapter": 3,
+        "image": "final_descoberto.svg",
+        "text": (
+            "They take you both down to the basement, to the room everyone has heard of and nobody describes. "
+            "Outside, Tomás waits by the van until the sun comes up. Then he drives away alone."
         ),
         "ending": True,
     },
@@ -1145,6 +1379,244 @@ ACTIONS = {
         "goes_to": "final_c2_voz",
         "message": "You press play. Tomás's voice fills the city, and you are already running down the stairs.",
     },
+
+    # ----- Chapter 3 -----
+    "falar_tomas_c3": {
+        "scene": "c3_patio",
+        "talk": "tomas",
+        "say": "\u201cTell me the plan.\u201d",
+        "label": "Ask Tomás about the plan",
+        "decides": ("conversa_tomas_c3", "ouvida"),
+        "conversation_title": "Tomás, in the laundry yard",
+        "reply": [
+            ("Tomás", "\u201cThe laundry crew go in at three. Nobody looks twice at a laundry uniform.\u201d"),
+            ("you", "\u201cAnd you?\u201d"),
+            ("Tomás", "\u201cThey know my face in there. I'll wait with the van. Clara's in Wing B. Bring her back to me. Please.\u201d"),
+        ],
+        "message": "Tomás steps back into the shadow of the van.",
+    },
+    "apanhar_uniforme": {
+        "hotspot": {"x": 480, "y": 205, "w": 70, "h": 85, "stand": 515},
+        "scene": "c3_patio",
+        "label": "Take a laundry uniform",
+        "gives": "uniforme",
+        "message": (
+            "You pull a grey laundry uniform over your clothes. It's two sizes too big, which is perfect: nobody "
+            "ever looks at the laundry staff."
+        ),
+    },
+    "entrar_servico": {
+        "hotspot": {"x": 690, "y": 160, "w": 80, "h": 190, "stand": 720},
+        "scene": "c3_patio",
+        "label": "Open the service door",
+        "requires": "uniforme",
+        "blocked_message": "A guard glances over from the gate. In your own clothes you would never get through that door.",
+        "code": "5130",
+        "code_prompt": "Service door keypad: 4 digits",
+        "wrong_code_message": "The keypad buzzes. Wrong code, and the searchlight is coming back round.",
+        "goes_to": "c3_corredor",
+        "message": "The lock clicks. You slip inside with a bundle of sheets in your arms, as if you'd done it a thousand times.",
+    },
+    "cela_15": {
+        "x": 230,
+        "scene": "c3_corredor",
+        "talk": "celas",
+        "say": "Cell 15",
+        "label": "Open cell 15",
+        "goes_to": "c3_ronda",
+        "message": "You slide the hatch open. Inside, on a camp bed, a guard sits up and reaches for his torch.",
+    },
+    "cela_16": {
+        "x": 360,
+        "scene": "c3_corredor",
+        "talk": "celas",
+        "say": "Cell 16",
+        "label": "Open cell 16",
+        "rejects": "Through the hatch, an old man asleep, mumbling a name that isn't Clara's. You slide it shut, gently.",
+        "message": "",
+    },
+    "cela_17": {
+        "x": 490,
+        "scene": "c3_corredor",
+        "talk": "celas",
+        "say": "Cell 17",
+        "label": "Open cell 17",
+        "goes_to": "c3_cela",
+        "message": "The door is only bolted from the outside. You slide the bolt back as slowly as you can.",
+    },
+    "cela_18": {
+        "x": 620,
+        "scene": "c3_corredor",
+        "talk": "celas",
+        "say": "Cell 18",
+        "label": "Open cell 18",
+        "rejects": "Cell 18 is empty: a bucket and the smell of bleach. They are still cleaning up after whoever was here.",
+        "message": "",
+    },
+    "ir_gabinete": {
+        "hotspot": {"x": 715, "y": 150, "w": 70, "h": 190, "stand": 700},
+        "scene": "c3_corredor",
+        "label": "Go into the officer's office",
+        "goes_to": "c3_gabinete",
+        "message": "The officer's door is ajar. Inside, a desk lamp is on and the chair is empty.",
+    },
+    "ir_portao": {
+        "hotspot": {"x": 60, "y": 265, "w": 85, "h": 85, "stand": 110},
+        "scene": "c3_corredor",
+        "label": "Take Clara out in the laundry cart",
+        "only_if": ("clara", "libertada"),
+        "goes_to": "c3_portao",
+        "message": (
+            "Clara climbs into the cart and you pile sheets on top of her. You push it towards the laundry gate, "
+            "slowly, the way a bored worker would."
+        ),
+    },
+    "voltar_patio": {
+        "hotspot": {"x": 0, "y": 120, "w": 45, "h": 140, "stand": 30, "edge": "left"},
+        "scene": "c3_corredor",
+        "label": "Back to the yard",
+        "goes_to": "c3_patio",
+        "message": "You step back out into the cold yard. The searchlight sweeps past.",
+    },
+    "esconder_armario": {
+        "scene": "c3_ronda",
+        "talk": "guarda",
+        "say": "Slip into the cleaning cupboard",
+        "label": "Hide in the cupboard",
+        "goes_to": "c3_corredor",
+        "message": (
+            "You squeeze in among the mops and pull the door to. His boots stop right outside... then move off "
+            "towards the stairs."
+        ),
+    },
+    "mentir_ronda": {
+        "scene": "c3_ronda",
+        "talk": "guarda",
+        "say": "\u201cEarly laundry, sir. New schedule.\u201d",
+        "label": "Say the laundry is early",
+        "goes_to": "c3_corredor",
+        "message": "He grunts, rubs his eyes and waves you on. \u201cNobody tells me anything.\u201d He shuffles off to the stairs.",
+        "lucky": {
+            "chance": 0.4,
+            "goes_to": "final_c3_apanhados",
+            "message": "He looks down at your shoes. Laundry staff wear rubber soles. \u201cHands where I can see them.\u201d",
+        },
+    },
+    "ficar_quieto_ronda": {
+        "scene": "c3_ronda",
+        "talk": "guarda",
+        "say": "Freeze in the shadow of the door",
+        "label": "Freeze",
+        "goes_to": "c3_corredor",
+        "message": "You don't breathe. The torch slides along the wall a hand's width from your face, and the guard heads for the stairs.",
+        "lucky": {
+            "chance": 0.5,
+            "goes_to": "final_c3_apanhados",
+            "message": "The beam stops on you. \u201cWell, well. You're not laundry.\u201d",
+        },
+    },
+    "libertar_clara": {
+        "scene": "c3_cela",
+        "talk": "clara",
+        "say": "\u201cTomás sent me. We're getting you out.\u201d",
+        "label": "Tell Clara you're getting her out",
+        "decides": ("clara", "libertada"),
+        "conversation_title": "Clara, in cell 17",
+        "reply": [
+            ("Clara", "\u201cTomás? He's alive?\u201d"),
+            ("you", "\u201cHe's waiting outside. We have until the guard change.\u201d"),
+            ("Clara", "\u201cWait. The officer keeps a list in his safe: every prisoner in this building, with their real "
+                      "names. If we take it, nobody can pretend they never existed.\u201d"),
+            ("you", "\u201cAnd the safe?\u201d"),
+            ("Clara", "\u201cHe never stops talking about his daughter, Anna. The combination is her birthday. I'd bet my life on it.\u201d"),
+        ],
+        "message": "Clara gets up, barefoot, and follows you without a sound.",
+    },
+    "voltar_corredor": {
+        "hotspot": {"x": 0, "y": 120, "w": 45, "h": 240, "stand": 30, "edge": "left"},
+        "scene": "c3_cela",
+        "label": "Back to the corridor",
+        "goes_to": "c3_corredor",
+        "message": "You step back into the corridor and check both ways.",
+    },
+    "abrir_cofre": {
+        "hotspot": {"x": 615, "y": 235, "w": 95, "h": 115, "stand": 590},
+        "scene": "c3_gabinete",
+        "label": "Open the safe",
+        "gives": "lista_prisioneiros",
+        "code": "0903",
+        "code_prompt": "Safe dial: 4 digits",
+        "wrong_code_message": "The dial clicks round to nothing. Wrong combination.",
+        "message": (
+            "The dial clicks and the handle turns. Inside is a thick ledger: every prisoner in the building, with "
+            "real names, dates and cells. You slide it under your uniform."
+        ),
+    },
+    "sair_gabinete": {
+        "hotspot": {"x": 0, "y": 120, "w": 45, "h": 240, "stand": 30, "edge": "left"},
+        "scene": "c3_gabinete",
+        "label": "Back to the corridor",
+        "goes_to": "c3_corredor",
+        "message": "You switch off the lamp and leave the door exactly as you found it.",
+    },
+    # Same words and label for both: only one is offered, depending on whether you have the list
+    "esconder_carrinho": {
+        "scene": "c3_portao",
+        "talk": "guarda",
+        "say": "\u201cDirty sheets, sir. You really want to dig through those?\u201d",
+        "label": "Keep Clara hidden in the cart",
+        "only_without": "lista_prisioneiros",
+        "goes_to": "final_c3_dois",
+        "message": "He wrinkles his nose, waves you through and goes back to his booth.",
+        "lucky": {
+            "chance": 0.2,
+            "goes_to": "final_c3_apanhados",
+            "message": "He pulls back the top sheet anyway. Two terrified eyes look up at him.",
+        },
+    },
+    "esconder_carrinho_lista": {
+        "scene": "c3_portao",
+        "talk": "guarda",
+        "say": "\u201cDirty sheets, sir. You really want to dig through those?\u201d",
+        "label": "Keep Clara hidden in the cart",
+        "only_with": "lista_prisioneiros",
+        "goes_to": "final_c3_nomes",
+        "message": "He wrinkles his nose, waves you through and goes back to his booth.",
+        "lucky": {
+            "chance": 0.2,
+            "goes_to": "final_c3_apanhados",
+            "message": "He pulls back the top sheet anyway. Two terrified eyes look up at him.",
+        },
+    },
+    "mentir_portao": {
+        "scene": "c3_portao",
+        "talk": "guarda",
+        "say": "\u201cOfficer K. wants these washed before dawn. Ask him, if you like.\u201d",
+        "label": "Use the officer's name",
+        "goes_to": "c3_corredor",
+        "message": "He frowns. \u201cOfficer K. is asleep upstairs. Take that cart back inside and wait.\u201d You turn round, slowly.",
+        "lucky": {
+            "chance": 0.5,
+            "goes_to": "final_c3_apanhados",
+            "message": "\u201cOfficer K.?\u201d He picks up the booth phone. \u201cLet's ask him, then.\u201d",
+        },
+    },
+    "ficar_quieto_portao": {
+        "scene": "c3_portao",
+        "talk": "guarda",
+        "say": "Say nothing and wait",
+        "label": "Freeze",
+        "goes_to": "c3_corredor",
+        "message": (
+            "You stand there in silence. The phone in the booth rings; the guard swears and goes to answer it. "
+            "You wheel the cart back inside to wait for another chance."
+        ),
+        "lucky": {
+            "chance": 0.5,
+            "goes_to": "final_c3_apanhados",
+            "message": "Your silence is answer enough. The guard blows his whistle.",
+        },
+    },
 }
 
 
@@ -1241,6 +1713,11 @@ def can_act(role):
 def journey(state):
     """Short sentences describing the path taken, shown at the ending."""
     steps = []
+    if chapter_of(state) == 3:
+        if "lista_prisioneiros" in state["inventory"]:
+            steps.append("You took the list of prisoners")
+        else:
+            steps.append("You left the list in the safe")
     if chapter_of(state) == 2:
         if "cassete" in state["inventory"]:
             steps.append("You took Tomás's cassette")

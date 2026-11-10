@@ -71,7 +71,10 @@ def test_chances_are_probabilities_and_lead_somewhere():
 
     # Changed (specs/story-events-notebook.md): the danger choices also use chance
     assert set(lucky) == {"seguir_tomas", "tentar_sozinho", "emitir_direto", "continuar_procurar", "ficar_quieto_arquivo",
-                          "fugir_tunel", "ficar_quieto_tunel", "mentir_patrulha", "ficar_quieto_rua"}
+                          "fugir_tunel", "ficar_quieto_tunel", "mentir_patrulha", "ficar_quieto_rua",
+                          # Added (specs/level-3.md): level 3's danger choices
+                          "mentir_ronda", "ficar_quieto_ronda", "esconder_carrinho", "esconder_carrinho_lista",
+                          "mentir_portao", "ficar_quieto_portao"}
     for outcome in lucky.values():
         assert 0 < outcome["chance"] < 1
         assert outcome["goes_to"] in SCENES

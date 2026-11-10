@@ -18,7 +18,7 @@ A browser mystery game (Nova SBE Intro to Programming): the player works at the 
 - `db.py` — saves and loads each player's progress. Every query filters by player.
 - `rooms.py` — cooperative rooms: codes, roles (agente acts, contacto sees clues), chat. Conflicts are decided by the database's unique rules (first saved wins).
 - `components/` — JavaScript/CSS of the fullscreen game. It only sends action ids (with typed codes), commands and chat text to Python; it never decides rules. It rebuilds only when `scene_key` changes, so co-op refreshes keep open bubbles.
-- `assets/` — SVG pictures (chapter 2's come from `scripts/art_chapter2.py`; edit the script and rerun it rather than editing those SVGs by hand). `tests/` — pytest. `specs/` — one spec per feature. `docs/` — product brief and exam/walkthrough guide.
+- `assets/` — SVG pictures (chapters 2 and 3 come from `scripts/art_chapter2.py` and `scripts/art_chapter3.py`, events from `scripts/art_events.py`; edit the scripts and rerun it rather than editing those SVGs by hand). `tests/` — pytest. `specs/` — one spec per feature. `docs/` — product brief and exam/walkthrough guide.
 
 ## Storage
 
@@ -31,7 +31,8 @@ A browser mystery game (Nova SBE Intro to Programming): the player works at the 
 ## Rules
 
 - English is the source language: every line a player can see is written in English in `logic.py` / `rooms.py` / `translations.UI_TEXT`, and every one of them needs its Portuguese version in `translations.py` (tests check both). Screens use `t(key)` and story texts `say(text)` in `app.py`.
-- Pictures: after changing chapter 2's drawing, run `uv run python scripts/art_chapter2.py`, then `uv run python scripts/art_colour.py`, then `uv run python scripts/art_events.py` (event pictures are drawn on top of the coloured scenes).
+- Pictures: after changing chapter 2's or 3's drawing, run `uv run python scripts/art_chapter2.py` / `scripts/art_chapter3.py`, then `uv run python scripts/art_colour.py`, then `uv run python scripts/art_events.py` (event pictures are drawn on top of the coloured scenes).
+- Levels: `levels.LEVELS` lists each level's chapter and the endings that complete it; `levels.next_chapter` decides what "Next level" starts. A new level needs a `CHAPTER_STARTS` entry, its endings in `ENDINGS_BY_CHAPTER`, a `level_N` name in `UI_TEXT` and a position on the map in `scene_view.js`.
 - Conversations are decisions named `conversa_*` (never shown as decision chips); the notebook (`logic.notebook`) is rebuilt from the saved state, so it needs no table.
 - In tests the app's chance roll is always 0.99 (`tests/conftest.py`), so app tests never depend on luck.
 - Sound, music and fullscreen live only in the browser (`components/scene_view.js`); their settings are kept in `localStorage`.

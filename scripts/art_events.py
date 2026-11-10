@@ -122,12 +122,24 @@ def market_alley():
     )
 
 
+def night_round():
+    return (
+        # the cleaning cupboard between cells 15 and 16, and the guard coming out of 15
+        '<rect x="272" y="180" width="46" height="160" fill="#4a3a2c"/><rect x="276" y="184" width="38" height="152" fill="#6b4a2f"/>'
+        '<circle cx="306" cy="262" r="3" fill="#ffd36e"/>'
+        + person(230, 382, 1.0, coat=POLICE)
+        + beam(252, 250, 360, 640)
+        + danger_tint()
+    )
+
+
 EVENTS = {
     "arquivo_passos.svg": ("arquivo.svg", archive_footsteps),
     "tunel_patrulha.svg": ("tunel.svg", tunnel_patrol),
     "tunel_beco.svg": ("tunel.svg", tunnel_dead_end),
     "c2_patrulha.svg": ("c2_cidade.svg", factory_patrol),
     "c2_mercado.svg": ("c2_cidade.svg", market_alley),
+    "c3_ronda.svg": ("c3_corredor.svg", night_round),
 }
 
 

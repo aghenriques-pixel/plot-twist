@@ -244,6 +244,22 @@ def ambient(name):
             for d in (0, 1, 2)
         )
         return waves + light(400, 400, 360, "#ffb347", 0.35)
+    # ----- Level 3 (scripts/art_chapter3.py) -----
+    if base.startswith("c3_patio") or base == "c3_portao":
+        return rain_lines(base, 50) + light(730, 200, 160, "#ffc94d", 0.3) + twinkles(base, [(200, 12), (420, 8), (610, 16)])
+    if base == "c3_corredor":
+        return (
+            "".join(f'<rect class="flicker" x="{x - 20}" y="12" width="40" height="8" fill="#fff4dc" style="animation-delay:-{d}s"/>'
+                    for x, d in ((150, 0), (420, 1.3), (680, 2.6)))
+            + light(420, 30, 300, "#ffc94d", 0.18)
+            + glow(750, 245, 6, "#ffd36e")
+        )
+    if base.startswith("c3_cela"):
+        return light(650, 90, 200, "#8fe3ff", 0.3) + dust(base, 14, (480, 120, 700, 330), "#cfe9ff")
+    if base.startswith("c3_gabinete"):
+        return light(479, 236, 220, "#ffc94d", 0.35) + dust(base, 12, (380, 180, 580, 300))
+    if base.startswith("final_c3"):
+        return light(400, 320, 380, "#ffb347", 0.35) + dust(base, 18, (0, 150, 800, 380), "#fff4c0")
     if base == "final_c2_reconhecido":
         return (
             '<rect class="blink" width="800" height="400" fill="#ff1f3d" fill-opacity="0.12"/>'

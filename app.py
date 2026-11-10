@@ -24,7 +24,7 @@ from db import (
     record_ending,
     save_game,
 )
-from levels import level_status
+from levels import level_status, next_chapter
 from logic import (
     ACTIONS,
     ITEM_ICONS,
@@ -302,10 +302,18 @@ def new_room_game(chapter=1):
         start_new_game(chapter)
 
 
-def continue_to_chapter_2():
-    """At Ending 1 the story goes on: start chapter 2 (the finished chapter 1 game is replaced)."""
-    if can_act(ROLE):
-        start_new_game(2)
+def following_chapter(game):
+    """After an ending that completes a level, the next level's chapter (None otherwise)."""
+    if not game or not is_finished(game):
+        return None
+    return next_chapter(chapter_of(game), game["scene"])
+
+
+def continue_to_next_level():
+    """At an ending that completes a level the story goes on (the finished game is replaced)."""
+    chapter = following_chapter(st.session_state.game)
+    if chapter and can_act(ROLE):
+        start_new_game(chapter)
 
 
 def set_language(lang):
@@ -359,8 +367,8 @@ def run_command(command):
         back_to_menu("map")
     elif name == "play_again" and not ROOM:
         play_again()
-    elif name == "next_chapter" and game and game["scene"] == "final_resistencia":
-        continue_to_chapter_2()
+    elif name == "next_chapter" and following_chapter(game):
+        continue_to_next_level()
     elif name == "new_room_game" and ROOM and game:
         new_room_game(chapter_of(game))
     elif name == "new_game":
@@ -499,7 +507,7 @@ def chat_data():
 def ending_data(game):
     scene = SCENES[game["scene"]]
     buttons = []
-    if game["scene"] == "final_resistencia" and can_act(ROLE):
+    if following_chapter(game) and can_act(ROLE):
         buttons.append({"name": "next_chapter", "label": t("next_level"), "primary": True})
     if ROOM and can_act(ROLE):
         buttons.append({"name": "new_room_game", "label": t("new_round"), "primary": not buttons})
@@ -738,8 +746,9 @@ def show_text_mode(game, role=None):
         if is_finished(game):
             st.subheader(t("the_end"))
             st.markdown(f"**{t('your_path')}:** " + " · ".join(say(step) for step in journey(game)))
-            if game["scene"] == "final_resistencia":
-                st.button(t("next_level"), key="continuar_capitulo_2", on_click=continue_to_chapter_2, type="primary")
+            following = following_chapter(game)
+            if following:
+                st.button(t("next_level"), key=f"continuar_capitulo_{following}", on_click=continue_to_next_level, type="primary")
             if role:
                 st.button(t("new_round"), key="nova_partida", on_click=new_room_game, args=(chapter_of(game),))
             else:
