@@ -36,6 +36,10 @@ A browser mystery game (Nova SBE Intro to Programming): the player works at the 
 - Conversations are decisions named `conversa_*` (never shown as decision chips); the notebook (`logic.notebook`) is rebuilt from the saved state, so it needs no table.
 - In tests the app's chance roll is always 0.99 (`tests/conftest.py`), so app tests never depend on luck.
 - Sound, music and fullscreen live only in the browser (`components/scene_view.js`); their settings are kept in `localStorage`.
+- Music: `logic.scene_music(state)` picks a theme name per scene (danger, endings, the scene's own or its level's); the themes themselves are `THEMES` in `scene_view.js`. A new scene or level needs its entry in `SCENE_MUSIC` / `LEVEL_MUSIC`.
+- The level clock lives in the browser (`localStorage`). `st.session_state.run_token` changes with every new run (`start_new_game`), which tells the browser to start the clock again; a continued game keeps it.
+- Keys belong to the game screen (`gameKeys` in `scene_view.js`) and never fire while typing in a field. Every key has a button or click that does the same.
+- No dead ends: from every scene with a code puzzle there is a way back to the start of its level (`tests/test_fullscreen_timer_music.py`).
 - Every action must be reachable from the picture (a hotspot or a talk option); the sidebar text mode mirrors the same actions.
 
 - Story content lives in `logic.py`; only player progress goes in the database.

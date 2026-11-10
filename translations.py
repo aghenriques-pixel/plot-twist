@@ -1765,23 +1765,27 @@ UI_TEXT = {
     },
     "how_to_play_rules": {
         "en": [
-            "🚶 Click anywhere on the floor to walk.",
+            "🚶 Click anywhere on the floor to walk, or use ← → (A D).",
+            "⌨️ E or Enter uses the nearest spot · 1–9 pick a choice · Esc closes · N notebook · T hides the text · F full screen · R restarts the level.",
             "🔍 Magnifying glasses are things to look at — that is where the clues are.",
             "🟡 Yellow dots and ‹ arrows are things you can do: take, open, go, talk.",
             "🔐 Some doors and locks need a code. Put the clues together.",
             "🙂 A wrong answer changes nothing: think, and try again.",
-            "🎭 Your choices change the ending. There are 5 endings in 2 chapters.",
+            "🎭 Your choices change the ending. There are 11 endings in 3 levels.",
             "👥 Co-op: the agent acts, the contact sees the clues. Talk in the chat!",
+            "⏱ The clock counts your time in each level. Can you beat your record?",
             "💾 Your game is saved after every step.",
         ],
         "pt": [
-            "🚶 Clica em qualquer sítio do chão para andar.",
+            "🚶 Clica em qualquer sítio do chão para andar, ou usa ← → (A D).",
+            "⌨️ E ou Enter usa o ponto mais perto · 1–9 escolhem uma opção · Esc fecha · N caderno · T esconde o texto · F ecrã inteiro · R reinicia o nível.",
             "🔍 As lupas são coisas para observar — é lá que estão as pistas.",
             "🟡 Os pontos amarelos e as setas ‹ são coisas que podes fazer: apanhar, abrir, ir, falar.",
             "🔐 Algumas portas e cadeados pedem um código. Junta as pistas.",
             "🙂 Uma resposta errada não muda nada: pensa e tenta outra vez.",
-            "🎭 As tuas escolhas mudam o final. Há 5 finais em 2 capítulos.",
+            "🎭 As tuas escolhas mudam o final. Há 11 finais em 3 níveis.",
             "👥 Cooperativo: o agente age, o contacto vê as pistas. Falem no chat!",
+            "⏱ O relógio conta o teu tempo em cada nível. Consegues bater o teu recorde?",
             "💾 O jogo fica guardado a cada passo.",
         ],
     },
@@ -1881,7 +1885,35 @@ UI_TEXT = {
     "dialogue_continue": {"en": "Continue ▸", "pt": "Continuar ▸"},
     "keypad_try": {"en": "Try", "pt": "Tentar"},
     "close": {"en": "Close", "pt": "Fechar"},
+    "restart_level": {"en": "↻ Restart", "pt": "↻ Reiniciar"},
+    "restart_level_text": {"en": "Restart level", "pt": "Reiniciar o nível"},
+    "restart_confirm": {
+        "en": "Restart this level? What you have done in it is lost.",
+        "pt": "Reiniciar este nível? Perdes o que já fizeste nele.",
+    },
+    "yes": {"en": "Yes", "pt": "Sim"},
+    "no": {"en": "No", "pt": "Não"},
+    "your_time": {"en": "Your time", "pt": "O teu tempo"},
+    "best_time": {"en": "Best", "pt": "Recorde"},
+    "toggle_text": {"en": "Hide or show the text (T)", "pt": "Esconder ou mostrar o texto (T)"},
+    "toggle_fullscreen": {"en": "Full screen (F)", "pt": "Ecrã inteiro (F)"},
+    "key_hint": {
+        "en": "← → walk · E use · N notebook · R restart · F full screen",
+        "pt": "← → andar · E usar · N caderno · R reiniciar · F ecrã inteiro",
+    },
 }
+
+STORY_PT.update(
+    {
+        "Only static. That is not your people's frequency. Wasn't there a note about it on the old radio in the hideout?": (
+            "Só se ouve estática. Essa não é a frequência dos teus. Não havia um bilhete sobre isso no rádio velho do esconderijo?"
+        ),
+        "Back down the stairs": "Descer as escadas",
+        "You go back down the stairs to the tower door. The studio will wait.": (
+            "Desces as escadas até à porta da torre. O estúdio fica à tua espera."
+        ),
+    }
+)
 
 
 def tr(text, lang):

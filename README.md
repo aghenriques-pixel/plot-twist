@@ -14,7 +14,7 @@ A mystery game in the browser. You work at the Ministério da Verdade and discov
 
 **Accounts (online):** create an account with a username and password to keep your levels when you come back, on any device.
 
-It starts on a main menu (**Play, How to Play, Settings, Exit**), goes fullscreen, has music and sound effects made in the browser, and can be played in **English or Portuguese**.
+It starts on a main menu (**Play, How to Play, Settings, Exit**). The picture fills the whole screen, with the texts over it, and you can play with the mouse or the keyboard (← → walk, E use, 1–9 choose, N notebook, R restart). It has a clock for each level with a best time, its own music for each level and for danger, made in the browser, and can be played in **English or Portuguese**.
 
 Play **alone**, or **with a friend in cooperative mode**: one player is the *agente* who acts, the other is the *contacto da resistência* who sees the clues through the cameras. You only get through by talking in the room's chat.
 

@@ -11,6 +11,7 @@ import hashlib
 import json
 import os
 import random
+import uuid
 from pathlib import Path
 
 import streamlit as st
@@ -24,7 +25,7 @@ from db import (
     record_ending,
     save_game,
 )
-from levels import level_status, next_chapter
+from levels import level_for_chapter, level_status, next_chapter
 from logic import (
     ACTIONS,
     ITEM_ICONS,
@@ -42,6 +43,7 @@ from logic import (
     scene_hotspots,
     scene_image,
     scene_looks,
+    scene_music,
     scene_text,
 )
 from players import new_player_id, player_from_link
@@ -146,6 +148,9 @@ if "game" not in st.session_state:
     st.session_state.walk_back_from = None
     # Which menu screen to open (the map after an ending)
     st.session_state.menu_screen = "main"
+    # A new id for every new run of a level: the browser's level clock starts again when it changes.
+    # None (a continued game) keeps the browser's clock.
+    st.session_state.run_token = None
 
 # Cooperative room from the link (?sala=CODE), used only if this player is a member of it
 ROOM, ROLE = None, None
@@ -174,6 +179,7 @@ def start_new_game(chapter=None):
         st.session_state.db_error = True
         return
     st.session_state.game = game
+    st.session_state.run_token = uuid.uuid4().hex
     st.session_state.message = None
     st.session_state.confirm_restart = False
     st.session_state.character = None
@@ -302,6 +308,13 @@ def new_room_game(chapter=1):
         start_new_game(chapter)
 
 
+def restart_level():
+    """Start the current level again (only the agente in a room). Nothing to restart at an ending."""
+    game = st.session_state.game
+    if game and not is_finished(game) and can_act(ROLE):
+        start_new_game(chapter_of(game))
+
+
 def following_chapter(game):
     """After an ending that completes a level, the next level's chapter (None otherwise)."""
     if not game or not is_finished(game):
@@ -369,6 +382,8 @@ def run_command(command):
         play_again()
     elif name == "next_chapter" and following_chapter(game):
         continue_to_next_level()
+    elif name == "restart_level":
+        restart_level()
     elif name == "new_room_game" and ROOM and game:
         new_room_game(chapter_of(game))
     elif name == "new_game":
@@ -609,7 +624,24 @@ def view_data(game, role, message, chat):
         "clues": None,
         "ending": ending_data(game) if finished else None,
         "chat": chat,
-        "ui": {key: t(key) for key in ("talk_leave", "keypad_try", "cancel", "close", "dialogue_continue", "danger_hurry")},
+        "ui": {
+            key: t(key)
+            for key in (
+                "talk_leave", "keypad_try", "cancel", "close", "dialogue_continue", "danger_hurry", "restart_level",
+                "restart_confirm", "yes", "no", "your_time", "best_time", "toggle_text", "toggle_fullscreen", "key_hint",
+            )
+        },
+        # The level clock lives in the browser; a new run_token starts it again from zero
+        "timer": {
+            "level": chapter_of(game),
+            "run": st.session_state.run_token,
+            "finished": finished,
+            # Only an ending that completes the level is a record
+            "completed": finished and game["scene"] in level_for_chapter(chapter_of(game))["completes_with"],
+        },
+        "music": scene_music(game),
+        # Only the one who acts can restart the level
+        "can_restart": not finished and can_act(role),
         "notebook": notebook_data(game),
         # A danger scene: a clock in the picture; when it ends, the browser sends the timeout action
         "danger": None if finished or watching or "danger" not in scene else dict(scene["danger"]),
@@ -767,6 +799,8 @@ def show_text_mode(game, role=None):
                     st.markdown("\n\n".join(f"**{say(look['label'])}** — {say(look['text'])}" for look in looks))
             if role == "agente":
                 st.caption(t("agent_hint"))
+            if can_act(role):
+                st.button(t("restart_level_text"), key="reiniciar_nivel", on_click=restart_level)
 
         if role:
             st.button(t("leave_room"), key="sair_sala", on_click=leave_room)
