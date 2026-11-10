@@ -96,10 +96,11 @@ export default function ({ data, parentElement, setTriggerValue }) {
     const form = document.createElement("form");
     form.className = "keypad";
     const input = document.createElement("input");
-    input.inputMode = "numeric";
+    // Number locks open a numeric keyboard on phones; letter locks a normal one
+    input.inputMode = spot.code_kind === "text" ? "text" : "numeric";
     input.autocomplete = "off";
-    input.maxLength = 6;
-    input.placeholder = "····";
+    input.maxLength = 12;
+    input.placeholder = spot.code_kind === "text" ? "······" : "····";
     const submit = button("Tentar", null);
     submit.type = "submit";
     form.append(input, submit);

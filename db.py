@@ -19,11 +19,22 @@ TABLES = [
     "player TEXT NOT NULL, position INTEGER NOT NULL, item TEXT NOT NULL, PRIMARY KEY (player, item))",
     "CREATE TABLE IF NOT EXISTS save_decisions ("
     "player TEXT NOT NULL, name TEXT NOT NULL, value TEXT NOT NULL, PRIMARY KEY (player, name))",
+    # Cooperative rooms (rooms.py). Each role and each player appears once per room:
+    # the database itself refuses a second contacto, whoever arrives first wins.
+    "CREATE TABLE IF NOT EXISTS rooms (code TEXT PRIMARY KEY, created_by TEXT NOT NULL)",
+    "CREATE TABLE IF NOT EXISTS room_members ("
+    "room TEXT NOT NULL, role TEXT NOT NULL, player TEXT NOT NULL, PRIMARY KEY (room, role), UNIQUE (room, player))",
+    "CREATE TABLE IF NOT EXISTS room_messages ("
+    "room TEXT NOT NULL, seq INTEGER NOT NULL, role TEXT NOT NULL, text TEXT NOT NULL, PRIMARY KEY (room, seq))",
 ]
 
 
 class StorageError(Exception):
     """The database could not be reached or used. The app shows a message instead of crashing."""
+
+
+class ConflictError(StorageError):
+    """A uniqueness rule was broken, e.g. two players took the same role at the same moment."""
 
 
 def is_postgres(target):
@@ -68,8 +79,20 @@ def transaction(target):
                 conn.close()
     except StorageError:
         raise
+    except sqlite3.IntegrityError as error:
+        raise ConflictError(str(error)) from error
+    except sqlite3.Error as error:
+        raise StorageError(str(error)) from error
     except Exception as error:
-        if is_postgres(target) or isinstance(error, sqlite3.Error):
+        # Only errors of the database library become StorageError; anything else
+        # (e.g. a RoomError raised by the caller inside the transaction) passes through.
+        if not is_postgres(target):
+            raise
+        import psycopg
+
+        if isinstance(error, psycopg.IntegrityError):
+            raise ConflictError(str(error)) from error
+        if isinstance(error, psycopg.Error):
             raise StorageError(str(error)) from error
         raise
 

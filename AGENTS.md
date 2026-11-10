@@ -14,8 +14,9 @@ A browser mystery game (Nova SBE Intro to Programming): the player works at the 
 - `logic.py` — story content (scenes, items, actions, puzzles, endings) and game rules. Pure Python: no Streamlit, no database.
 - `players.py` — player identity: a secret code in the link (`?jogador=...`) online, `"local"` offline.
 - `db.py` — saves and loads each player's progress. Every query filters by player.
+- `rooms.py` — cooperative rooms: codes, roles (agente acts, contacto sees clues), chat. Conflicts are decided by the database's unique rules (first saved wins).
 - `components/` — JavaScript/CSS of the clickable scene. It only sends action ids (and typed codes) to Python; it never decides rules.
-- `assets/` — SVG pictures. `tests/` — pytest. `specs/` — one spec per feature. `docs/` — product brief and exam/walkthrough guide.
+- `assets/` — SVG pictures (chapter 2's come from `scripts/art_chapter2.py`; edit the script and rerun it rather than editing those SVGs by hand). `tests/` — pytest. `specs/` — one spec per feature. `docs/` — product brief and exam/walkthrough guide.
 
 ## Storage
 
@@ -30,7 +31,8 @@ A browser mystery game (Nova SBE Intro to Programming): the player works at the 
 - Story content lives in `logic.py`; only player progress goes in the database.
 - `apply_action` never modifies the state it receives. Save only after an accepted action; a rejected action changes nothing.
 - Puzzle codes stay on the server: `scene_hotspots` sends only `code_prompt` to the browser, never `code`.
-- Permissions are checked in Python where the action happens, not by hiding buttons.
+- Permissions are checked in Python where the action happens, not by hiding buttons. In co-op, `can_act(role)` is checked in `choose()`.
+- In `st.fragment` screens that refresh by themselves, show a variable-length list as one element (e.g. one markdown); a shorter list of separate elements leaves old items on screen.
 - Secrets (database URLs, API keys) never go in the repository.
 
 ## Team workflow

@@ -205,6 +205,10 @@ MAP  ministerio ─card→ arquivo (documento + ficha_tomas)      ministerio →
        escondeu   → tentar_sozinho → FINAL 2 Descoberto
        confiou    → seguir_tomas → FINAL 3 Traído (twist: Tomás = informador nº 47)
      confrontou path: grate code 42 → tunel (fork: seco ✗ / luz ✗ / água ✓) → esconderijo → entregar
+CHAPTER 2 new_game(2) → c2_esconderijo → c2_cidade (route) → c2_torre (word) → c2_estudio (frequency)
+        tram line (22h: factories patrolled at even hours, market always, tram only until 21h curfew)
+        LIBERDADE = OLEHUGDGH three letters back | 87.7 = 101.4 − 13.7 | cassete → Final 4, live → Final 5
+        codes compared without case/spaces/dots/commas (normalise_code)
 PUZZLES door 1704 (calendar + notice) | box 1981 (newspaper 1984 − 3) | drawer 47 (mug)
         grate 42 (6 dark screens × 7) | tunnel: follow the water (Tomás)
         wrong code/choice = rejected, unchanged, not saved (R1) | looks never change state
