@@ -1350,9 +1350,16 @@ ACTIONS = {
         "code": "87.7",
         "code_kind": "text",
         "code_prompt": "Frequency dial (e.g. 99.9)",
-        "wrong_code_message": "Only static. That is not your people's frequency.",
+        "wrong_code_message": "Only static. That is not your people's frequency. Wasn't there a note about it on the old radio in the hideout?",
         "decides": ("frequencia", "sintonizada"),
         "message": "The static clears. On the other side, someone whispers: \u201cWe're listening.\u201d",
+    },
+    "voltar_torre": {
+        "hotspot": {"x": 0, "y": 200, "w": 45, "h": 180, "stand": 30, "edge": "left"},
+        "scene": "c2_estudio",
+        "label": "Back down the stairs",
+        "goes_to": "c2_torre",
+        "message": "You go back down the stairs to the tower door. The studio will wait.",
     },
     "emitir_direto": {
         "hotspot": {"x": 420, "y": 170, "w": 60, "h": 150, "stand": 400},
@@ -1618,6 +1625,34 @@ ACTIONS = {
         },
     },
 }
+
+
+# --- Music: the browser plays a theme for each scene (components/scene_view.js, THEMES) ---
+
+# Each scene's own theme; scenes not listed use their level's theme
+SCENE_MUSIC = {
+    "ministerio": "ministry", "apartamento": "ministry",
+    "arquivo": "archive",
+    "vigilancia": "tunnels", "tunel": "tunnels", "tunel_beco": "tunnels", "esconderijo": "tunnels",
+    "c2_esconderijo": "hideout", "c2_cidade": "night_city", "c2_mercado": "night_city",
+    "c2_torre": "radio", "c2_estudio": "radio",
+    "c3_patio": "prison", "c3_corredor": "prison", "c3_cela": "prison", "c3_gabinete": "prison",
+}
+LEVEL_MUSIC = {1: "ministry", 2: "night_city", 3: "prison"}
+# Endings where the player is caught, betrayed or recognised
+DEFEATS = {"final_descoberto", "final_traido", "final_apanhado", "final_c2_preso", "final_c2_reconhecido", "final_c3_apanhados"}
+MUSIC_THEMES = sorted(set(SCENE_MUSIC.values()) | set(LEVEL_MUSIC.values()) | {"danger", "victory", "defeat"})
+
+
+def scene_music(state):
+    """The music theme for where the player is: danger, an ending, the scene's own or its level's."""
+    scene_id = state["scene"]
+    scene = SCENES[scene_id]
+    if scene.get("ending"):
+        return "defeat" if scene_id in DEFEATS else "victory"
+    if "danger" in scene:
+        return "danger"
+    return SCENE_MUSIC.get(scene_id, LEVEL_MUSIC[scene.get("chapter", 1)])
 
 
 def new_game(chapter=1):
