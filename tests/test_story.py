@@ -83,7 +83,7 @@ def test_decision_needs_the_document():
     state = play(["ir_apartamento"])
 
     message = assert_rejected_and_unchanged(state, "confiar_colega")
-    assert "documento" in message.lower()
+    assert "document" in message.lower()
     assert_rejected_and_unchanged(state, "esconder_descoberta")
 
 
@@ -124,7 +124,7 @@ def test_station_needs_a_decision():
     state = play(TO_APARTMENT_WITH_DOCUMENT)
 
     message = assert_rejected_and_unchanged(state, "ir_vigilancia")
-    assert "decid" in message.lower()
+    assert "decide" in message.lower()
 
 
 # PT04: at the station only the route matching the decision exists
@@ -150,7 +150,7 @@ def test_final_1_is_reachable_by_confronting_the_colleague():
     state = play(FINAL_1_PATH)
 
     assert state["scene"] == "final_resistencia"
-    assert SCENES[state["scene"]]["title"].startswith("Final 1")
+    assert SCENES[state["scene"]]["title"].startswith("Ending 1")
     assert is_finished(state)
 
 
@@ -159,7 +159,7 @@ def test_final_2_is_reachable_by_hiding_the_discovery():
     state = play(FINAL_2_PATH)
 
     assert state["scene"] == "final_descoberto"
-    assert SCENES[state["scene"]]["title"].startswith("Final 2")
+    assert SCENES[state["scene"]]["title"].startswith("Ending 2")
     assert is_finished(state)
 
 
@@ -176,7 +176,7 @@ def test_no_actions_at_an_ending():
         assert available_actions(state) == []
         for action_id in ("voltar_ministerio", "apanhar_cartao", "ir_tunel", "entregar_documentos", "tentar_sozinho", "seguir_tomas"):
             message = assert_rejected_and_unchanged(state, action_id)
-            assert "terminou" in message.lower()
+            assert "over" in message.lower()
 
 
 # PT R4: every ending is reachable from a new game, and they are different

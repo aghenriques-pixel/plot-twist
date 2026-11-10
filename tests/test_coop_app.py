@@ -69,8 +69,8 @@ def test_agent_waits_for_the_contact_and_sees_the_code(db):
 def test_both_players_see_the_same_scene_with_their_role(db):
     agent, contact, _ = start_room(db)
 
-    assert agent.title[0].value == "Ministério da Verdade"
-    assert contact.title[0].value == "Ministério da Verdade"
+    assert agent.title[0].value == "Ministry of Truth"
+    assert contact.title[0].value == "Ministry of Truth"
     assert "apanhar_cartao" in button_keys(agent)
     assert "apanhar_cartao" not in button_keys(contact)
 
@@ -78,8 +78,8 @@ def test_both_players_see_the_same_scene_with_their_role(db):
 def test_clues_are_only_on_the_contact_screen(db):
     agent, contact, _ = start_room(db)
 
-    assert "17 de Abril" in all_text(contact)
-    assert "17 de Abril" not in all_text(agent)
+    assert "17 April" in all_text(contact)
+    assert "17 April" not in all_text(agent)
 
 
 def test_the_contact_sees_what_the_agent_did(db):
@@ -89,7 +89,7 @@ def test_the_contact_sees_what_the_agent_did(db):
     contact.run()
 
     assert load_game(db, room_save_key(code))["inventory"] == ["cartao_acesso"]
-    assert "Cartão de acesso" in all_text(contact)
+    assert "Access card" in all_text(contact)
 
 
 def test_chat_reaches_the_other_player(db):
@@ -107,7 +107,7 @@ def test_wrong_room_code_shows_a_message(db):
     contact.text_input(key="codigo_sala").input("ZZZZZZ")
     contact.button(key="entrar_sala").click().run()
 
-    assert any("não encontrada" in error.value for error in contact.error)
+    assert any("not found" in error.value for error in contact.error)
 
 
 def test_reopening_the_link_returns_to_the_room(db):
@@ -116,6 +116,6 @@ def test_reopening_the_link_returns_to_the_room(db):
 
     reopened = open_app(ALICE, room=code)
 
-    assert reopened.title[0].value == "Ministério da Verdade"
+    assert reopened.title[0].value == "Ministry of Truth"
     assert "apanhar_cartao" not in button_keys(reopened)
     assert "ir_arquivo" in button_keys(reopened)

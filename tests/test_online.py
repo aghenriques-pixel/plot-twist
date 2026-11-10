@@ -183,7 +183,7 @@ def test_same_link_resumes_the_game(online_db):
     reopened = open_app(ALICE)
     reopened.button(key="continuar_jogo").click().run()
 
-    assert reopened.title[0].value == "Ministério da Verdade"
+    assert reopened.title[0].value == "Ministry of Truth"
     assert load_game(online_db, ALICE)["inventory"] == ["cartao_acesso"]
     assert load_game(online_db, BRUNO) is None
 
@@ -200,7 +200,7 @@ def test_app_explains_when_the_database_is_down(monkeypatch):
     at = open_app(ALICE)
 
     assert not at.exception
-    assert any("base de dados" in error.value.lower() for error in at.error)
+    assert any("database" in error.value.lower() for error in at.error)
 
 
 # A non-routable address: the connection neither succeeds nor is refused, it just waits
@@ -228,5 +228,5 @@ def test_an_explicit_test_database_wins_over_database_url(tmp_path, monkeypatch)
     at.button(key="novo_jogo").click().run()
 
     assert not at.error
-    assert at.title[0].value == "Ministério da Verdade"
+    assert at.title[0].value == "Ministry of Truth"
     assert load_game(tmp_path / "game.db") == new_game()

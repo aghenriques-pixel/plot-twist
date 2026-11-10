@@ -56,7 +56,7 @@ def overlaps(a, b):
 # Done when 1: the archive door
 def test_door_without_card_asks_for_the_card_first():
     message = assert_rejected_and_unchanged(new_game(), "ir_arquivo", "1704")
-    assert "cartão" in message.lower()
+    assert "card" in message.lower()
 
 
 def test_door_with_card_needs_the_right_code():
@@ -136,21 +136,21 @@ def test_water_leads_to_the_hideout_where_the_documents_are_delivered():
 
 
 def test_tomas_tells_you_to_follow_the_water():
-    assert "água" in ACTIONS["confrontar_colega"]["message"]
+    assert "water" in ACTIONS["confrontar_colega"]["message"]
 
 
 # Done when 6: the clues exist where the player can observe them
 def test_ministerio_clues():
     text = all_looks_text("ministerio")
-    assert "17 de Abril" in text
-    assert "primeiro o dia" in text.lower()
+    assert "17 April" in text
+    assert "day first" in text.lower()
     assert "47" in text
 
 
 def test_archive_clue_points_to_1981():
     text = all_looks_text("arquivo")
     assert "1984" in text
-    assert "três anos" in text
+    assert "three years" in text
 
 
 # Done when 7: no code leaks to the browser; looks are well placed

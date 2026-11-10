@@ -11,11 +11,11 @@ from db import load_game, save_game
 from logic import ACTIONS, SCENES, apply_action, available_actions, is_finished, journey, new_game, scene_image, scene_looks, scene_text
 
 APP_PATH = str(Path(__file__).parent.parent / "app.py")
-CODES = {"ir_estudio": "liberdade", "sintonizar": "87.7"}
+CODES = {"ir_estudio": "freedom", "sintonizar": "87.7"}
 TO_STUDIO = ["apanhar_mensagem", "apanhar_cassete", "sair_para_cidade", "seguir_eletrico", "ir_estudio", "sintonizar"]
 FINAL_4_PATH = TO_STUDIO + ["tocar_cassete"]
 FINAL_5_PATH = ["apanhar_mensagem", "sair_para_cidade", "seguir_eletrico", "ir_estudio", "sintonizar", "emitir_direto"]
-CHAPTER_2_CLUES = {"Mapa da cidade", "Bilhete da Júlia", "Rádio velho", "Cartaz do recolher"}
+CHAPTER_2_CLUES = {"City map", "Júlia's note", "Old radio", "Curfew poster"}
 
 
 def play(actions, state=None):
@@ -82,7 +82,7 @@ def test_tram_line_leads_to_the_tower():
 
 def test_route_clues_point_to_the_tram():
     texts = all_looks_text("c2_esconderijo") + all_looks_text("c2_cidade")
-    assert "pares" in texts and "21h" in texts and "dez da noite" in texts
+    assert "even hours" in texts and "21:00" in texts and "ten o'clock" in texts
 
 
 # Done when 4
@@ -90,24 +90,24 @@ def test_door_needs_the_deciphered_word():
     state = play(["sair_para_cidade", "seguir_eletrico"])
 
     assert_rejected_and_unchanged(state, "ir_estudio", "CIFRA")
-    assert_rejected_and_unchanged(state, "ir_estudio", "OLEHUGDGH")
-    for word in ("liberdade", " LIBERDADE ", "Liberdade"):
+    assert_rejected_and_unchanged(state, "ir_estudio", "IUHHGRP")
+    for word in ("freedom", " FREEDOM ", "Freedom"):
         accepted, after, _ = apply_action(state, "ir_estudio", word)
         assert accepted and after["scene"] == "c2_estudio"
 
 
 def test_message_deciphered_with_julias_rule_opens_the_door():
-    cipher = re.search(r"\b[A-Z]{9}\b", ACTIONS["apanhar_mensagem"]["message"]).group(0)
+    cipher = re.search(r"\b[A-Z]{7}\b", ACTIONS["apanhar_mensagem"]["message"]).group(0)
     decoded = "".join(chr((ord(letter) - ord("A") - 3) % 26 + ord("A")) for letter in cipher)
 
-    assert "três para trás" in all_looks_text("c2_esconderijo")
+    assert "three places back" in all_looks_text("c2_esconderijo")
     assert decoded == ACTIONS["ir_estudio"]["code"]
 
 
 # Done when 5
 def test_frequency_clue_adds_up():
     assert "101.4" in all_looks_text("c2_estudio")
-    assert "13,7" in all_looks_text("c2_esconderijo")
+    assert "13.7" in all_looks_text("c2_esconderijo")
     assert round(101.4 - 13.7, 1) == 87.7
 
 
@@ -132,7 +132,7 @@ def test_cassette_ending_needs_the_cassette():
     state = play(["sair_para_cidade", "seguir_eletrico", "ir_estudio", "sintonizar"])
 
     message = assert_rejected_and_unchanged(state, "tocar_cassete")
-    assert "cassete" in message.lower()
+    assert "cassette" in message.lower()
 
 
 # Done when 7
@@ -142,16 +142,16 @@ def test_both_chapter_2_endings_are_reachable_and_final():
 
     assert final_4["scene"] == "final_c2_voz"
     assert final_5["scene"] == "final_c2_reconhecido"
-    assert SCENES["final_c2_voz"]["title"].startswith("Final 4")
-    assert SCENES["final_c2_reconhecido"]["title"].startswith("Final 5")
+    assert SCENES["final_c2_voz"]["title"].startswith("Ending 4")
+    assert SCENES["final_c2_reconhecido"]["title"].startswith("Ending 5")
     for state in (final_4, final_5):
         assert is_finished(state)
         assert available_actions(state) == []
 
 
 def test_journey_describes_chapter_2():
-    assert "Levaste a cassete do Tomás" in journey(play(FINAL_4_PATH))
-    assert "Deixaste a cassete no esconderijo" in journey(play(FINAL_5_PATH))
+    assert "You took Tomás's cassette" in journey(play(FINAL_4_PATH))
+    assert "You left the cassette in the hideout" in journey(play(FINAL_5_PATH))
 
 
 # Done when 8

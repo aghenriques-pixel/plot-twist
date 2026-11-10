@@ -98,7 +98,7 @@ def hideout(message=True, cassette=True):
     )
     paper = (
         f'<rect x="402" y="284" width="56" height="16" fill="{PAPER}" transform="rotate(-4 430 292)"/>'
-        + text(430, 295, "OLEHUGDGH", size=7, rotate=-4)
+        + text(430, 295, "IUHHGRP", size=8, rotate=-4)
         if message
         else ""
     )
@@ -136,21 +136,21 @@ def city():
     poster = (
         '<rect x="148" y="150" width="82" height="190" fill="#3a2f2b"/>' + bricks(148, 150, 230, 340, "#2a2321")
         + f'<rect x="160" y="170" width="60" height="70" fill="{PAPER}"/><rect x="160" y="170" width="60" height="18" fill="{RED}"/>'
-        + text(190, 183, "RECOLHER", size=7, fill=PAPER, weight="bold")
-        + text(190, 214, "21H", size=18, weight="bold")
+        + text(190, 183, "CURFEW", size=8, fill=PAPER, weight="bold")
+        + text(190, 214, "21:00", size=15, weight="bold")
     )
     alley = (
         '<rect x="240" y="90" width="55" height="250" fill="#252a36"/><rect x="345" y="110" width="55" height="230" fill="#252a36"/>'
         '<path d="M 295 340 L 345 340 L 330 170 L 310 170 Z" fill="#11141c"/>'
         + "".join(f'<path d="M {300 + i * 9} 200 l 9 0 l -4 10 Z" fill="{RED if i % 2 else PAPER}"/>' for i in range(4))
-        + f'<rect x="262" y="226" width="116" height="16" fill="{PAPER}"/>' + text(320, 238, "BECO DO MERCADO", size=8, weight="bold")
+        + f'<rect x="262" y="226" width="116" height="16" fill="{PAPER}"/>' + text(320, 238, "MARKET ALLEY", size=8, weight="bold")
     )
     factories = (
         '<rect x="420" y="170" width="150" height="170" fill="#2a2e3a"/>'
         '<rect x="440" y="90" width="18" height="80" fill="#2a2e3a"/><rect x="500" y="70" width="18" height="100" fill="#2a2e3a"/>'
         '<circle cx="449" cy="80" r="14" fill="#3a3f4b" opacity="0.6"/><circle cx="509" cy="58" r="16" fill="#3a3f4b" opacity="0.6"/>'
         + "".join(f'<rect x="{432 + i * 34}" y="200" width="18" height="24" fill="{WARM}" opacity="0.5"/>' for i in range(4))
-        + f'<rect x="440" y="252" width="110" height="16" fill="{PAPER}"/>' + text(495, 264, "RUA DAS FÁBRICAS", size=8, weight="bold")
+        + f'<rect x="440" y="252" width="110" height="16" fill="{PAPER}"/>' + text(495, 264, "FACTORY STREET", size=8, weight="bold")
     )
     tram = (
         '<path d="M 600 340 L 760 340 L 700 150 L 690 150 Z" fill="#1a1e28"/>'
@@ -158,7 +158,7 @@ def city():
         + "".join(f'<line x1="{640 + i * 3}" y1="{320 - i * 30}" x2="{720 - i * 5}" y2="{320 - i * 30}" stroke="#3a3f4b" stroke-width="3"/>' for i in range(6))
         + f'<path d="M 600 120 L 780 120" stroke="{METAL}" stroke-width="1.5"/>'
         f'<rect x="770" y="120" width="5" height="220" fill="{METAL}"/>'
-        f'<rect x="610" y="252" width="96" height="16" fill="{PAPER}"/>' + text(658, 264, "LINHA DO ELÉTRICO", size=8, weight="bold")
+        f'<rect x="610" y="252" width="96" height="16" fill="{PAPER}"/>' + text(658, 264, "TRAM LINE", size=8, weight="bold")
     )
     return svg(
         f'<rect width="800" height="400" fill="url(#night)"/><circle cx="680" cy="60" r="18" fill="{PAPER}" opacity="0.8"/>'
@@ -188,7 +188,7 @@ def tower():
     )
     building = (
         '<rect x="480" y="140" width="320" height="200" fill="#2a2e3a"/>'
-        + text(640, 165, "RÁDIO DO PARTIDO", size=13, fill=PAPER, weight="bold")
+        + text(640, 165, "PARTY RADIO", size=13, fill=PAPER, weight="bold")
         + f'<rect x="560" y="170" width="80" height="170" fill="{INK}"/><rect x="566" y="176" width="68" height="164" fill="#23262c"/>'
         + f'<rect x="650" y="228" width="22" height="36" rx="2" fill="{INK}" stroke="{METAL}" stroke-width="1"/>'
         + "".join(text(655 + (i % 3) * 6, 238 + (i // 3) * 8, chr(65 + i), size=5, fill=COLD) for i in range(9))
@@ -212,7 +212,7 @@ def studio():
         for row in range(3)
         for col in range(8)
     )
-    on_air = f'<rect x="380" y="10" width="90" height="24" rx="4" fill="#3a1416"/>' + text(425, 27, "NO AR", size=13, fill="#ff6b6b", weight="bold")
+    on_air = f'<rect x="380" y="10" width="90" height="24" rx="4" fill="#3a1416"/>' + text(425, 27, "ON AIR", size=13, fill="#ff6b6b", weight="bold")
     window = (
         '<rect x="40" y="60" width="110" height="120" fill="#0d1018" stroke="#3a3f4b" stroke-width="6"/>'
         + "".join(f'<rect x="{50 + (i * 23) % 90}" y="{120 + (i * 17) % 50}" width="4" height="5" fill="{WARM}" opacity="0.7"/>' for i in range(14))
@@ -244,7 +244,7 @@ def studio():
     )
     poster = (
         f'<rect x="600" y="70" width="120" height="80" fill="{RED}"/>'
-        + text(660, 96, "RÁDIO DO PARTIDO", size=10, fill=PAPER, weight="bold")
+        + text(660, 96, "PARTY RADIO", size=11, fill=PAPER, weight="bold")
         + text(660, 128, "101.4 FM", size=20, fill=PAPER, weight="bold")
     )
     return svg(
@@ -280,7 +280,7 @@ def ending_voice():
 def ending_recognised():
     return svg(
         f'<rect width="800" height="400" fill="#1d0e10"/>'
-        f'<rect x="380" y="10" width="90" height="24" rx="4" fill="#5a1416"/>' + text(425, 27, "NO AR", size=13, fill="#ff8080", weight="bold")
+        f'<rect x="380" y="10" width="90" height="24" rx="4" fill="#5a1416"/>' + text(425, 27, "ON AIR", size=13, fill="#ff8080", weight="bold")
         + f'<rect x="600" y="60" width="150" height="280" fill="{WARM}" opacity="0.8"/><path d="M 600 60 L 570 75 L 570 355 L 600 340 Z" fill="#3a2a1c"/>'
         + person(640, 345, 1.0, flip=True, coat=POLICE)
         + person(705, 345, 1.0, flip=True, coat=POLICE)

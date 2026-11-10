@@ -27,7 +27,7 @@ def test_archive_is_rejected_without_card():
     accepted, new_state, message = apply_action(state, "ir_arquivo")
 
     assert accepted is False
-    assert "cartão" in message.lower()
+    assert "card" in message.lower()
     assert new_state == before
     assert new_state["scene"] == "ministerio"
     assert new_state["inventory"] == []
@@ -121,5 +121,5 @@ def test_ministerio_text_no_longer_mentions_card_on_desk_after_collecting():
 
     after_text = scene_text(state)
 
-    assert "brilha um cartão" in before_text
-    assert "brilha um cartão" not in after_text
+    assert "access card gleams" in before_text
+    assert "access card gleams" not in after_text

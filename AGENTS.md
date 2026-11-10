@@ -1,4 +1,4 @@
-# AGENTS.md — O Arquivo Proibido (team project)
+# AGENTS.md — The Forbidden Archive (team project)
 
 A browser mystery game (Nova SBE Intro to Programming): the player works at the Ministério da Verdade and discovers that history is being rewritten. Started as a Plot Twist solo project, now extended by a team of three.
 
@@ -15,7 +15,7 @@ A browser mystery game (Nova SBE Intro to Programming): the player works at the 
 - `players.py` — player identity: a secret code in the link (`?jogador=...`) online, `"local"` offline.
 - `db.py` — saves and loads each player's progress. Every query filters by player.
 - `rooms.py` — cooperative rooms: codes, roles (agente acts, contacto sees clues), chat. Conflicts are decided by the database's unique rules (first saved wins).
-- `components/` — JavaScript/CSS of the clickable scene. It only sends action ids (and typed codes) to Python; it never decides rules.
+- `components/` — JavaScript/CSS of the fullscreen game. It only sends action ids (with typed codes), commands and chat text to Python; it never decides rules. It rebuilds only when `scene_key` changes, so co-op refreshes keep open bubbles.
 - `assets/` — SVG pictures (chapter 2's come from `scripts/art_chapter2.py`; edit the script and rerun it rather than editing those SVGs by hand). `tests/` — pytest. `specs/` — one spec per feature. `docs/` — product brief and exam/walkthrough guide.
 
 ## Storage
@@ -27,6 +27,9 @@ A browser mystery game (Nova SBE Intro to Programming): the player works at the 
 - One member owns changes to the tables in `db.py` at a time; announce them to the team.
 
 ## Rules
+
+- Every line a player can see is in English (tests check `logic.py`, `rooms.py` and the text drawn in the SVGs).
+- Every action must be reachable from the picture (a hotspot or a talk option); the sidebar text mode mirrors the same actions.
 
 - Story content lives in `logic.py`; only player progress goes in the database.
 - `apply_action` never modifies the state it receives. Save only after an accepted action; a rejected action changes nothing.

@@ -44,7 +44,7 @@ def test_new_game_without_save_starts_immediately(db_path):
 
     click(at, "novo_jogo")
 
-    assert at.title[0].value == "Ministério da Verdade"
+    assert at.title[0].value == "Ministry of Truth"
     assert "confirmar_novo_jogo" not in button_keys(at)
     assert load_game(db_path) == {"scene": "ministerio", "inventory": [], "decisions": {}}
 
@@ -58,7 +58,7 @@ def test_new_game_with_save_asks_for_confirmation(db_path):
 
     assert "confirmar_novo_jogo" in button_keys(at)
     assert "cancelar_novo_jogo" in button_keys(at)
-    assert any("progresso" in warning.value for warning in at.warning)
+    assert any("progress" in warning.value for warning in at.warning)
     assert load_game(db_path) == SAVED_PROGRESS
 
 
@@ -75,7 +75,7 @@ def test_cancel_keeps_saved_progress(db_path):
     assert load_game(db_path) == SAVED_PROGRESS
 
     click(at, "continuar_jogo")
-    assert at.title[0].value == "Arquivo secreto"
+    assert at.title[0].value == "Secret Archive"
 
 
 # Done when 4 / A6: confirm resets to the opening scene with an empty inventory
@@ -86,7 +86,7 @@ def test_confirm_starts_over(db_path):
 
     click(at, "confirmar_novo_jogo")
 
-    assert at.title[0].value == "Ministério da Verdade"
+    assert at.title[0].value == "Ministry of Truth"
     assert "apanhar_cartao" in button_keys(at)
     assert load_game(db_path) == {"scene": "ministerio", "inventory": [], "decisions": {}}
 
@@ -101,7 +101,7 @@ def test_confirmed_restart_survives_reopening_the_app(db_path):
     reopened = open_app()
     click(reopened, "continuar_jogo")
 
-    assert reopened.title[0].value == "Ministério da Verdade"
+    assert reopened.title[0].value == "Ministry of Truth"
     assert "apanhar_cartao" in button_keys(reopened)
 
 
@@ -112,6 +112,6 @@ def test_rejected_action_in_app_leaves_save_unchanged(db_path):
 
     click(at, "ir_arquivo")
 
-    assert at.title[0].value == "Ministério da Verdade"
-    assert any("cartão" in warning.value for warning in at.warning)
+    assert at.title[0].value == "Ministry of Truth"
+    assert any("card" in warning.value for warning in at.warning)
     assert load_game(db_path) == {"scene": "ministerio", "inventory": [], "decisions": {}}
