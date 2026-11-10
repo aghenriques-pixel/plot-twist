@@ -6,7 +6,7 @@ from pathlib import Path
 
 import streamlit as st
 
-from db import DEFAULT_DB_PATH, has_save, load_game, save_game
+from db import DEFAULT_DB_PATH, StorageError, has_save, load_game, save_game
 from logic import (
     ACTIONS,
     ITEM_ICONS,
@@ -23,9 +23,26 @@ from logic import (
     scene_looks,
     scene_text,
 )
+from players import player_from_link
 
-# Tests point this at a temporary file so they never touch the real save
-DB_PATH = os.environ.get("PLOT_TWIST_DB", DEFAULT_DB_PATH)
+
+
+def secret(name):
+    """A setting from the environment or from Streamlit secrets (.streamlit/secrets.toml / the host's settings)."""
+    if os.environ.get(name):
+        return os.environ[name]
+    try:
+        return st.secrets.get(name)
+    except Exception:  # no secrets file at all: local play
+        return None
+
+
+# Online (deployed): saves go to hosted Postgres. Locally and in tests: a SQLite file.
+DATABASE_URL = secret("DATABASE_URL")
+# Tests point PLOT_TWIST_DB at a temporary file so they never touch the real save
+DB_PATH = DATABASE_URL or os.environ.get("PLOT_TWIST_DB", DEFAULT_DB_PATH)
+ONLINE = bool(DATABASE_URL) or os.environ.get("PLOT_TWIST_ONLINE") == "1"
+DB_DOWN = "Não foi possível ligar à base de dados. O teu progresso está guardado; tenta outra vez daqui a pouco."
 ASSETS_DIR = Path(__file__).parent / "assets"
 ART_DIR = ASSETS_DIR / "scenes"
 COMPONENT_DIR = Path(__file__).parent / "components"
@@ -39,17 +56,27 @@ scene_view = st.components.v2.component(
 
 st.set_page_config(page_title="O Arquivo Proibido", page_icon="🗄️")
 
+# Who is playing: online, a secret code in the link (?jogador=...); offline, the single local player
+PLAYER = player_from_link(st.query_params.get("jogador"), ONLINE)
+if ONLINE and st.query_params.get("jogador") != PLAYER:
+    st.query_params["jogador"] = PLAYER
+
 if "game" not in st.session_state:
     st.session_state.game = None
     st.session_state.message = None
     st.session_state.confirm_restart = False
     # Where the character stands on screen. Only for display: not saved, not game progress.
     st.session_state.character = None
+    st.session_state.db_error = False
 
 
 def start_new_game():
     game = new_game()
-    save_game(DB_PATH, game)
+    try:
+        save_game(DB_PATH, game, PLAYER)
+    except StorageError:
+        st.session_state.db_error = True
+        return
     st.session_state.game = game
     st.session_state.message = None
     st.session_state.confirm_restart = False
@@ -57,7 +84,12 @@ def start_new_game():
 
 def ask_new_game():
     """Start right away when there is nothing to lose; otherwise ask first (A6)."""
-    if has_save(DB_PATH):
+    try:
+        saved = has_save(DB_PATH, PLAYER)
+    except StorageError:
+        st.session_state.db_error = True
+        return
+    if saved:
         st.session_state.confirm_restart = True
     else:
         start_new_game()
@@ -68,7 +100,11 @@ def cancel_new_game():
 
 
 def resume_game():
-    st.session_state.game = load_game(DB_PATH)
+    try:
+        st.session_state.game = load_game(DB_PATH, PLAYER)
+    except StorageError:
+        st.session_state.db_error = True
+        return
     st.session_state.message = None
 
 
@@ -78,7 +114,12 @@ def choose(action_id, code=None, code_key=None):
         code = st.session_state.get(code_key, "")
     accepted, game, message = apply_action(st.session_state.game, action_id, code)
     if accepted:
-        save_game(DB_PATH, game)
+        try:
+            save_game(DB_PATH, game, PLAYER)
+        except StorageError:
+            # Not saved, so the game does not move on either
+            st.session_state.db_error = True
+            return
         st.session_state.game = game
     st.session_state.message = (accepted, message)
 
@@ -140,8 +181,19 @@ def show_start_screen():
         st.button("Cancelar", key="cancelar_novo_jogo", on_click=cancel_new_game)
         return
 
+    try:
+        saved = has_save(DB_PATH, PLAYER)
+    except StorageError:
+        st.error(DB_DOWN)
+        return
+
+    if ONLINE:
+        st.info(
+            "🔗 O teu jogo fica guardado no link desta página. Guarda-o nos favoritos para continuar "
+            "noutro dia. Quem tiver o link pode continuar o teu jogo, por isso não o partilhes."
+        )
     st.button("Novo jogo", key="novo_jogo", on_click=ask_new_game, type="primary")
-    if has_save(DB_PATH):
+    if saved:
         st.button("Continuar jogo", key="continuar_jogo", on_click=resume_game)
 
 
@@ -193,6 +245,10 @@ def show_game_screen():
             for look in looks:
                 st.markdown(f"**{look['label']}** — {look['text']}")
 
+
+if st.session_state.db_error:
+    st.error(DB_DOWN)
+    st.session_state.db_error = False
 
 if st.session_state.game is None:
     show_start_screen()
