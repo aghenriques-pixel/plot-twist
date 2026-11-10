@@ -1,11 +1,196 @@
-.scene {
+/* ---------- Fullscreen game layout ---------- */
+.game {
+  --ink: #0b0c10;
+  --paper: #f3ead6;
+  --warm: #f2c14e;
+  --red: #c8343a;
+  --cold: #8fb3cc;
+  /* Heights reserved around the picture, so it never covers the top bar or the narration */
+  --top: 64px;
+  --bottom: 24vh;
+  --stage-width: min(100vw - 24px, (100vh - var(--top) - var(--bottom) - 36px) * 2);
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  background: radial-gradient(ellipse at center, #1a1c24 0%, var(--ink) 75%);
+  color: var(--paper);
+  font: 15px/1.45 Georgia, "Times New Roman", serif;
+  animation: fade-in 0.35s ease-out;
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Top bar: title, inventory, decisions, menu (left padding leaves room for the text-mode toggle) */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 18px 10px 64px;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0));
+}
+.titles { flex: 0 1 auto; min-width: 0; }
+.title {
+  font-size: 22px;
+  letter-spacing: 0.04em;
+  color: var(--paper);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.subtitle {
+  font: 12px/1.3 sans-serif;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(243, 234, 214, 0.6);
+}
+.items { flex: 1; display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+.chip {
+  padding: 3px 9px;
+  border: 1px solid rgba(243, 234, 214, 0.25);
+  border-radius: 999px;
+  background: rgba(243, 234, 214, 0.06);
+  font-size: 18px;
+  line-height: 1.2;
+}
+.chip.decision { font: 12px/1.6 sans-serif; color: var(--warm); border-color: rgba(242, 193, 78, 0.4); }
+.menu-button, .big {
+  padding: 7px 14px;
+  border: 1px solid rgba(243, 234, 214, 0.35);
+  border-radius: 8px;
+  background: rgba(243, 234, 214, 0.08);
+  color: var(--paper);
+  font: 14px/1.2 sans-serif;
+  cursor: pointer;
+}
+.menu-button:hover, .big:hover { border-color: var(--warm); background: rgba(242, 193, 78, 0.15); }
+.big.primary { background: var(--red); border-color: var(--red); color: #fff; }
+.big.primary:hover { background: #e0444a; }
+
+/* The picture keeps its 2:1 shape and is as large as the window allows */
+.stage-wrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+}
+.stage {
+  box-sizing: border-box;
   position: relative;
-  width: 100%;
+  width: var(--stage-width);
   aspect-ratio: 2 / 1;
   overflow: hidden;
-  border-radius: 8px;
+  border-radius: 10px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(243, 234, 214, 0.08);
   cursor: pointer;
   user-select: none;
+}
+
+/* Row under the picture: narration, and the chat in co-op */
+.bottom {
+  box-sizing: border-box;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  width: var(--stage-width);
+  height: var(--bottom);
+  margin: 10px auto 14px;
+}
+
+/* Narration under the picture */
+.narration {
+  box-sizing: border-box;
+  flex: 1;
+  min-width: 0;
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 10px 16px;
+  border-left: 3px solid var(--warm);
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 6px;
+}
+.narration p { margin: 0 0 6px; }
+.scene-text { color: rgba(243, 234, 214, 0.88); }
+.message { font-weight: bold; animation: fade-in 0.4s ease-out; }
+.message.ok { color: #9be39b; }
+.message.refused { color: var(--warm); }
+.hint { font: 13px/1.4 sans-serif; color: var(--cold); }
+.clues { margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(243, 234, 214, 0.15); }
+.clues-title { font: bold 13px/1.6 sans-serif; color: var(--warm); }
+.clue { font-size: 14px; }
+.clue.empty { opacity: 0.6; font-style: italic; }
+
+/* Ending card over the picture */
+.ending {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.35));
+  cursor: default;
+  animation: fade-in 0.8s ease-out;
+}
+.ending-inner { width: min(560px, 86%); text-align: center; }
+.ending-kicker { font: 12px/1.4 sans-serif; letter-spacing: 0.3em; text-transform: uppercase; color: var(--warm); }
+.ending-title { margin: 6px 0 10px; font-size: clamp(22px, 3.2vw, 38px); font-weight: normal; }
+.ending-text { font-size: clamp(13px, 1.4vw, 16px); }
+.ending-journey { font: italic 13px/1.4 sans-serif; color: rgba(243, 234, 214, 0.7); }
+.ending-buttons { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 14px; }
+
+/* Co-op chat panel, next to the narration */
+.chat {
+  flex: 0 0 300px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(243, 234, 214, 0.2);
+  border-radius: 10px;
+  background: rgba(10, 11, 15, 0.94);
+  font: 13px/1.4 sans-serif;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+.chat-head {
+  padding: 8px 12px;
+  border: 0;
+  background: transparent;
+  color: var(--paper);
+  font: bold 13px/1.4 sans-serif;
+  text-align: left;
+  cursor: pointer;
+}
+.chat { max-height: 100%; }
+.chat-list { flex: 1; min-height: 0; overflow-y: auto; padding: 0 12px; }
+.chat.closed .chat-list, .chat.closed .chat-form { display: none; }
+.chat-line { margin: 4px 0; }
+.chat-line.mine .chat-who { color: var(--warm); }
+.chat-who { display: block; font-size: 11px; color: var(--cold); }
+.chat-empty { opacity: 0.6; font-style: italic; }
+.chat-form { display: flex; gap: 6px; padding: 8px 12px 10px; }
+.chat-input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid rgba(243, 234, 214, 0.3);
+  border-radius: 6px;
+  background: #0c0d10;
+  color: var(--paper);
+  font: inherit;
+}
+.chat-send { border: 0; border-radius: 6px; background: var(--red); color: #fff; padding: 0 10px; cursor: pointer; }
+
+/* Phones: smaller titles, chat over the narration */
+@media (max-width: 640px) {
+  .topbar { padding-left: 56px; gap: 8px; }
+  .title { font-size: 16px; }
+  .game { --bottom: 46vh; }
+  .bottom { flex-direction: column; }
+  .narration { width: 100%; flex: 1; }
+  .chat { flex: none; width: 100%; max-height: 40%; }
 }
 
 .bg {

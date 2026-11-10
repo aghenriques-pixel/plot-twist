@@ -28,9 +28,9 @@ from rooms import (
 ALICE = "alice_aaaaaaaaaaaaaaaaaaaaaa"
 BRUNO = "bruno_bbbbbbbbbbbbbbbbbbbbbb"
 CARLA = "carla_cccccccccccccccccccccc"
-CLUES = {"Secretária do Tomás", "Calendário", "Quadro de avisos", "Jornal", "Ecrãs", "Parede"}
+CLUES = {"Tomás's desk", "Calendar", "Notice board", "Newspaper", "Screens", "Wall"}
 # Chapter 2 adds four clue looks (specs/chapter-2.md)
-CHAPTER_2_CLUES = {"Mapa da cidade", "Bilhete da Júlia", "Rádio velho", "Cartaz do recolher"}
+CHAPTER_2_CLUES = {"City map", "Júlia's note", "Old radio", "Curfew poster"}
 
 
 @pytest.fixture
@@ -67,7 +67,7 @@ def test_third_player_finds_the_room_full(db):
     code = create_room(db, ALICE)
     join_room(db, code, BRUNO)
 
-    with pytest.raises(RoomError, match="cheia"):
+    with pytest.raises(RoomError, match="full"):
         join_room(db, code, CARLA)
     assert room_role(db, code, CARLA) is None
 
@@ -89,7 +89,7 @@ def test_malformed_room_codes_are_rejected(db, code):
 
 
 def test_unknown_room_is_rejected(db):
-    with pytest.raises(RoomError, match="não encontrada"):
+    with pytest.raises(RoomError, match="not found"):
         join_room(db, "ABCDEF", BRUNO)
 
 
@@ -104,13 +104,13 @@ def test_agent_does_not_see_the_clues():
     labels = {look["label"] for look in scene_looks(new_game(), "agente")}
 
     assert not labels & CLUES
-    assert "Teletela" in labels
+    assert "Telescreen" in labels
 
 
 def test_contact_and_solo_see_every_look():
     for role in ("contacto", None):
         labels = {look["label"] for look in scene_looks(new_game(), role)}
-        assert {"Calendário", "Quadro de avisos", "Secretária do Tomás", "Teletela"} <= labels
+        assert {"Calendar", "Notice board", "Tomás's desk", "Telescreen"} <= labels
 
 
 def test_every_clue_look_is_marked():

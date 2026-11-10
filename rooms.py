@@ -50,18 +50,18 @@ def create_room(target, player):
             continue  # that code was taken: try another one
         save_game(target, new_game(), room_save_key(code))
         return code
-    raise RoomError("Não foi possível criar a sala. Tenta outra vez.")
+    raise RoomError("Could not create the room. Try again.")
 
 
 def join_room(target, code, player):
     """Join as contacto (or get your existing role back). Returns the role."""
     code = normalise(code)
     if not is_valid_room_code(code):
-        raise RoomError("Código de sala inválido: são 6 letras e números.")
+        raise RoomError("Invalid room code: it is 6 letters and numbers.")
     try:
         with transaction(target) as db:
             if db.run("SELECT 1 FROM rooms WHERE code = ?", (code,)).fetchone() is None:
-                raise RoomError("Sala não encontrada. Confirma o código.")
+                raise RoomError("Room not found. Check the code.")
             row = db.run("SELECT role FROM room_members WHERE room = ? AND player = ?", (code, player)).fetchone()
             if row:
                 return row[0]
@@ -69,7 +69,7 @@ def join_room(target, code, player):
             return "contacto"
     except ConflictError:
         # Someone else is already the contacto: the first one saved wins
-        raise RoomError("Sala cheia: já tem um agente e um contacto.") from None
+        raise RoomError("Room full: it already has an agent and a contact.") from None
 
 
 def room_role(target, code, player):
@@ -91,12 +91,12 @@ def send_message(target, code, player, text):
     """Add a chat message from a member. Text is trimmed and must be 1-200 characters."""
     text = text.strip() if isinstance(text, str) else ""
     if not text:
-        raise RoomError("A mensagem está vazia.")
+        raise RoomError("The message is empty.")
     if len(text) > MAX_MESSAGE:
-        raise RoomError(f"A mensagem é longa demais (máximo {MAX_MESSAGE} caracteres).")
+        raise RoomError(f"The message is too long (at most {MAX_MESSAGE} characters).")
     role = room_role(target, code, player)
     if role is None:
-        raise RoomError("Não pertences a esta sala.")
+        raise RoomError("You are not in this room.")
     for _ in range(2):
         try:
             with transaction(target) as db:
@@ -108,7 +108,7 @@ def send_message(target, code, player, text):
             return
         except ConflictError:
             continue  # the other player wrote at the same moment: take the next number
-    raise RoomError("A mensagem não foi enviada. Tenta outra vez.")
+    raise RoomError("The message was not sent. Try again.")
 
 
 def room_messages(target, code):

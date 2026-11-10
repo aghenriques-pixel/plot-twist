@@ -1,0 +1,11 @@
+# Theme shared by the whole team (secrets.toml, next to this file, is never committed)
+[theme]
+base = "dark"
+primaryColor = "#c8343a"
+backgroundColor = "#0b0c10"
+secondaryBackgroundColor = "#16181f"
+textColor = "#f3ead6"
+font = "serif"
+
+[client]
+toolbarMode = "minimal"

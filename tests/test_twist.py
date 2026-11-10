@@ -2,7 +2,7 @@
 
 Assumed interface in logic.py, in addition to what the other tests use:
 - item "ficha_tomas", actions "apanhar_ficha", "confrontar_colega", "seguir_tomas"
-- ending scene "final_traido" with a title starting "Final 3"
+- ending scene "final_traido" with a title starting "Ending 3"
 - ITEM_ICONS[item] -> an icon for every item
 - journey(state) -> list of short sentences describing the path taken
 """
@@ -75,7 +75,7 @@ def test_confronting_needs_the_document():
 
     assert "confrontar_colega" in available_actions(state)
     message = assert_rejected_and_unchanged(state, "confrontar_colega")
-    assert "documento" in message.lower()
+    assert "document" in message.lower()
 
 
 def test_confronting_is_remembered_and_closes_the_decision():
@@ -103,7 +103,7 @@ def test_final_3_is_reachable_by_trusting_blindly():
     state = play(FINAL_3_PATH)
 
     assert state["scene"] == "final_traido"
-    assert SCENES["final_traido"]["title"].startswith("Final 3")
+    assert SCENES["final_traido"]["title"].startswith("Ending 3")
     assert is_finished(state)
     assert available_actions(state) == []
 
@@ -134,12 +134,12 @@ def test_journey_describes_the_path():
     assert journey(new_game()) == []
 
     final_1 = journey(play(FINAL_1_PATH))
-    assert "Leste a ficha do Tomás" in final_1
-    assert "Confrontaste o Tomás" in final_1
+    assert "You read Tomás's file" in final_1
+    assert "You confronted Tomás" in final_1
 
     final_3 = journey(play(FINAL_3_PATH))
-    assert "Não leste a ficha do Tomás" in final_3
-    assert "Confiaste no Tomás" in final_3
+    assert "You did not read Tomás's file" in final_3
+    assert "You trusted Tomás" in final_3
 
 
 # Done when 7: the file and the confrontation survive a restart

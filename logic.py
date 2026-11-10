@@ -7,11 +7,11 @@ START_SCENE = "ministerio"
 CHAPTER_STARTS = {1: "ministerio", 2: "c2_esconderijo"}
 
 ITEMS = {
-    "cartao_acesso": "Cartão de acesso",
-    "documento_proibido": "Documento proibido",
-    "ficha_tomas": "Ficha do Tomás",
-    "mensagem_cifrada": "Mensagem cifrada",
-    "cassete": "Cassete do Tomás",
+    "cartao_acesso": "Access card",
+    "documento_proibido": "Forbidden document",
+    "ficha_tomas": "Tomás's file",
+    "mensagem_cifrada": "Ciphered message",
+    "cassete": "Tomás's cassette",
 }
 
 ITEM_ICONS = {
@@ -24,87 +24,85 @@ ITEM_ICONS = {
 
 # Shown in the inventory panel once a decision is made
 DECISION_LABELS = {
-    ("colega", "confiou"): "Confiaste no Tomás",
-    ("colega", "escondeu"): "Escondeste a descoberta",
-    ("colega", "confrontou"): "Confrontaste o Tomás",
-    ("frequencia", "sintonizada"): "Sintonizaste a rádio dos teus",
+    ("colega", "confiou"): "You trusted Tomás",
+    ("colega", "escondeu"): "You kept the discovery to yourself",
+    ("colega", "confrontou"): "You confronted Tomás",
+    ("frequencia", "sintonizada"): "You tuned in to your own people",
 }
 
 SCENES = {
     "ministerio": {
-        "title": "Ministério da Verdade",
+        "title": "Ministry of Truth",
         "image": "ministerio.svg",
         # Where the character walks in the 800x400 picture (clickable scenes)
         "walk": {"start": 380, "floor": 360, "scale": 1.05, "min": 30, "max": 740},
         "text": (
-            "Os teletelas zumbem por cima das secretárias. O teu trabalho é corrigir "
-            "jornais antigos para que digam o que o Partido quer. Na secretária do teu "
-            "chefe, meio escondido debaixo de um dossiê, brilha um cartão de acesso. "
-            "Ao fundo do corredor há uma porta sem placa, com um leitor de cartões e um "
-            "teclado numérico: o Arquivo secreto."
+            "Telescreens hum above the desks. Your job is to correct old newspapers so they "
+            "say what the Party wants. On your boss's desk, half hidden under a folder, an "
+            "access card gleams. At the end of the corridor there is an unmarked door with a "
+            "card reader and a keypad: the Secret Archive."
         ),
         # Things to observe (clues live here). Observing never changes the state.
         "looks": [
             {
-                "label": "Secretária do Tomás", "clue": True, "x": 195, "y": 250, "w": 120, "h": 50, "stand": 255,
-                "text": "A secretária do Tomás, ao lado da tua. Uma caneca com o número 47 pintado à mão. "
-                "Ele passa o dia a olhar para ela.",
+                "label": "Tomás's desk", "clue": True, "x": 195, "y": 250, "w": 120, "h": 50, "stand": 255,
+                "text": "Tomás's desk, next to yours. A mug with the number 47 painted on it by hand. "
+                "He stares at it all day.",
             },
             {
-                "label": "Calendário", "clue": True, "x": 296, "y": 92, "w": 70, "h": 82, "stand": 330,
-                "text": "O calendário oficial do Partido. Um dia está marcado a vermelho: "
-                "17 de Abril — Dia da Unidade.",
+                "label": "Calendar", "clue": True, "x": 296, "y": 92, "w": 70, "h": 82, "stand": 330,
+                "text": "The Party's official calendar. One day is circled in red: "
+                "17 April — Unity Day.",
             },
             {
-                "label": "Teletela", "x": 420, "y": 90, "w": 120, "h": 80, "stand": 480,
-                "text": "O olho do Partido. Tens a sensação de que pisca quando desvias o olhar.",
+                "label": "Telescreen", "x": 420, "y": 90, "w": 120, "h": 80, "stand": 480,
+                "text": "The eye of the Party. You could swear it blinks whenever you look away.",
             },
             {
-                "label": "Quadro de avisos", "clue": True, "x": 578, "y": 78, "w": 94, "h": 74, "stand": 620,
-                "text": "AVISO: por ordem superior, o teclado do Arquivo passa a usar a data do Dia "
-                "da Unidade. Primeiro o dia, depois o mês. Quatro dígitos.",
+                "label": "Notice board", "clue": True, "x": 578, "y": 78, "w": 94, "h": 74, "stand": 620,
+                "text": "NOTICE: by order from above, the Archive keypad now uses the date of Unity "
+                "Day. Day first, then month. Four digits.",
             },
         ],
         # Picture and text shown instead once the player has the item (PT R3)
         "image_after": {"cartao_acesso": "ministerio_sem_cartao.svg"},
         "text_after": {
             "cartao_acesso": (
-                "Os teletelas zumbem por cima das secretárias. A secretária do teu chefe "
-                "está como sempre, só falta o cartão que agora tens no bolso. Ao fundo do "
-                "corredor, a porta sem placa do Arquivo secreto espera, com o seu teclado numérico."
+                "Telescreens hum above the desks. Your boss's desk looks the same, except for "
+                "the card now in your pocket. At the end of the corridor, the unmarked door of "
+                "the Secret Archive waits, with its keypad."
             ),
         },
     },
     "arquivo": {
-        "title": "Arquivo secreto",
+        "title": "Secret Archive",
         "image": "arquivo.svg",
         "talks": {
             "estante": {
                 "x": 588, "y": 50, "w": 205, "h": 290, "stand": 640,
-                "label": "Procurar nas caixas",
-                "line": "Quatro caixas com anos escritos à mão: 1980, 1981, 1982, 1983. O relatório só pode estar numa delas.",
+                "label": "Search the boxes",
+                "line": "Four boxes with years written by hand: 1980, 1981, 1982, 1983. The report can only be in one of them.",
             },
         },
         # Where the character walks in the 800x400 picture (clickable scenes)
         "walk": {"start": 260, "floor": 368, "scale": 1.0, "min": 30, "max": 760},
         "text": (
-            "Estantes até ao teto, caixas com carimbos vermelhos. Aqui estão as versões "
-            "originais de tudo o que foi reescrito. Algures numa destas caixas está o "
-            "relatório com a tua própria assinatura, sobre uma guerra que nunca aconteceu. "
-            "Em cima da mesa, um jornal. Num armário de metal, uma gaveta com cadeado tem "
-            "uma etiqueta: TOMÁS."
+            "Shelves up to the ceiling, boxes with red stamps. Here are the originals of "
+            "everything that was rewritten. Somewhere in these boxes is a report with your "
+            "own signature, about a war that never happened. On the table, a newspaper. In a "
+            "metal cabinet, a padlocked drawer has a label: TOMÁS."
         ),
         "looks": [
             {
-                "label": "Jornal", "clue": True, "x": 330, "y": 280, "w": 110, "h": 45, "stand": 410,
-                "text": "O jornal de hoje, 4 de Abril de 1984, já corrigido: «A guerra contra a "
-                "Lestásia, que começou há três anos, está quase ganha.» Mas tu sabes que essa "
-                "guerra nunca existiu.",
+                "label": "Newspaper", "clue": True, "x": 330, "y": 280, "w": 110, "h": 45, "stand": 410,
+                "text": "Today's paper, 4 April 1984, already corrected: \u201cThe war against "
+                "Eastasia, which began three years ago, is almost won.\u201d But you know that "
+                "war never existed.",
             },
             {
-                "label": "Caixas antigas", "x": 165, "y": 50, "w": 100, "h": 240, "stand": 215,
-                "text": "Caixas com um carimbo vermelho: CORRIGIDO. Milhares de verdades fechadas "
-                "em cartão.",
+                "label": "Old boxes", "x": 165, "y": 50, "w": 100, "h": 240, "stand": 215,
+                "text": "Boxes with a red stamp: CORRECTED. Thousands of truths shut away in "
+                "cardboard.",
             },
         ],
         # Choice puzzles reuse talk spots: each option is an action with "talk": "estante"
@@ -116,163 +114,161 @@ SCENES = {
         },
         "text_after": {
             ("documento_proibido", "ficha_tomas"): (
-                "Estantes até ao teto, caixas com carimbos vermelhos. A caixa de 1981 está "
-                "aberta e a gaveta do Tomás vazia. Tens tudo o que vieste buscar. Os passos "
-                "estão quase a chegar."
+                "Shelves up to the ceiling, boxes with red stamps. The 1981 box is open and "
+                "Tomás's drawer is empty. You have everything you came for. The footsteps are "
+                "almost here."
             ),
             "documento_proibido": (
-                "Estantes até ao teto, caixas com carimbos vermelhos. A caixa de 1981 está "
-                "aberta: o relatório está agora debaixo do teu casaco. A gaveta com a etiqueta "
-                "TOMÁS continua fechada a cadeado. Os passos aproximam-se."
+                "Shelves up to the ceiling, boxes with red stamps. The 1981 box is open: the "
+                "report is now under your coat. The drawer labelled TOMÁS is still padlocked. "
+                "Footsteps are coming closer."
             ),
             "ficha_tomas": (
-                "Estantes até ao teto, caixas com carimbos vermelhos. A gaveta do Tomás está "
-                "aberta e vazia, mas não consegues esquecer o que leste. O relatório continua "
-                "algures numa das caixas."
+                "Shelves up to the ceiling, boxes with red stamps. Tomás's drawer is open and "
+                "empty, but you cannot forget what you read. The report is still somewhere in "
+                "the boxes."
             ),
         },
     },
     "apartamento": {
-        "title": "Apartamento",
+        "title": "Apartment",
         "image": "apartamento.svg",
         # Where the character walks in the 800x400 picture (clickable scenes)
         "walk": {"start": 330, "floor": 360, "scale": 1.05, "min": 30, "max": 720},
         "text": (
-            "O teu apartamento pequeno, com um teletela que nunca se desliga. Alguém "
-            "bate à porta: é o Tomás, o teu colega da secretária ao lado. Entra sem "
-            "esperar. Fala baixo: diz que pertence à resistência e que sabe que andas "
-            "a fazer perguntas."
+            "Your small flat, with a telescreen that is never switched off. Someone knocks: "
+            "it is Tomás, your colleague from the next desk. He comes in without waiting and "
+            "speaks quietly: he says he belongs to the resistance and knows you have been "
+            "asking questions."
         ),
         # After any decision about Tomás he leaves (keyed by decision name)
         "image_after_decision": {"colega": "apartamento_sem_tomas.svg"},
         "text_after_decision": {
             "colega": (
-                "O Tomás já saiu. Ficaste sozinho com o zumbido do teletela e com a "
-                "decisão que tomaste. Lá fora, a noite está a cair."
+                "Tomás has gone. You are alone with the hum of the telescreen and the decision "
+                "you made. Outside, night is falling."
             ),
         },
         "looks": [
             {
-                "label": "Janela", "x": 80, "y": 70, "w": 200, "h": 180, "stand": 180,
-                "text": "O bairro às escuras. Em cada janela, a luz azulada de um teletela.",
+                "label": "Window", "x": 80, "y": 70, "w": 200, "h": 180, "stand": 180,
+                "text": "The neighbourhood in darkness. In every window, the bluish glow of a telescreen.",
             },
             {
-                "label": "Teletela", "x": 330, "y": 80, "w": 100, "h": 70, "stand": 380,
-                "text": "Nunca se desliga. Aprendeste a falar baixo e a sorrir para ele.",
+                "label": "Telescreen", "x": 330, "y": 80, "w": 100, "h": 70, "stand": 380,
+                "text": "It never switches off. You have learned to speak softly and smile at it.",
             },
         ],
         # Clickable characters: their actions are the ones with "talk": name
         "talks": {
             "tomas": {
                 "x": 540, "y": 170, "w": 70, "h": 175, "stand": 470,
-                "label": "Falar com o Tomás",
-                "line": "«Sei que andas a fazer perguntas. Eu sou da resistência. Mostra-me o que encontraste.»",
+                "label": "Talk to Tomás",
+                "line": "\u201cI know you've been asking questions. I'm with the resistance. Show me what you found.\u201d",
             },
         },
     },
     "vigilancia": {
-        "title": "Estação de vigilância",
+        "title": "Surveillance Station",
         "image": "vigilancia.svg",
         # Where the character walks in the 800x400 picture (clickable scenes)
         "walk": {"start": 470, "floor": 375, "scale": 1.0, "min": 300, "max": 740},
         "text": (
-            "A sala de onde se vigia o bairro inteiro. Dezenas de ecrãs, um guarda "
-            "sonolento e, ao fundo, uma grelha no chão, fechada com um cadeado, que dá "
-            "para os túneis antigos."
+            "The room that watches the whole district. Dozens of screens, a sleepy guard "
+            "and, at the back, a padlocked grate in the floor that leads to the old tunnels."
         ),
         "looks": [
             {
-                "label": "Ecrãs", "clue": True, "x": 40, "y": 30, "w": 730, "h": 200, "stand": 500,
-                "text": "Vinte e um ecrãs. Alguns estão apagados: câmaras avariadas. Num post-it "
-                "amarelo, a letra do guarda: «Grelha norte: nº de câmaras avariadas × 7.»",
+                "label": "Screens", "clue": True, "x": 40, "y": 30, "w": 730, "h": 200, "stand": 500,
+                "text": "Twenty-one screens. Some are dark: broken cameras. On a yellow sticky note, "
+                "in the guard's handwriting: \u201cNorth grate: number of broken cameras × 7.\u201d",
             },
             {
-                "label": "Guarda", "x": 150, "y": 232, "w": 140, "h": 120, "stand": 310,
-                "text": "Ressona com a cabeça em cima da mesa. Tem chaves no cinto, mas nenhuma "
-                "serve para cadeados de números.",
+                "label": "Guard", "x": 150, "y": 232, "w": 140, "h": 120, "stand": 310,
+                "text": "He snores with his head on the desk. There are keys on his belt, but none of "
+                "them fit a combination padlock.",
             },
         ],
     },
     "tunel": {
-        "title": "Túnel de fuga",
+        "title": "Escape Tunnel",
         "image": "tunel.svg",
         # Where the character walks in the 800x400 picture (clickable scenes)
         "walk": {"start": 160, "floor": 395, "scale": 1.1, "min": 100, "max": 700},
         "text": (
-            "Escuro, húmido, cheio de ecos. O túnel divide-se em três: à esquerda, um "
-            "corredor seco; em frente, uma luz que se mexe; à direita, ouve-se água a correr."
+            "Dark, damp, full of echoes. The tunnel splits in three: to the left, a dry "
+            "passage; straight ahead, a moving light; to the right, the sound of running water."
         ),
         "looks": [
             {
-                "label": "Parede", "clue": True, "x": 20, "y": 140, "w": 90, "h": 150, "stand": 120,
-                "text": "Alguém riscou na pedra, há muito tempo: «A água nunca mente.»",
+                "label": "Wall", "clue": True, "x": 20, "y": 140, "w": 90, "h": 150, "stand": 120,
+                "text": "Someone scratched into the stone, long ago: \u201cThe water never lies.\u201d",
             },
         ],
         "talks": {
             "bifurcacao": {
                 "x": 230, "y": 110, "w": 380, "h": 240, "stand": 330,
-                "label": "Escolher um caminho",
-                "line": "Três caminhos na escuridão. Só um leva à resistência.",
+                "label": "Choose a way",
+                "line": "Three ways into the dark. Only one leads to the resistance.",
             },
         },
     },
     "esconderijo": {
-        "title": "Esconderijo da resistência",
+        "title": "Resistance Hideout",
         "image": "esconderijo.svg",
         "walk": {"start": 220, "floor": 395, "scale": 1.1, "min": 120, "max": 600},
         "text": (
-            "Uma porta de ferro abre-se para uma sala escondida debaixo da cidade. Uma "
-            "lanterna acende-se mais à frente: alguém da resistência está à tua espera, "
-            "de mão estendida."
+            "An iron door opens onto a room hidden beneath the city. A lantern lights up "
+            "ahead: someone from the resistance is waiting for you, hand held out."
         ),
         "looks": [
             {
-                "label": "Paredes", "x": 20, "y": 100, "w": 90, "h": 200, "stand": 130,
-                "text": "Cartazes do Partido, rasgados. Por cima, a tinta: A VERDADE É UM DIREITO.",
+                "label": "Walls", "x": 20, "y": 100, "w": 90, "h": 200, "stand": 130,
+                "text": "Party posters, torn. Painted over them: THE TRUTH IS A RIGHT.",
             },
         ],
     },
     "final_resistencia": {
-        "title": "Final 1 — A verdade escapa",
+        "title": "Ending 1 — The truth escapes",
         "image": "final_resistencia.svg",
         "text": (
-            "Entregas o documento. Antes do amanhecer, cópias do relatório circulam por "
-            "toda a cidade. O Ministério vai negar tudo, mas desta vez há provas. "
-            "Tu e o Tomás, finalmente do mesmo lado, desaparecem pelos túneis."
+            "You hand over the document. Before dawn, copies of the report are all over the "
+            "city. The Ministry will deny everything, but this time there is proof. You and "
+            "Tomás, finally on the same side, vanish into the tunnels."
         ),
         "ending": True,
     },
     "final_descoberto": {
-        "title": "Final 2 — Descoberto",
+        "title": "Ending 2 — Discovered",
         "image": "final_descoberto.svg",
         "text": (
-            "Sozinho, tentas passar pela grelha. Um dos ecrãs mostra a tua cara. "
-            "O alarme dispara e o guarda já não está sonolento. O documento é apreendido "
-            "e, no dia seguinte, o teu nome desaparece dos arquivos."
+            "Alone, you try to get through the grate. One of the screens shows your face. "
+            "The alarm goes off and the guard is no longer sleepy. The document is seized "
+            "and, the next day, your name disappears from the archives."
         ),
         "ending": True,
     },
     "final_traido": {
-        "title": "Final 3 — Traído",
+        "title": "Ending 3 — Betrayed",
         "image": "final_traido.svg",
         "text": (
-            "O Tomás abre a grelha... e acende as luzes. Os guardas já estavam à tua "
-            "espera. Um oficial entrega-lhe um envelope; ele não olha para ti. Na gaveta "
-            "do Arquivo estava escrito: Informador nº 47. Se ao menos a tivesses aberto."
+            "Tomás opens the grate... and switches on the lights. The guards were already "
+            "waiting. An officer hands him an envelope; he does not look at you. In the "
+            "Archive drawer it said: Informer no. 47. If only you had opened it."
         ),
         "ending": True,
     },
 
-    # ----- Chapter 2: "Depois da fuga" (specs/chapter-2.md) -----
+    # ----- Chapter 2: "After the escape" (specs/chapter-2.md) -----
     "c2_esconderijo": {
-        "title": "Esconderijo, na manhã seguinte",
+        "title": "The hideout, next morning",
         "chapter": 2,
         "image": "c2_esconderijo.svg",
         "walk": {"start": 200, "floor": 380, "scale": 1.0, "min": 30, "max": 760},
         "text": (
-            "A manhã seguinte, no esconderijo. A Júlia, líder da resistência, explica o plano: "
-            "esta noite, tomar a rádio do próprio Partido. Em cima da mesa estão a mensagem "
-            "cifrada de hoje e uma cassete com a voz do Tomás."
+            "The next morning, in the hideout. Júlia, the resistance leader, explains the plan: "
+            "tonight, take over the Party's own radio. On the table lie today's ciphered "
+            "message and a cassette with Tomás's voice."
         ),
         "image_after": {
             ("mensagem_cifrada", "cassete"): "c2_esconderijo_vazio.svg",
@@ -281,128 +277,128 @@ SCENES = {
         },
         "text_after": {
             ("mensagem_cifrada", "cassete"): (
-                "A mesa está vazia. Tens a mensagem e a cassete. A Júlia acena: "
-                "«Quando for noite, sai pela escada. Boa sorte.»"
+                "The table is empty. You have the message and the cassette. Júlia nods: "
+                "\u201cWhen night falls, go up the stairs. Good luck.\u201d"
             ),
             "mensagem_cifrada": (
-                "A manhã seguinte, no esconderijo. Já tens a mensagem cifrada. Em cima da mesa "
-                "só resta a cassete com a voz do Tomás."
+                "The next morning, in the hideout. You already have the ciphered message. Only "
+                "the cassette with Tomás's voice is left on the table."
             ),
             "cassete": (
-                "A manhã seguinte, no esconderijo. Já tens a cassete do Tomás. Em cima da mesa "
-                "só resta a mensagem cifrada de hoje."
+                "The next morning, in the hideout. You already have Tomás's cassette. Only "
+                "today's ciphered message is left on the table."
             ),
         },
         "looks": [
             {
-                "label": "Mapa da cidade", "clue": True, "x": 90, "y": 70, "w": 160, "h": 120, "stand": 170,
-                "text": "Um mapa da cidade com notas da Júlia: «Rua das Fábricas: patrulha às horas pares. "
-                "Beco do Mercado: vigiado sempre. Linha do elétrico: guardas só até ao recolher.»",
+                "label": "City map", "clue": True, "x": 90, "y": 70, "w": 160, "h": 120, "stand": 170,
+                "text": "A city map with Júlia's notes: \u201cFactory Street: patrolled at even hours. "
+                "Market Alley: always guarded. Tram line: guards only until curfew.\u201d",
             },
             {
-                "label": "Rádio velho", "clue": True, "x": 330, "y": 110, "w": 90, "h": 60, "stand": 375,
-                "text": "Um rádio velho com um papel colado: «Os nossos ouvem sempre na frequência do "
-                "Partido menos 13,7.»",
+                "label": "Old radio", "clue": True, "x": 330, "y": 110, "w": 90, "h": 60, "stand": 375,
+                "text": "An old radio with a note taped to it: \u201cOur people always listen on the Party's "
+                "frequency minus 13.7.\u201d",
             },
             {
-                "label": "Bilhete da Júlia", "clue": True, "x": 560, "y": 90, "w": 70, "h": 60, "stand": 590,
-                "text": "A letra da Júlia: «As nossas mensagens usam a cifra do velho Júlio: para ler, troca "
-                "cada letra pela que está três para trás no alfabeto.»",
+                "label": "Júlia's note", "clue": True, "x": 560, "y": 90, "w": 70, "h": 60, "stand": 590,
+                "text": "In Júlia's handwriting: \u201cOur messages use old Julius's cipher: to read one, swap "
+                "each letter for the one three places back in the alphabet.\u201d",
             },
             {
                 "label": "Júlia", "x": 610, "y": 170, "w": 70, "h": 170, "stand": 600,
-                "text": "A líder da resistência. «Ninguém acredita em papel. Esta noite, a verdade vai passar "
-                "na rádio do próprio Partido.»",
+                "text": "The resistance leader. \u201cNobody believes paper. Tonight the truth goes out on "
+                "the Party's own radio.\u201d",
             },
         ],
     },
     "c2_cidade": {
-        "title": "Ruas da cidade",
+        "title": "City streets",
         "chapter": 2,
         "image": "c2_cidade.svg",
         "walk": {"start": 120, "floor": 385, "scale": 0.95, "min": 30, "max": 760},
         "text": (
-            "Ruas vazias, candeeiros fracos. Até à torre da rádio há três caminhos: o Beco do "
-            "Mercado, a Rua das Fábricas e a Linha do elétrico."
+            "Empty streets, dim lamps. There are three ways to the radio tower: Market Alley, "
+            "Factory Street and the tram line."
         ),
         "looks": [
             {
-                "label": "Relógio da praça", "x": 60, "y": 40, "w": 90, "h": 120, "stand": 110,
-                "text": "O relógio da praça marca dez da noite.",
+                "label": "Square clock", "x": 60, "y": 40, "w": 90, "h": 120, "stand": 110,
+                "text": "The clock in the square says ten o'clock at night.",
             },
             {
-                "label": "Cartaz do recolher", "clue": True, "x": 160, "y": 170, "w": 60, "h": 70, "stand": 190,
-                "text": "Um cartaz do Partido: «RECOLHER OBRIGATÓRIO a partir das 21h. Quem estiver na rua "
-                "será detido.»",
+                "label": "Curfew poster", "clue": True, "x": 160, "y": 170, "w": 60, "h": 70, "stand": 190,
+                "text": "A Party poster: \u201cCURFEW from 21:00. Anyone found in the street will be "
+                "arrested.\u201d",
             },
         ],
         "talks": {
             "caminhos": {
                 "x": 230, "y": 120, "w": 520, "h": 220, "stand": 330,
-                "label": "Escolher um caminho",
-                "line": "Três caminhos até à torre da rádio. A esta hora, só um está livre de guardas.",
+                "label": "Choose a route",
+                "line": "Three routes to the radio tower. At this hour, only one is free of guards.",
             },
         },
     },
     "c2_torre": {
-        "title": "Torre da rádio",
+        "title": "Radio tower",
         "chapter": 2,
         "image": "c2_torre.svg",
         "walk": {"start": 150, "floor": 385, "scale": 1.0, "min": 30, "max": 700},
         "text": (
-            "A torre da Rádio do Partido, enorme e silenciosa. A porta não tem leitor de cartões: "
-            "tem uma fechadura de letras."
+            "The Party Radio tower, huge and silent. The door has no card reader: it has a "
+            "letter lock."
         ),
         "looks": [
             {
-                "label": "Antena", "x": 300, "y": 20, "w": 120, "h": 200, "stand": 360,
-                "text": "A antena da Rádio do Partido pisca a vermelho, uma vez por segundo.",
+                "label": "Antenna", "x": 300, "y": 20, "w": 120, "h": 200, "stand": 360,
+                "text": "The Party Radio antenna blinks red, once a second.",
             },
             {
-                "label": "Guarita", "x": 120, "y": 232, "w": 100, "h": 108, "stand": 170,
-                "text": "Uma guarita vazia. Na parede, um aviso: «A palavra da fechadura muda todas as semanas.»",
+                "label": "Guard booth", "x": 120, "y": 232, "w": 100, "h": 108, "stand": 170,
+                "text": "An empty guard booth. A notice on the wall: \u201cThe lock word changes every week.\u201d",
             },
         ],
     },
     "c2_estudio": {
-        "title": "Estúdio de emissão",
+        "title": "Broadcast studio",
         "chapter": 2,
         "image": "c2_estudio.svg",
         "walk": {"start": 130, "floor": 380, "scale": 1.0, "min": 30, "max": 720},
         "text": (
-            "O estúdio de emissão. Um mostrador de frequência, um microfone e um leitor de cassetes. "
-            "Na parede, o cartaz da rádio do Partido."
+            "The broadcast studio. A frequency dial, a microphone and a cassette player. On the "
+            "wall, the Party Radio poster."
         ),
         "looks": [
             {
-                "label": "Cartaz da rádio", "x": 600, "y": 70, "w": 120, "h": 80, "stand": 640,
-                "text": "Um cartaz enorme: «RÁDIO DO PARTIDO, 101.4 FM. A única voz que precisas de ouvir.»",
+                "label": "Radio poster", "x": 600, "y": 70, "w": 120, "h": 80, "stand": 640,
+                "text": "A huge poster: \u201cPARTY RADIO, 101.4 FM. The only voice you need to hear.\u201d",
             },
             {
-                "label": "Janela do estúdio", "x": 40, "y": 60, "w": 110, "h": 120, "stand": 100,
-                "text": "Lá em baixo, a cidade às escuras. Em cada casa há um rádio ligado.",
+                "label": "Studio window", "x": 40, "y": 60, "w": 110, "h": 120, "stand": 100,
+                "text": "Down below, the city in darkness. In every home a radio is on.",
             },
         ],
     },
     "final_c2_voz": {
-        "title": "Final 4 — A voz da verdade",
+        "title": "Ending 4 — The voice of truth",
         "chapter": 2,
         "image": "final_c2_voz.svg",
         "text": (
-            "Em cada casa, a voz do Tomás conta a verdade sobre a guerra que nunca existiu. Quando a "
-            "polícia arromba a porta do estúdio, só encontra a cassete a tocar. Tu e a Júlia já estão "
-            "longe, a ouvir a cidade acordar."
+            "In every home, Tomás's voice tells the truth about the war that never existed. When the "
+            "police break down the studio door, they only find the cassette playing. You and Júlia "
+            "are already far away, listening to the city wake up."
         ),
         "ending": True,
     },
     "final_c2_reconhecido": {
-        "title": "Final 5 — Reconhecido",
+        "title": "Ending 5 — Recognised",
         "chapter": 2,
         "image": "final_c2_reconhecido.svg",
         "text": (
-            "A cidade inteira ouve a tua voz, e o Ministério também. Em minutos reconhecem-te: o "
-            "funcionário exemplar da secretária do canto. A verdade passou, mas tu não vais sair do "
-            "estúdio. Se ao menos tivesses trazido a cassete."
+            "The whole city hears your voice, and so does the Ministry. Within minutes they know it "
+            "is you: the model employee from the corner desk. The truth got out, but you will not "
+            "leave the studio. If only you had brought the cassette."
         ),
         "ending": True,
     },
@@ -429,301 +425,301 @@ ACTIONS = {
     "apanhar_cartao": {
         "hotspot": {"x": 515, "y": 232, "w": 140, "h": 58, "stand": 470},
         "scene": "ministerio",
-        "label": "Apanhar cartão de acesso",
+        "label": "Take the access card",
         "gives": "cartao_acesso",
-        "message": "Guardas o cartão de acesso no bolso. Ninguém reparou.",
+        "message": "You slip the access card into your pocket. Nobody noticed.",
     },
     "ir_arquivo": {
         "hotspot": {"x": 690, "y": 150, "w": 80, "h": 140, "stand": 730},
         "scene": "ministerio",
-        "label": "Ir ao Arquivo secreto",
+        "label": "Go to the Secret Archive",
         "requires": "cartao_acesso",
-        "blocked_message": "A porta não abre. Precisas de um cartão de acesso.",
+        "blocked_message": "The door will not open. You need an access card.",
         "code": "1704",
-        "code_prompt": "Teclado da porta do Arquivo: 4 dígitos",
-        "wrong_code_message": "O teclado apita e a luz fica vermelha. Código errado.",
+        "code_prompt": "Archive door keypad: 4 digits",
+        "wrong_code_message": "The keypad beeps and the light turns red. Wrong code.",
         "goes_to": "arquivo",
-        "message": "Passas o cartão no leitor. A luz fica verde e a porta abre-se.",
+        "message": "You swipe the card and type the code. The light turns green and the door opens.",
     },
     "ir_apartamento": {
         "hotspot": {"x": 0, "y": 120, "w": 45, "h": 240, "stand": 30, "edge": "left"},
         "scene": "ministerio",
-        "label": "Ir para casa",
+        "label": "Go home",
         "goes_to": "apartamento",
-        "message": "Sais do Ministério sem olhar para trás.",
+        "message": "You leave the Ministry without looking back.",
     },
     "caixa_1980": {
         "scene": "arquivo",
         "talk": "estante",
-        "say": "Caixa de 1980",
-        "label": "Abrir a caixa de 1980",
+        "say": "The 1980 box",
+        "label": "Open box 1980",
         "only_without": "documento_proibido",
-        "rejects": "Recibos de racionamento de 1980. Nada de útil. Fechas a caixa.",
+        "rejects": "Ration receipts from 1980. Nothing useful. You close the box.",
         "message": "",
     },
     "apanhar_documento": {
         "scene": "arquivo",
         "talk": "estante",
-        "say": "Caixa de 1981",
-        "label": "Abrir a caixa de 1981",
+        "say": "The 1981 box",
+        "label": "Open box 1981",
         "gives": "documento_proibido",
         "message": (
-            "Lá dentro está o relatório original, com a tua assinatura, sobre uma guerra que "
-            "nunca aconteceu. Escondes o relatório debaixo do casaco. O coração bate depressa."
+            "Inside is the original report, with your signature, about a war that never "
+            "happened. You hide it under your coat. Your heart is racing."
         ),
     },
     "caixa_1982": {
         "scene": "arquivo",
         "talk": "estante",
-        "say": "Caixa de 1982",
-        "label": "Abrir a caixa de 1982",
+        "say": "The 1982 box",
+        "label": "Open box 1982",
         "only_without": "documento_proibido",
-        "rejects": "Fotografias de pessoas que já não existem. Fechas a caixa depressa.",
+        "rejects": "Photographs of people who no longer exist. You close the box quickly.",
         "message": "",
     },
     "caixa_1983": {
         "scene": "arquivo",
         "talk": "estante",
-        "say": "Caixa de 1983",
-        "label": "Abrir a caixa de 1983",
+        "say": "The 1983 box",
+        "label": "Open box 1983",
         "only_without": "documento_proibido",
-        "rejects": "Discursos antigos do Partido. Nenhum relatório.",
+        "rejects": "Old Party speeches. No report.",
         "message": "",
     },
     "apanhar_ficha": {
         "hotspot": {"x": 508, "y": 250, "w": 74, "h": 95, "stand": 560},
         "scene": "arquivo",
-        "label": "Ler a ficha do Tomás",
+        "label": "Read Tomás's file",
         "gives": "ficha_tomas",
         "code": "47",
-        "code_prompt": "Cadeado da gaveta do Tomás: 2 dígitos",
-        "wrong_code_message": "O cadeado não abre.",
+        "code_prompt": "Padlock on Tomás's drawer: 2 digits",
+        "wrong_code_message": "The padlock does not open.",
         "message": (
-            "Abres a gaveta. Uma ficha com a fotografia do Tomás: «Informador nº 47. "
-            "Missão: ganhar a confiança dos curiosos.» Guardas a ficha. As mãos tremem-te."
+            "You open the drawer. A file with Tomás's photograph: \u201cInformer no. 47. "
+            "Mission: win the trust of the curious.\u201d You keep the file. Your hands are shaking."
         ),
     },
     "voltar_ministerio": {
         "hotspot": {"x": 0, "y": 120, "w": 45, "h": 240, "stand": 30, "edge": "left"},
         "scene": "arquivo",
-        "label": "Voltar ao Ministério",
+        "label": "Back to the Ministry",
         "goes_to": "ministerio",
-        "message": "Fechas a porta do Arquivo atrás de ti e voltas à tua secretária.",
+        "message": "You close the Archive door behind you and return to your desk.",
     },
     "confiar_colega": {
         "scene": "apartamento",
         "talk": "tomas",
-        "say": "«Está bem, confio em ti. Olha o que encontrei.»",
-        "label": "Confiar no Tomás",
+        "say": "\u201cAll right, I trust you. Look what I found.\u201d",
+        "label": "Trust Tomás",
         "requires": "documento_proibido",
-        "blocked_message": "Não tens provas para mostrar. Precisas primeiro do documento do Arquivo.",
+        "blocked_message": "You have no proof to show. You need the document from the Archive first.",
         "decides": ("colega", "confiou"),
-        "message": "Mostras-lhe o documento. O Tomás sorri: \"Esta noite, na Estação de vigilância.\" E sai.",
+        "message": "You show him the document. Tomás smiles: \u201cTonight, at the Surveillance Station.\u201d And he leaves.",
     },
     "esconder_descoberta": {
         "scene": "apartamento",
         "talk": "tomas",
-        "say": "«Não sei do que estás a falar, Tomás.»",
-        "label": "Esconder a descoberta",
+        "say": "\u201cI don't know what you're talking about, Tomás.\u201d",
+        "label": "Keep the discovery to yourself",
         "requires": "documento_proibido",
-        "blocked_message": "Não há nada para esconder. Precisas primeiro do documento do Arquivo.",
+        "blocked_message": "There is nothing to hide yet. You need the document from the Archive first.",
         "decides": ("colega", "escondeu"),
-        "message": "Dizes ao Tomás que não sabes de nada. Ele vai-se embora. Vais investigar sozinho.",
+        "message": "You tell Tomás you know nothing. He leaves. You will investigate alone.",
     },
     "confrontar_colega": {
         "scene": "apartamento",
         "talk": "tomas",
-        "say": "«Primeiro explica-me isto.» (mostrar a ficha)",
-        "label": "Confrontar o Tomás com a ficha",
+        "say": "\u201cFirst, explain this.\u201d (show the file)",
+        "label": "Confront Tomás with the file",
         "only_with": "ficha_tomas",
         "requires": "documento_proibido",
-        "blocked_message": "Ele vai negar tudo. Precisas primeiro do documento do Arquivo para o convencer.",
+        "blocked_message": "He will deny everything. You need the document from the Archive to convince him.",
         "decides": ("colega", "confrontou"),
         "message": (
-            "Mostras-lhe a ficha. O Tomás fica pálido e senta-se. Confessa que o obrigaram "
-            "a informar, mas jura que esta noite vai ajudar-te a sério. \"Na Estação. Eu distraio "
-            "o guarda; o código da grelha está algures nos ecrãs. E no túnel, segue sempre o som da água.\""
+            "You show him the file. Tomás goes pale and sits down. He confesses they forced "
+            "him to inform, but swears that tonight he will really help you. \u201cAt the Station. I'll "
+            "distract the guard; the grate code is somewhere on the screens. And in the tunnel, always follow the sound of the water.\u201d"
         ),
     },
     "regressar_ministerio": {
         "hotspot": {"x": 0, "y": 260, "w": 45, "h": 120, "stand": 30, "edge": "left"},
         "scene": "apartamento",
-        "label": "Voltar ao Ministério",
+        "label": "Back to the Ministry",
         "goes_to": "ministerio",
-        "message": "Voltas ao trabalho como se nada fosse.",
+        "message": "You go back to work as if nothing happened.",
     },
     "ir_vigilancia": {
         "hotspot": {"x": 655, "y": 110, "w": 110, "h": 220, "stand": 700},
         "scene": "apartamento",
-        "label": "Ir à Estação de vigilância",
+        "label": "Go to the Surveillance Station",
         "needs_decision": "colega",
-        "blocked_message": "Antes de sair tens de decidir o que fazer com o Tomás.",
+        "blocked_message": "Before you go, you have to decide what to do about Tomás.",
         "goes_to": "vigilancia",
-        "message": "Atravessas o bairro às escuras até à Estação de vigilância.",
+        "message": "You cross the dark district to the Surveillance Station.",
     },
     # Same spot and label for both: the player cannot tell the trap from the real escape
     "seguir_tomas": {
         "hotspot": {"x": 600, "y": 335, "w": 160, "h": 55, "stand": 680},
         "scene": "vigilancia",
-        "label": "Seguir o Tomás para o túnel",
+        "label": "Follow Tomás into the tunnel",
         "only_if": ("colega", "confiou"),
         "goes_to": "final_traido",
-        "message": "O Tomás faz-te sinal para desceres primeiro...",
+        "message": "Tomás signals for you to go down first...",
     },
     "ir_tunel": {
         "hotspot": {"x": 600, "y": 335, "w": 160, "h": 55, "stand": 680},
         "scene": "vigilancia",
-        "label": "Seguir o Tomás para o túnel",
+        "label": "Follow Tomás into the tunnel",
         "only_if": ("colega", "confrontou"),
         "code": "42",
-        "code_prompt": "Cadeado da grelha: 2 dígitos",
-        "wrong_code_message": "O cadeado não cede. O guarda resmunga a dormir...",
+        "code_prompt": "Grate padlock: 2 digits",
+        "wrong_code_message": "The padlock will not give. The guard mutters in his sleep...",
         "goes_to": "tunel",
-        "message": "O Tomás distrai o guarda. O cadeado abre-se com um clique. Desces pela grelha.",
+        "message": "Tomás distracts the guard. The padlock clicks open. You climb down through the grate.",
     },
     "tentar_sozinho": {
         "hotspot": {"x": 600, "y": 335, "w": 160, "h": 55, "stand": 680},
         "scene": "vigilancia",
-        "label": "Tentar passar sozinho",
+        "label": "Try to get through alone",
         "only_if": ("colega", "escondeu"),
         "goes_to": "final_descoberto",
-        "message": "Avanças devagar, encostado à parede...",
+        "message": "You move slowly, pressed against the wall...",
     },
     "tunel_seco": {
         "scene": "tunel",
         "talk": "bifurcacao",
-        "say": "À esquerda, pelo corredor seco",
-        "label": "Ir pelo corredor seco",
-        "rejects": "Um beco sem saída. Voltas atrás às apalpadelas.",
+        "say": "Left, down the dry passage",
+        "label": "Take the dry passage",
+        "rejects": "A dead end. You feel your way back.",
         "message": "",
     },
     "tunel_luz": {
         "scene": "tunel",
         "talk": "bifurcacao",
-        "say": "Em frente, em direção à luz",
-        "label": "Ir em direção à luz",
-        "rejects": "A luz é a lanterna de uma patrulha! Escondes-te até passar e voltas atrás, com o coração aos saltos.",
+        "say": "Straight ahead, towards the light",
+        "label": "Go towards the light",
+        "rejects": "The light is a patrol's torch! You hide until it passes and go back, heart pounding.",
         "message": "",
     },
     "seguir_agua": {
         "scene": "tunel",
         "talk": "bifurcacao",
-        "say": "À direita, onde se ouve água",
-        "label": "Seguir o som da água",
+        "say": "Right, where you hear water",
+        "label": "Follow the sound of water",
         "goes_to": "esconderijo",
-        "message": "Segues o som da água até uma porta de ferro. Do outro lado, alguém bate três vezes.",
+        "message": "You follow the sound of water to an iron door. On the other side, someone knocks three times.",
     },
     "entregar_documentos": {
         "hotspot": {"x": 385, "y": 235, "w": 90, "h": 110, "stand": 330},
         "scene": "esconderijo",
-        "label": "Entregar os documentos à resistência",
+        "label": "Hand the documents to the resistance",
         "requires": "documento_proibido",
-        "blocked_message": "Não tens nada para entregar.",
+        "blocked_message": "You have nothing to hand over.",
         "goes_to": "final_resistencia",
-        "message": "A mão estendida agarra o documento.",
+        "message": "The outstretched hand takes the document.",
     },
 
     # ----- Chapter 2 -----
     "apanhar_mensagem": {
         "hotspot": {"x": 390, "y": 270, "w": 80, "h": 40, "stand": 360},
         "scene": "c2_esconderijo",
-        "label": "Apanhar a mensagem cifrada",
+        "label": "Take the ciphered message",
         "gives": "mensagem_cifrada",
-        "message": "A Júlia entrega-te a mensagem de hoje, cifrada como sempre: OLEHUGDGH. «É a palavra que abre a torre.»",
+        "message": "Júlia hands you today's message, ciphered as always: IUHHGRP. \u201cIt is the word that opens the tower.\u201d",
     },
     "apanhar_cassete": {
         "hotspot": {"x": 490, "y": 270, "w": 60, "h": 40, "stand": 470},
         "scene": "c2_esconderijo",
-        "label": "Levar a cassete do Tomás",
+        "label": "Take Tomás's cassette",
         "gives": "cassete",
-        "message": "Uma cassete com a voz do Tomás a ler o relatório. «Se correr mal, ao menos não é a tua voz que eles ouvem.»",
+        "message": "A cassette of Tomás reading the report. \u201cIf it goes wrong, at least it won't be your voice they hear.\u201d",
     },
     "sair_para_cidade": {
         "hotspot": {"x": 0, "y": 120, "w": 45, "h": 240, "stand": 30, "edge": "left"},
         "scene": "c2_esconderijo",
-        "label": "Sair para a cidade",
+        "label": "Go out into the city",
         "goes_to": "c2_cidade",
-        "message": "Esperas pela noite e sobes as escadas para a rua.",
+        "message": "You wait for nightfall and climb the stairs to the street.",
     },
     "beco_mercado": {
         "scene": "c2_cidade",
         "talk": "caminhos",
-        "say": "Pelo Beco do Mercado",
-        "label": "Ir pelo Beco do Mercado",
-        "rejects": "O beco está cheio de guardas, como sempre. Recuas antes que te vejam.",
+        "say": "Through Market Alley",
+        "label": "Take Market Alley",
+        "rejects": "The alley is full of guards, as always. You back away before they see you.",
         "message": "",
     },
     "rua_fabricas": {
         "scene": "c2_cidade",
         "talk": "caminhos",
-        "say": "Pela Rua das Fábricas",
-        "label": "Ir pela Rua das Fábricas",
-        "rejects": "Ao virar a esquina ouves botas: uma patrulha! Voltas para trás a correr.",
+        "say": "Along Factory Street",
+        "label": "Take Factory Street",
+        "rejects": "Round the corner you hear boots: a patrol! You run back.",
         "message": "",
     },
     "seguir_eletrico": {
         "scene": "c2_cidade",
         "talk": "caminhos",
-        "say": "Pela Linha do elétrico",
-        "label": "Seguir a Linha do elétrico",
+        "say": "Along the tram line",
+        "label": "Follow the tram line",
         "goes_to": "c2_torre",
-        "message": "Segues os carris do elétrico. Nem um guarda: depois do recolher, ninguém vigia a linha.",
+        "message": "You follow the tram tracks. Not a single guard: after curfew, nobody watches the line.",
     },
     "voltar_esconderijo": {
         "hotspot": {"x": 0, "y": 200, "w": 45, "h": 180, "stand": 30, "edge": "left"},
         "scene": "c2_cidade",
-        "label": "Voltar ao esconderijo",
+        "label": "Back to the hideout",
         "goes_to": "c2_esconderijo",
-        "message": "Voltas ao esconderijo para pensar melhor.",
+        "message": "You go back to the hideout to think again.",
     },
     "ir_estudio": {
         "hotspot": {"x": 560, "y": 170, "w": 80, "h": 170, "stand": 520},
         "scene": "c2_torre",
-        "label": "Abrir a porta da torre",
-        "code": "LIBERDADE",
+        "label": "Open the tower door",
+        "code": "FREEDOM",
         "code_kind": "text",
-        "code_prompt": "Fechadura de letras: escreve a palavra",
-        "wrong_code_message": "A fechadura recusa a palavra. Uma luz vermelha acende-se por um segundo.",
+        "code_prompt": "Letter lock: type the word",
+        "wrong_code_message": "The lock refuses the word. A red light flashes for a second.",
         "goes_to": "c2_estudio",
-        "message": "A fechadura aceita a palavra. Sobes as escadas até ao estúdio de emissão.",
+        "message": "The lock accepts the word. You climb the stairs to the broadcast studio.",
     },
     "voltar_cidade": {
         "hotspot": {"x": 0, "y": 200, "w": 45, "h": 180, "stand": 30, "edge": "left"},
         "scene": "c2_torre",
-        "label": "Voltar para a cidade",
+        "label": "Back to the city",
         "goes_to": "c2_cidade",
-        "message": "Afastas-te da torre e voltas às ruas.",
+        "message": "You move away from the tower, back into the streets.",
     },
     "sintonizar": {
         "hotspot": {"x": 195, "y": 225, "w": 140, "h": 80, "stand": 260},
         "scene": "c2_estudio",
-        "label": "Sintonizar a frequência",
+        "label": "Tune the frequency",
         "code": "87.7",
         "code_kind": "text",
-        "code_prompt": "Mostrador de frequência (ex.: 99.9)",
-        "wrong_code_message": "Só se ouve estática. Essa não é a frequência dos teus.",
+        "code_prompt": "Frequency dial (e.g. 99.9)",
+        "wrong_code_message": "Only static. That is not your people's frequency.",
         "decides": ("frequencia", "sintonizada"),
-        "message": "A estática desaparece. Do outro lado, alguém sussurra: «Estamos a ouvir.»",
+        "message": "The static clears. On the other side, someone whispers: \u201cWe're listening.\u201d",
     },
     "emitir_direto": {
         "hotspot": {"x": 420, "y": 170, "w": 60, "h": 150, "stand": 400},
         "scene": "c2_estudio",
-        "label": "Ler o relatório em direto",
+        "label": "Read the report live",
         "needs_decision": "frequencia",
-        "blocked_message": "Primeiro tens de sintonizar a frequência certa.",
+        "blocked_message": "First you have to tune in to the right frequency.",
         "goes_to": "final_c2_reconhecido",
-        "message": "Respiras fundo, aproximas-te do microfone e começas a ler...",
+        "message": "You take a deep breath, lean towards the microphone and start reading...",
     },
     "tocar_cassete": {
         "hotspot": {"x": 555, "y": 240, "w": 110, "h": 65, "stand": 520},
         "scene": "c2_estudio",
-        "label": "Pôr a cassete do Tomás a tocar",
+        "label": "Play Tomás's cassette",
         "requires": "cassete",
-        "blocked_message": "Não tens nenhuma cassete. Ficou no esconderijo.",
+        "blocked_message": "You have no cassette. It stayed in the hideout.",
         "needs_decision": "frequencia",
-        "decision_message": "Primeiro tens de sintonizar a frequência certa.",
+        "decision_message": "First you have to tune in to the right frequency.",
         "goes_to": "final_c2_voz",
-        "message": "Carregas no botão. A voz do Tomás enche a cidade, e tu já estás a descer as escadas.",
+        "message": "You press play. Tomás's voice fills the city, and you are already running down the stairs.",
     },
 }
 
@@ -738,7 +734,7 @@ def chapter_of(state):
 
 
 def normalise_code(value):
-    """Typed codes are compared without case, spaces, dots or commas: 87.7 = 877, liberdade = LIBERDADE."""
+    """Typed codes are compared without case, spaces, dots or commas: 87.7 = 877, freedom = FREEDOM."""
     return re.sub(r"[\s.,]", "", value or "").upper()
 
 
@@ -820,14 +816,14 @@ def journey(state):
     steps = []
     if chapter_of(state) == 2:
         if "cassete" in state["inventory"]:
-            steps.append("Levaste a cassete do Tomás")
+            steps.append("You took Tomás's cassette")
         else:
-            steps.append("Deixaste a cassete no esconderijo")
+            steps.append("You left the cassette in the hideout")
     if "colega" in state["decisions"]:
         if "ficha_tomas" in state["inventory"]:
-            steps.append("Leste a ficha do Tomás")
+            steps.append("You read Tomás's file")
         else:
-            steps.append("Não leste a ficha do Tomás")
+            steps.append("You did not read Tomás's file")
     steps += decision_labels(state)
     return steps
 
@@ -869,18 +865,18 @@ def apply_action(state, action_id, code=None):
     """Try an action. Returns (accepted, new_state, message) and never modifies `state`.
     `code` is what the player typed, for actions that need a code."""
     if action_id not in ACTIONS:
-        return False, copy_state(state), "Essa ação não existe."
+        return False, copy_state(state), "That action does not exist."
     if is_finished(state):
-        return False, copy_state(state), "O jogo terminou. Podes jogar outra vez."
+        return False, copy_state(state), "The game is over. You can play again."
 
     action = ACTIONS[action_id]
 
     if not is_offered(action, state):
         if "gives" in action and action["gives"] in state["inventory"]:
-            return False, copy_state(state), "Já tens esse item."
+            return False, copy_state(state), "You already have that."
         if "decides" in action and action["decides"][0] in state["decisions"]:
-            return False, copy_state(state), "Já tomaste essa decisão."
-        return False, copy_state(state), "Não podes fazer isso aqui."
+            return False, copy_state(state), "You have already made that decision."
+        return False, copy_state(state), "You can't do that here."
 
     if "rejects" in action:
         return False, copy_state(state), action["rejects"]

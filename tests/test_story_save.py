@@ -97,7 +97,7 @@ def test_app_resume_keeps_decision_and_routes(db_path):
 
     click(at, "continuar_jogo")
 
-    assert at.title[0].value == "Apartamento"
+    assert at.title[0].value == "Apartment"
     assert "confiar_colega" not in button_keys(at)
     assert "esconder_descoberta" not in button_keys(at)
     assert "ir_vigilancia" in button_keys(at)
@@ -127,14 +127,14 @@ def test_app_ending_screen_has_no_story_actions(db_path):
 
     click(at, "tentar_sozinho")
 
-    assert at.title[0].value.startswith("Final 2")
+    assert at.title[0].value.startswith("Ending 2")
     assert "jogar_outra_vez" in button_keys(at)
     assert "tentar_sozinho" not in button_keys(at)
     assert load_game(db_path)["scene"] == "final_descoberto"
 
     reopened = open_app()
     click(reopened, "continuar_jogo")
-    assert reopened.title[0].value.startswith("Final 2")
+    assert reopened.title[0].value.startswith("Ending 2")
     assert [key for key in button_keys(reopened) if key not in ("jogar_outra_vez", "voltar_menu")] == []
 
 
@@ -152,5 +152,5 @@ def test_app_play_again_asks_then_resets(db_path):
 
     click(at, "confirmar_novo_jogo")
 
-    assert at.title[0].value == "Ministério da Verdade"
+    assert at.title[0].value == "Ministry of Truth"
     assert load_game(db_path) == {"scene": "ministerio", "inventory": [], "decisions": {}}
