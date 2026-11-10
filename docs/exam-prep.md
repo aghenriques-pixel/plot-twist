@@ -167,6 +167,16 @@ Para cada caso: **resultado, aceite/recusado, porquê, o que fica igual.** Tapa 
 > **Stored data:** nothing new in the database: the new item is a row in `inventory`, the new decision value a row in `decisions`.
 > **Must keep working / what changed:** Final 2 stayed the same. Final 1's path changed, so the tests that said "trust → tunnel" were updated **explicitly** and listed in the spec, instead of being deleted. New tests play all three endings from a new game (PT R4).
 
+### Q6.4 — "Why does a repeated level not always end the same way, and how do you test that?"
+
+**Model answer:**
+> Some actions have a `lucky` outcome with a `chance` (e.g. `seguir_tomas`: 0.25). `apply_action(state, id, code, roll)` gets the random number as an argument: `app.py` passes `random.random()`, and if `roll < chance` the lucky scene happens. Because the randomness comes from outside, the tests pass a fixed `roll` (0.1 → lucky, 0.9 → main outcome, none → main outcome), so they never depend on luck.
+
+### Q6.5 — "How does level 2 stay unlocked after a restart?"
+
+**Model answer:**
+> When an accepted action reaches an ending, `app.py` calls `record_ending(player, ending)` (both players in a room). The table `level_progress(player, ending)` has a unique pair, so each ending is stored once. `levels.level_status(endings)` is pure Python: level 2 is open when level 1's `completes_with` ending is in the set. With an account, `log_in` returns the same player code, so the same rows are found on another device.
+
 ### Q6.3 — "Allow the player to change their mind about the colleague."
 
 **Model answer:**

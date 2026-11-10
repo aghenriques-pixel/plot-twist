@@ -26,6 +26,7 @@ TOMAS = ("#4d5a6b", "#36404c")
 
 # The protagonist drawn around (0, 0) = feet, from the sprite used by the clickable scenes
 SPRITE = re.search(r"<svg[^>]*>(.*)</svg>", (ROOT / "assets" / "character.svg").read_text(encoding="utf-8"), re.S).group(1)
+SPRITE = SPRITE.replace("<!-- coloured -->", "")  # the marker belongs to character.svg, not to the scenes
 
 
 def person(x, y, scale=1.0, flip=False, coat=None):

@@ -1423,6 +1423,33 @@ STORY_PT = {'A Party poster: “CURFEW from 21:00. Anyone found in the street wi
                                                                                             'Mostra-me o que '
                                                                                             'encontraste.»'}
 
+# Added after the generated block (texts written since the move to English)
+STORY_PT.update(
+    {
+        "Tomás stops at the grate. His hands are shaking. \u201cI can't do this to you. Go, and follow the water.\u201d "
+        "He switches off the cameras and lets you through.": "O Tomás pára junto à grelha. As mãos tremem-lhe. «Não te posso fazer "
+        "isto. Vai, e segue a água.» Desliga as câmaras e deixa-te passar.",
+        "The guard keeps snoring. You lift the grate inch by inch and slip into the tunnel. Alone, but free.": "O guarda continua a "
+        "ressonar. Levantas a grelha centímetro a centímetro e escorregas para o túnel. Sozinho, mas livre.",
+        "Thunder rolls over the city and the signal starts to crackle...": "Um trovão rola sobre a cidade e o sinal começa a falhar...",
+        "Ending 6 — Lost in the static": "Final 6 — Perdido na estática",
+        "A username has 3 to 20 letters, digits, - or _.": "Um nome de utilizador tem de 3 a 20 letras, números, - ou _.",
+        "A password has at least 6 characters.": "Uma palavra-passe tem pelo menos 6 caracteres.",
+        "That username is already taken.": "Esse nome de utilizador já existe.",
+        "Wrong username or password.": "Nome de utilizador ou palavra-passe errados.",
+        "\u201cI knew I could count on you. Tonight, at the Surveillance Station. Come alone, and don't be late.\u201d": "«Sabia que "
+        "podia contar contigo. Esta noite, na Estação de vigilância. Vem sozinho, e não te atrases.»",
+        "\u201cAs you wish. But be careful: the walls in this city have ears.\u201d": "«Como quiseres. Mas tem cuidado: nesta cidade "
+        "as paredes têm ouvidos.»",
+        "\u201cThey made me do it... they have my sister. But I'm done with them. Tonight I'll get you out, I swear.\u201d": "«Obrigaram-me"
+        "... têm a minha irmã. Mas acabou. Esta noite tiro-te daqui, juro.»",
+        "A storm crackles over the city and the signal breaks up. Every home hears the truth, but nobody can make out "
+        "whose voice it is. When the police reach the studio, it is empty, and you are walking home in the rain.": "Uma "
+        "tempestade estala sobre a cidade e o sinal falha. Todas as casas ouvem a verdade, mas ninguém consegue perceber de quem "
+        "é a voz. Quando a polícia chega ao estúdio, está vazio, e tu vais a caminho de casa, à chuva.",
+    }
+)
+
 LANGUAGES = ("en", "pt")
 
 # Screens, menu and help: key -> {"en": ..., "pt": ...}. Texts may have {placeholders}.
@@ -1516,7 +1543,7 @@ UI_TEXT = {
     "room_n": {"en": "Room {room}", "pt": "Sala {room}"},
     "menu_button": {"en": "☰ Menu", "pt": "☰ Menu"},
     "leave_room": {"en": "Leave room", "pt": "Sair da sala"},
-    "ending_kicker": {"en": "Chapter {n} · The end", "pt": "Capítulo {n} · Fim"},
+    "ending_kicker": {"en": "Level {n} · The end", "pt": "Nível {n} · Fim"},
     "next_chapter": {"en": "Continue: Chapter 2 →", "pt": "Continuar: Capítulo 2 →"},
     "new_round": {"en": "New round in the room", "pt": "Nova partida na sala"},
     "play_again": {"en": "Play again", "pt": "Jogar outra vez"},
@@ -1542,6 +1569,30 @@ UI_TEXT = {
     },
     "waiting": {"en": "⏳ Waiting for the contact...", "pt": "⏳ À espera do contacto..."},
     "talk_leave": {"en": "Step away", "pt": "Afastar-te"},
+    "map_title": {"en": "Choose a level", "pt": "Escolhe um nível"},
+    "level_n": {"en": "Level {n}", "pt": "Nível {n}"},
+    "level_1": {"en": "The Ministry", "pt": "O Ministério"},
+    "level_2": {"en": "The Radio", "pt": "A Rádio"},
+    "level_locked": {"en": "🔒 Reach Ending 1 of the previous level to open it.", "pt": "🔒 Chega ao Final 1 do nível anterior para o abrir."},
+    "endings_found": {"en": "{found}/{total} endings found", "pt": "{found}/{total} finais descobertos"},
+    "completed": {"en": "✓ Completed", "pt": "✓ Concluído"},
+    "next_level": {"en": "Next level →", "pt": "Próximo nível →"},
+    "map": {"en": "🗺️ Map", "pt": "🗺️ Mapa"},
+    "account": {"en": "👤 Account", "pt": "👤 Conta"},
+    "account_hint": {
+        "en": "Create an account to keep your levels on any device.",
+        "pt": "Cria uma conta para guardares os teus níveis em qualquer dispositivo.",
+    },
+    "account_offline": {"en": "Accounts work in the online version of the game.", "pt": "As contas funcionam na versão online do jogo."},
+    "username": {"en": "Username", "pt": "Nome de utilizador"},
+    "password": {"en": "Password", "pt": "Palavra-passe"},
+    "create_account": {"en": "Create account", "pt": "Criar conta"},
+    "log_in": {"en": "Log in", "pt": "Entrar"},
+    "log_out": {"en": "Log out", "pt": "Sair da conta"},
+    "logged_in_as": {"en": "👤 Logged in as {name}", "pt": "👤 Entraste como {name}"},
+    "voices": {"en": "Voices", "pt": "Vozes"},
+    "you": {"en": "You", "pt": "Tu"},
+    "dialogue_continue": {"en": "Continue ▸", "pt": "Continuar ▸"},
     "keypad_try": {"en": "Try", "pt": "Tentar"},
     "close": {"en": "Close", "pt": "Fechar"},
 }

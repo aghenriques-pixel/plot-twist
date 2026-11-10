@@ -26,6 +26,10 @@ TABLES = [
     "room TEXT NOT NULL, role TEXT NOT NULL, player TEXT NOT NULL, PRIMARY KEY (room, role), UNIQUE (room, player))",
     "CREATE TABLE IF NOT EXISTS room_messages ("
     "room TEXT NOT NULL, seq INTEGER NOT NULL, role TEXT NOT NULL, text TEXT NOT NULL, PRIMARY KEY (room, seq))",
+    # Level progress (levels.py): one row per ending a player has reached
+    "CREATE TABLE IF NOT EXISTS level_progress (player TEXT NOT NULL, ending TEXT NOT NULL, PRIMARY KEY (player, ending))",
+    # Accounts (accounts.py): only a salted hash of the password is stored
+    "CREATE TABLE IF NOT EXISTS accounts (username TEXT PRIMARY KEY, salt TEXT NOT NULL, hash TEXT NOT NULL, player TEXT NOT NULL)",
 ]
 
 
@@ -148,3 +152,17 @@ def load_game(target=DEFAULT_DB_PATH, player="local"):
 
 def has_save(target=DEFAULT_DB_PATH, player="local"):
     return load_game(target, player) is not None
+
+
+def record_ending(target, player, ending):
+    """Remember that this player reached this ending (once)."""
+    with transaction(target) as db:
+        if db.run("SELECT 1 FROM level_progress WHERE player = ? AND ending = ?", (player, ending)).fetchone() is None:
+            db.run("INSERT INTO level_progress (player, ending) VALUES (?, ?)", (player, ending))
+
+
+def endings_reached(target, player):
+    if not is_postgres(target) and not Path(target).exists():
+        return set()
+    with transaction(target) as db:
+        return {ending for (ending,) in db.run("SELECT ending FROM level_progress WHERE player = ?", (player,))}
