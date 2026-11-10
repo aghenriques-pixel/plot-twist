@@ -62,3 +62,12 @@ def test_scenes_without_changes_keep_their_picture():
     state = {"scene": "tunel", "inventory": ["cartao_acesso", "documento_proibido"], "decisions": {"colega": "confiou"}}
 
     assert scene_image(state) == "tunel.svg"
+
+
+# Every scene is coloured and has ambient animation (specs/game-menu-art.md)
+@pytest.mark.parametrize("scene_id", list(SCENES))
+def test_every_scene_picture_is_coloured_and_animated(scene_id):
+    text = (ART_DIR / SCENES[scene_id]["image"]).read_text(encoding="utf-8")
+
+    assert "<!-- coloured -->" in text
+    assert "@keyframes" in text

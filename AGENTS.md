@@ -28,7 +28,9 @@ A browser mystery game (Nova SBE Intro to Programming): the player works at the 
 
 ## Rules
 
-- Every line a player can see is in English (tests check `logic.py`, `rooms.py` and the text drawn in the SVGs).
+- English is the source language: every line a player can see is written in English in `logic.py` / `rooms.py` / `translations.UI_TEXT`, and every one of them needs its Portuguese version in `translations.py` (tests check both). Screens use `t(key)` and story texts `say(text)` in `app.py`.
+- Pictures: after changing chapter 2's drawing, run `uv run python scripts/art_chapter2.py` and then `uv run python scripts/art_colour.py`.
+- Sound, music and fullscreen live only in the browser (`components/scene_view.js`); their settings are kept in `localStorage`.
 - Every action must be reachable from the picture (a hotspot or a talk option); the sidebar text mode mirrors the same actions.
 
 - Story content lives in `logic.py`; only player progress goes in the database.
