@@ -13,7 +13,8 @@ A browser mystery game (Nova SBE Intro to Programming): the player works at the 
 - `app.py` — Streamlit screens only. Calls `logic` for rules, `db` for saving, `players` for who is playing.
 - `logic.py` — story content (scenes, items, actions, puzzles, endings) and game rules. Pure Python: no Streamlit, no database.
 - `players.py` — player identity: a secret code in the link (`?jogador=...`) online, `"local"` offline.
-- `accounts.py` — username + password (salted PBKDF2 hash only) that own a player code; logging in puts that code in the link.
+- `accounts.py` — username + password (salted PBKDF2 hash only) that own a player code; logging in puts that code in the link. The name shown comes from the database (`account_name`), never from the link; one account per player code; 5 wrong logins in 10 minutes lock that username (in memory).
+- `browser_input.py` — checks what the browser sends (`clean_action`) before Python uses it.
 - `levels.py` — levels = chapters; a level opens when an ending in the previous level's `completes_with` was reached. Endings are recorded per player in `db.level_progress`.
 - `db.py` — saves and loads each player's progress. Every query filters by player.
 - `rooms.py` — cooperative rooms: codes, roles (agente acts, contacto sees clues), chat. Conflicts are decided by the database's unique rules (first saved wins).

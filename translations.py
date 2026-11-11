@@ -1897,6 +1897,10 @@ UI_TEXT = {
     "best_time": {"en": "Best", "pt": "Recorde"},
     "toggle_text": {"en": "Hide or show the text (T)", "pt": "Esconder ou mostrar o texto (T)"},
     "toggle_fullscreen": {"en": "Full screen (F)", "pt": "Ecrã inteiro (F)"},
+    "invite_link": {
+        "en": "Or send this link: opening it joins the room as the contact.",
+        "pt": "Ou envia este link: quem o abrir entra na sala como contacto.",
+    },
     "key_hint": {
         "en": "← → walk · E use · N notebook · R restart · F full screen",
         "pt": "← → andar · E usar · N caderno · R reiniciar · F ecrã inteiro",
@@ -1927,3 +1931,15 @@ def ui(key, lang, **values):
     """A screen text in the chosen language, with {placeholders} filled in."""
     text = UI_TEXT[key]["pt" if lang == "pt" else "en"]
     return text.format(**values) if values else text
+
+# Bad input and clearer feedback (specs/bad-input-ux.md)
+STORY_PT.update(
+    {
+        "Type the code first.": "Escreve primeiro o código.",
+        "Too many attempts. Wait a few minutes and try again.": "Demasiadas tentativas. Espera uns minutos e tenta outra vez.",
+        "A password has 6 to 128 characters.": "Uma password tem de 6 a 128 caracteres.",
+        "You already have an account. Log out first to create another.": (
+            "Já tens uma conta. Sai dela primeiro para criares outra."
+        ),
+    }
+)
