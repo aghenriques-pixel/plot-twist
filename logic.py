@@ -1666,7 +1666,9 @@ def chapter_of(state):
 
 def normalise_code(value):
     """Typed codes are compared without case, spaces, dots or commas: 87.7 = 877, freedom = FREEDOM."""
-    return re.sub(r"[\s.,]", "", value or "").upper()
+    if not isinstance(value, str):
+        return ""  # nothing typed, or something that is not text
+    return re.sub(r"[\s.,]", "", value).upper()
 
 
 def is_finished(state):
@@ -1840,6 +1842,8 @@ def apply_action(state, action_id, code=None, roll=None):
         return False, copy_state(state), action["blocked_message"]
     if "needs_decision" in action and action["needs_decision"] not in state["decisions"]:
         return False, copy_state(state), action.get("decision_message", action["blocked_message"])
+    if "code" in action and not normalise_code(code):
+        return False, copy_state(state), "Type the code first."
     if "code" in action and normalise_code(code) != normalise_code(action["code"]):
         return False, copy_state(state), action["wrong_code_message"]
 

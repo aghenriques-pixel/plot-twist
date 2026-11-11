@@ -1021,6 +1021,14 @@ function buildPicture(stage, data, setTriggerValue) {
     form.append(input, submit);
     form.onsubmit = (event) => {
       event.preventDefault();
+      // Nothing typed: shake instead of sending (Python also refuses an empty code)
+      if (!input.value.trim()) {
+        input.classList.remove("shake");
+        void input.offsetWidth;
+        input.classList.add("shake");
+        input.focus();
+        return;
+      }
       setTriggerValue("action", { id: spot.action, x: spot.stand, code: input.value });
     };
     openBubble(spot.code_prompt, [form], data.ui.cancel);

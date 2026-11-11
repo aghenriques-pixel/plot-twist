@@ -777,3 +777,7 @@ button.chip:hover { border-color: var(--warm); }
 @media (max-width: 760px) {
   .chip.decision { display: none; }
 }
+
+/* An empty code: the field shakes */
+.keypad input.shake { animation: shake 0.35s; border-color: #ff6b81 !important; }
+@keyframes shake { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }

@@ -16,7 +16,8 @@ from pathlib import Path
 
 import streamlit as st
 
-from accounts import AccountError, create_account, log_in
+from accounts import AccountError, account_name, create_account, log_in
+from browser_input import clean_action
 from db import (
     DEFAULT_DB_PATH,
     StorageError,
@@ -152,6 +153,10 @@ if "game" not in st.session_state:
     # None (a continued game) keeps the browser's clock.
     st.session_state.run_token = None
 
+# Older links carried the account name; it is no longer trusted or needed
+if "conta" in st.query_params:
+    del st.query_params["conta"]
+
 # Cooperative room from the link (?sala=CODE), used only if this player is a member of it
 ROOM, ROLE = None, None
 if ONLINE and st.query_params.get("sala"):
@@ -160,6 +165,14 @@ if ONLINE and st.query_params.get("sala"):
     except StorageError:
         st.error(t("db_down"))
         st.stop()
+    if not ROLE:
+        # An invite link (?sala=CODE): join as the contact, or say why not
+        try:
+            ROLE = join_room(DB_PATH, st.query_params.get("sala"), PLAYER)
+        except RoomError as error:
+            st.session_state.room_error = str(error)
+        except StorageError:
+            st.session_state.db_error = True
     if ROLE:
         ROOM = normalise(st.query_params.get("sala"))
     else:
@@ -334,6 +347,16 @@ def set_language(lang):
         st.query_params["lang"] = lang
 
 
+def current_account():
+    """The account that owns this player's code, from the database (never from the link)."""
+    if not ONLINE:
+        return None
+    try:
+        return account_name(DB_PATH, PLAYER)
+    except StorageError:
+        return None
+
+
 def account_create(username, password):
     try:
         create_account(DB_PATH, username, password, PLAYER)
@@ -343,7 +366,6 @@ def account_create(username, password):
     except StorageError:
         st.session_state.db_error = True
         return
-    st.query_params["conta"] = username.lower()
 
 
 def account_log_in(username, password):
@@ -356,7 +378,6 @@ def account_log_in(username, password):
         st.session_state.db_error = True
         return
     st.query_params["jogador"] = player
-    st.query_params["conta"] = username.lower()
     st.session_state.game = None
 
 
@@ -678,12 +699,14 @@ def view_data(game, role, message, chat):
 
 def handle_result(result, game=None):
     # The menu only declares "command", so read each value only if this component has it
-    action = getattr(result, "action", None)
+    # Checked before use: anything can arrive from a browser (browser_input.py)
+    action = clean_action(getattr(result, "action", None))
     command = getattr(result, "command", None)
+    command = command if isinstance(command, dict) else None
     chat = getattr(result, "chat", None)
     if action and game:
         st.session_state.character = {"scene": game["scene"], "x": action["x"]}
-        choose(action["id"], action.get("code"), came_from=action.get("from"))
+        choose(action["id"], action["code"], came_from=action["from"])
         st.rerun()
     if command:
         run_command(command)
@@ -723,7 +746,7 @@ def menu_levels():
 
 def menu_data(can_continue):
     labels = {key: t(key) for key, value in UI_TEXT.items() if isinstance(value["en"], str) and "{" not in value["en"]}
-    account = st.query_params.get("conta")
+    account = current_account()
     menu = {
         "levels": menu_levels(),
         "account": t("logged_in_as", name=account) if account else None,
@@ -900,7 +923,7 @@ def show_account_text_mode():
     if not ONLINE:
         st.caption(t("account_offline"))
         return
-    account = st.query_params.get("conta")
+    account = current_account()
     if account:
         st.write(t("logged_in_as", name=account))
         st.button(t("log_out"), key="sair_conta", on_click=account_log_out)
@@ -952,6 +975,10 @@ def show_waiting_room():
     )
     st.title(t("waiting_title", room=ROOM))
     st.info(t("waiting_share", room=ROOM))
+    # A link with only the room code (never this player's code): opening it joins as the contact
+    base = str(getattr(st.context, "url", "") or "").split("?")[0].rstrip("/") + "/"
+    st.caption(t("invite_link"))
+    st.code(f"{base}?sala={ROOM}", language=None)
     wait_for_contact()
     st.button(t("leave_room"), key="sair_sala", on_click=leave_room)
 
