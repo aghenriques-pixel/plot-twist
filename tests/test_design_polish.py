@@ -17,16 +17,16 @@ def test_agent_gets_a_shadow_over_every_clue():
 
     shadows = scene_shadows(state, "agente")
 
-    assert shadows == clue_rects("ministerio")
-    assert len(shadows) == 3  # Tomás's desk (the mug), calendar, notice board
+    assert shadows == clue_rects("sala_estudo")
+    assert len(shadows) == 1  # the whiteboard with Tiago's exercise
 
 
-def test_the_mug_is_covered_for_the_agent():
-    mug = next(look for look in SCENES["ministerio"]["looks"] if look["label"] == "Tomás's desk")
+def test_the_whiteboard_is_covered_for_the_agent():
+    board = next(look for look in SCENES["sala_estudo"]["looks"] if look["label"] == "Whiteboard")
 
     shadows = scene_shadows(new_game(), "agente")
 
-    assert {"x": mug["x"], "y": mug["y"], "w": mug["w"], "h": mug["h"]} in shadows
+    assert {"x": board["x"], "y": board["y"], "w": board["w"], "h": board["h"]} in shadows
 
 
 def test_contact_and_solo_player_see_every_clue():
@@ -37,14 +37,14 @@ def test_contact_and_solo_player_see_every_clue():
 
 
 def test_no_shadows_at_an_ending():
-    state = {"scene": "final_descoberto", "inventory": [], "decisions": {}}
+    state = {"scene": "final_seguranca", "inventory": [], "decisions": {}}
 
     assert scene_shadows(state, "agente") == []
 
 
 def test_shadows_follow_the_scene():
     state = new_game()
-    _, state, _ = apply_action(state, "apanhar_cartao")
+    _, state, _ = apply_action(state, "apanhar_casaco")
 
     assert scene_shadows(state, "agente") == clue_rects(state["scene"])
 

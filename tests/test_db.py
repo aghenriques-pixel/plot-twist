@@ -13,6 +13,10 @@ import sqlite3
 from db import has_save, load_game, save_game
 from logic import apply_action, new_game
 
+T0 = 1_000_000  # when the level started (the clock is part of the saved game)
+STARTED = {"_inicio": str(T0)}
+COAT = ["casaco", "cartao_jogador"]
+
 
 def test_no_save_on_first_run(tmp_path):
     db_path = tmp_path / "game.db"
@@ -23,70 +27,70 @@ def test_no_save_on_first_run(tmp_path):
 
 def test_saved_game_can_be_loaded(tmp_path):
     db_path = tmp_path / "game.db"
-    _, state, _ = apply_action(new_game(), "apanhar_cartao")
+    _, state, _ = apply_action(new_game(now=T0), "apanhar_casaco")
 
     save_game(db_path, state)
 
     assert has_save(db_path) is True
-    assert load_game(db_path) == {"scene": "ministerio", "inventory": ["cartao_acesso"], "decisions": {}}
+    assert load_game(db_path) == {"scene": "sala_estudo", "inventory": COAT, "decisions": STARTED}
 
 
 # Done when 4 / A4: restart restores scene and inventory
 def test_progress_survives_restart(tmp_path):
     db_path = tmp_path / "game.db"
-    _, state, _ = apply_action(new_game(), "apanhar_cartao")
-    _, state, _ = apply_action(state, "ir_arquivo", "1704")
+    _, state, _ = apply_action(new_game(now=T0), "apanhar_casaco")
+    _, state, _ = apply_action(state, "ir_corredor")
     save_game(db_path, state)
 
     # "Restart": nothing is kept in memory, only the file on disk
     del state
     resumed = load_game(db_path)
 
-    assert resumed == {"scene": "arquivo", "inventory": ["cartao_acesso"], "decisions": {}}
+    assert resumed == {"scene": "corredor", "inventory": COAT, "decisions": STARTED}
 
 
-def test_card_cannot_be_collected_again_after_resume(tmp_path):
+def test_coat_cannot_be_taken_again_after_resume(tmp_path):
     db_path = tmp_path / "game.db"
-    _, state, _ = apply_action(new_game(), "apanhar_cartao")
+    _, state, _ = apply_action(new_game(now=T0), "apanhar_casaco")
     save_game(db_path, state)
 
     resumed = load_game(db_path)
-    accepted, after, _ = apply_action(resumed, "apanhar_cartao")
+    accepted, after, _ = apply_action(resumed, "apanhar_casaco")
 
     assert accepted is False
-    assert after["inventory"] == ["cartao_acesso"]
+    assert after["inventory"] == COAT
 
 
 def test_new_save_replaces_old_one(tmp_path):
     db_path = tmp_path / "game.db"
-    _, first, _ = apply_action(new_game(), "apanhar_cartao")
+    _, first, _ = apply_action(new_game(now=T0), "apanhar_casaco")
     save_game(db_path, first)
-    _, second, _ = apply_action(first, "ir_arquivo", "1704")
+    _, second, _ = apply_action(first, "ir_corredor")
 
     save_game(db_path, second)
 
-    assert load_game(db_path) == {"scene": "arquivo", "inventory": ["cartao_acesso"], "decisions": {}}
+    assert load_game(db_path) == {"scene": "corredor", "inventory": COAT, "decisions": STARTED}
 
 
 def test_saving_twice_does_not_duplicate_items(tmp_path):
     db_path = tmp_path / "game.db"
-    _, state, _ = apply_action(new_game(), "apanhar_cartao")
+    _, state, _ = apply_action(new_game(now=T0), "apanhar_casaco")
 
     save_game(db_path, state)
     save_game(db_path, state)
 
-    assert load_game(db_path)["inventory"] == ["cartao_acesso"]
+    assert load_game(db_path)["inventory"] == COAT
 
 
 # Done when 1: a rejected action leaves the saved data unchanged.
 # The app only calls save_game when apply_action accepts, so the file must stay identical.
 def test_rejected_action_leaves_saved_data_unchanged(tmp_path):
     db_path = tmp_path / "game.db"
-    state = new_game()
+    state = new_game(now=T0)
     save_game(db_path, state)
     before = dump_database(db_path)
 
-    accepted, new_state, _ = apply_action(state, "ir_arquivo")
+    accepted, new_state, _ = apply_action(state, "ir_corredor")
     if accepted:
         save_game(db_path, new_state)
 

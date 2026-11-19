@@ -11,6 +11,7 @@ import hashlib
 import json
 import os
 import random
+import time
 import uuid
 from pathlib import Path
 
@@ -26,9 +27,11 @@ from db import (
     record_ending,
     save_game,
 )
-from levels import level_for_chapter, level_status, next_chapter
+from levels import COMING_SOON, level_for_chapter, level_status, next_chapter
 from logic import (
     ACTIONS,
+    TIME_UP_ACTION,
+    ITEM_FACES,
     ITEM_ICONS,
     ITEMS,
     SCENES,
@@ -36,8 +39,11 @@ from logic import (
     available_actions,
     can_act,
     chapter_of,
+    clock_label,
+    countdown,
     decision_labels,
     is_finished,
+    is_valid_state,
     journey,
     new_game,
     notebook,
@@ -47,6 +53,8 @@ from logic import (
     scene_shadows,
     scene_music,
     scene_text,
+    seconds_left,
+    take_hint,
 )
 from players import new_player_id, player_from_link
 from rooms import (
@@ -61,7 +69,7 @@ from rooms import (
     send_message,
 )
 from translations import LANGUAGES, UI_TEXT, tr, ui
-from world3d import world_view
+from world3d import menu_world, room_of, world_view
 
 
 def secret(name):
@@ -157,6 +165,8 @@ if "game" not in st.session_state:
     # A new id for every new run of a level: the browser's level clock starts again when it changes.
     # None (a continued game) keeps the browser's clock.
     st.session_state.run_token = None
+    # Seconds the last move cost on the countdown (the browser shows "−30 s")
+    st.session_state.time_lost = 0
 
 # Older links carried the account name; it is no longer trusted or needed
 if "conta" in st.query_params:
@@ -189,6 +199,12 @@ SAVE_KEY = room_save_key(ROOM) if ROOM else PLAYER
 # --- Game actions ---------------------------------------------------------------------------
 
 
+def load_saved():
+    """The saved game, or None: nothing saved, or a save from another version of the story."""
+    saved = load_game(DB_PATH, SAVE_KEY)
+    return saved if saved is not None and is_valid_state(saved) else None
+
+
 def start_new_game(chapter=None):
     game = new_game(chapter or st.session_state.pending_chapter)
     try:
@@ -210,7 +226,7 @@ def ask_new_game(chapter=1):
     A finished game is not lost progress (its ending is already recorded), so it is not asked about."""
     st.session_state.pending_chapter = chapter
     try:
-        saved = load_game(DB_PATH, SAVE_KEY)
+        saved = load_saved()
     except StorageError:
         st.session_state.db_error = True
         return
@@ -226,7 +242,7 @@ def open_level(number):
     if not level or not level["unlocked"]:
         return
     try:
-        saved = load_game(DB_PATH, SAVE_KEY)
+        saved = load_saved()
     except StorageError:
         st.session_state.db_error = True
         return
@@ -260,7 +276,7 @@ def cancel_new_game():
 
 def resume_game():
     try:
-        st.session_state.game = load_game(DB_PATH, SAVE_KEY)
+        st.session_state.game = load_saved()
     except StorageError:
         st.session_state.db_error = True
         return
@@ -280,9 +296,11 @@ def choose(action_id, code=None, code_key=None, came_from=None):
     st.session_state.turn += 1
     st.session_state.dialogue = None
     st.session_state.walk_back_from = None
-    # Chance: some actions have a lucky outcome; the roll is only used by those
-    accepted, game, message = apply_action(before, action_id, code, random.random())
-    if accepted:
+    # Chance: some actions have a lucky outcome; the roll is only used by those.
+    # The clock: Python checks the time itself (a wrong answer costs time even when refused)
+    now = time.time()
+    accepted, game, message = apply_action(before, action_id, code, random.random(), now=now)
+    if accepted or game != before:
         try:
             save_game(DB_PATH, game, SAVE_KEY)
         except StorageError:
@@ -290,18 +308,50 @@ def choose(action_id, code=None, code_key=None, came_from=None):
             st.session_state.db_error = True
             return
         st.session_state.game = game
-        action = ACTIONS[action_id]
-        if action.get("reply"):
-            # The other character answers over the picture as it was (Tomás still there)
+        st.session_state.time_lost = time_lost(before, game, now)
+        action = ACTIONS.get(action_id, {})
+        if accepted and action.get("reply"):
+            # The other character answers over the picture as it was
             st.session_state.dialogue = {
-                "background": svg_data_uri(ART_DIR / scene_image(before)),
+                "background": picture(before),
+                # Text messages are shown on the phone itself
+                "phone": action.get("conversation_title"),
                 "lines": [{"who": "you", "text": action["say"]}] + [{"who": who, "text": line} for who, line in action["reply"]],
             }
         if is_finished(game):
             record_progress(game)
-    elif came_from is not None:
+    if not accepted and came_from is not None:
         st.session_state.walk_back_from = came_from
     st.session_state.message = (accepted, message)
+
+
+def time_lost(before, after, now):
+    """Seconds the last move cost on the clock (shown as "−30 s" on the clock), or 0."""
+    if is_finished(after) or seconds_left(before, now) is None:
+        return 0
+    return max(0, seconds_left(before, now) - seconds_left(after, now))
+
+
+def ask_hint():
+    """💡 A hint for where the player is; it costs a minute on the clock (only the one who acts)."""
+    game = st.session_state.game
+    if not game or not can_act(ROLE):
+        return
+    now = time.time()
+    hinted, text = take_hint(game, now)
+    try:
+        save_game(DB_PATH, hinted, SAVE_KEY)
+    except StorageError:
+        st.session_state.db_error = True
+        return
+    st.session_state.time_lost = time_lost(game, hinted, now)
+    # The last conversation is over: the hint is the next thing on the screen
+    st.session_state.dialogue = None
+    st.session_state.game = hinted
+    st.session_state.turn += 1
+    if is_finished(hinted):
+        record_progress(hinted)
+    st.session_state.message = (True, "💡 " + say(text)) if not is_finished(hinted) else (True, text)
 
 
 def play_again():
@@ -410,6 +460,8 @@ def run_command(command):
         continue_to_next_level()
     elif name == "restart_level":
         restart_level()
+    elif name == "hint":
+        ask_hint()
     elif name == "new_room_game" and ROOM and game:
         new_room_game(chapter_of(game))
     elif name == "new_game":
@@ -495,6 +547,12 @@ def svg_data_uri(path):
     return "data:image/svg+xml;base64," + base64.b64encode(path.read_bytes()).decode("ascii")
 
 
+def picture(game):
+    """The scene's 2D picture as a data URI, or None for a place drawn only in 3D."""
+    image = scene_image(game)
+    return svg_data_uri(ART_DIR / image) if image else None
+
+
 def character_x(game):
     """The character keeps its spot inside a scene and starts at the scene's start in a new one."""
     character = st.session_state.character
@@ -521,7 +579,8 @@ def current_message():
         return {"ok": False, "text": problem}
     if st.session_state.message:
         accepted, text = st.session_state.message
-        return {"ok": accepted, "text": say(text)}
+        # A hint is something the character thinks (a thought bubble in 3D), not a result
+        return {"ok": accepted, "text": say(text), "hint": text.startswith("💡 ")}
     return None
 
 
@@ -545,6 +604,23 @@ def chat_data():
     }
 
 
+def countdown_data(game, role):
+    now = time.time()
+    left = seconds_left(game, now)
+    if left is None or is_finished(game):
+        return None
+    lost, st.session_state.time_lost = st.session_state.time_lost, 0
+    return {
+        "left": max(0, left),
+        "starts_at": countdown(game)["starts_at"],
+        "total": countdown(game)["seconds"],
+        "lost": lost,
+        "time_up_action": TIME_UP_ACTION,
+        "can_hint": can_act(role),
+        "hint_label": t("hint_button"),
+    }
+
+
 def ending_data(game):
     scene = SCENES[game["scene"]]
     buttons = []
@@ -563,15 +639,29 @@ def ending_data(game):
         "title": say(scene["title"]),
         "text": say(scene["text"]),
         "journey": [say(step) for step in journey(game)],
+        # The time on the clock when it ended (a level with a clock)
+        "clock": t("ended_at", time=game["decisions"]["_relogio"]) if "_relogio" in game["decisions"] else None,
         "buttons": buttons,
     }
 
 
+def translated_face(face):
+    """The words on a real thing in the chosen language; "_" keys (names, numbers) stay as they are."""
+    def words(key, value):
+        if key == "kind" or key.startswith("_"):
+            return value
+        return say(value) if isinstance(value, str) else [say(v) for v in value]
+
+    return {key: words(key, value) for key, value in face.items()}
+
+
 def translated_spot(spot):
     spot = dict(spot)
-    for field in ("label", "line", "code_prompt", "text"):
+    for field in ("label", "line", "code_prompt", "text", "remark"):
         if field in spot:
             spot[field] = say(spot[field])
+    if "face" in spot:
+        spot["face"] = translated_face(spot["face"])
     if "options" in spot:
         spot["options"] = [{**option, "say": say(option["say"])} for option in spot["options"]]
     return spot
@@ -592,7 +682,11 @@ def notebook_data(game):
     return {
         "title": t("notebook"),
         "labels": {key: t(key) for key in ("nb_items", "nb_conversations", "nb_decisions", "nb_empty", "close")},
-        "items": [{"icon": item["icon"], "name": say(item["name"]), "text": say(item["text"])} for item in book["items"]],
+        "items": [
+            {"id": item["id"], "icon": item["icon"], "name": say(item["name"]), "text": say(item["text"]),
+             "face": translated_face(item["face"])}
+            for item in book["items"]
+        ],
         "conversations": [
             {
                 "title": say(talk["title"]),
@@ -620,6 +714,17 @@ def notebook_markdown(game):
     return "\n".join(parts)
 
 
+def laptop_notes(game):
+    """The two post-its by the laptop, with their words in the chosen language (None elsewhere)."""
+    if game["scene"] != "portatil":
+        return None
+    tiago = next(look["face"] for look in SCENES["sala_estudo"]["looks"] if look["face"]["kind"] == "laptop")
+    notes = {"tiago": translated_face(tiago)}
+    if "post_it_rita" in game["inventory"]:
+        notes["rita"] = translated_face(ITEM_FACES["post_it_rita"])
+    return notes
+
+
 def view_data(game, role, message, chat):
     """Everything the fullscreen game needs, as plain data. The puzzle codes are never included."""
     scene = SCENES[game["scene"]]
@@ -630,9 +735,11 @@ def view_data(game, role, message, chat):
         subtitle += f" · {t('room_n', room=ROOM)} · {role_name(role)}"
     data = {
         "mode": "game",
-        # Which place this is (scene3d.js keeps the character where it was within the same place)
-        "place": game["scene"],
-        "background": svg_data_uri(ART_DIR / scene_image(game)),
+        # Which place this is (scene3d.js keeps the character where it was within the same room)
+        "place": room_of(game),
+        # The clock 23:44 → 00:00 (None for a level without one); Python counts, the browser shows
+        "countdown": countdown_data(game, role),
+        "background": picture(game),
         "character": None if finished or watching else (ASSETS_DIR / "character.svg").read_text(encoding="utf-8"),
         "walk": None if finished or watching else scene["walk"],
         "x": character_x(game),
@@ -661,6 +768,9 @@ def view_data(game, role, message, chat):
             for key in (
                 "talk_leave", "keypad_try", "cancel", "close", "dialogue_continue", "danger_hurry", "restart_level",
                 "restart_confirm", "yes", "no", "your_time", "best_time", "toggle_text", "toggle_fullscreen", "key_hint",
+                "hint_button", "free_actions", "inspect_back", "lock_open", "lap_user", "lap_login", "lap_usb",
+                "lap_open_hint", "lap_tests", "lap_wifi", "lap_connect", "lap_secured", "lap_no_signal",
+                "lap_connected", "lap_offline", "lap_type", "lap_not_found", "clues_zoom",
                 "toggle_view", "key_hint_3d",
             )
         },
@@ -683,11 +793,14 @@ def view_data(game, role, message, chat):
         "speech": message["text"] if message and not message["ok"] and not watching else None,
         "walk_back_from": None if watching else st.session_state.walk_back_from,
         "dialogue": None,
+        # At the laptop (3D): Tiago's post-it on its screen and Rita's next to the keyboard
+        "laptop_notes": laptop_notes(game),
     }
     dialogue = st.session_state.dialogue
     if dialogue and not watching:
         data["dialogue"] = {
             "background": dialogue["background"],
+            "phone": say(dialogue["phone"]) if dialogue.get("phone") else None,
             "lines": [
                 {"who": speaker_name(line["who"]), "speaker": line["who"], "text": say(line["text"])}
                 for line in dialogue["lines"]
@@ -754,6 +867,16 @@ def menu_levels():
                 "locked": t("level_locked", level=level["number"] - 1),
             }
         )
+    # Levels still being written: on the map, locked
+    for number in COMING_SOON:
+        levels.append(
+            {
+                "number": number, "chapter": None, "unlocked": False, "completed": False,
+                "endings_found": 0, "endings_total": 0,
+                "name": t("level_n", n=number), "title": t("coming_soon_title"), "progress": "",
+                "locked": "🔒",
+            }
+        )
     return levels
 
 
@@ -773,6 +896,8 @@ def menu_data(can_continue):
         "error": pending_problem(),
         "language": LANG,
         "background": svg_data_uri(ART_DIR / "c2_cidade.svg"),
+        # Behind the menu, the terrace of the library at night in 3D (the picture above if 3D cannot be drawn)
+        "world": menu_world(),
         "screen": st.session_state.menu_screen,
     }
     st.session_state.menu_screen = "main"
@@ -799,6 +924,8 @@ def show_text_mode(game, role=None):
         if role:
             st.caption(f"{ROLE_AVATARS[role]} {t('you_are_role', role=role_name(role).lower(), room=ROOM)}")
         st.title(say(scene["title"]))
+        if seconds_left(game, time.time()) is not None and not is_finished(game):
+            st.markdown(f"**🕐 {clock_label(game, time.time())}** · {t('deadline')}")
         st.write(say(scene_text(game)))
         if st.session_state.message:
             accepted, message = st.session_state.message
@@ -828,7 +955,8 @@ def show_text_mode(game, role=None):
                     st.text_input(say(action["code_prompt"]), key=f"code_{action_id}", max_chars=12)
                     st.button(say(action["label"]), key=action_id, on_click=choose, args=(action_id,), kwargs={"code_key": f"code_{action_id}"})
                 else:
-                    st.button(say(action["label"]), key=action_id, on_click=choose, args=(action_id,))
+                    # A choice in a conversation has no button name of its own: its line is the button
+                    st.button(say(action.get("label") or action["say"]), key=action_id, on_click=choose, args=(action_id,))
             looks = scene_looks(game, role)
             if looks:
                 with st.expander(t("look_around")):
@@ -836,6 +964,8 @@ def show_text_mode(game, role=None):
             if role == "agente":
                 st.caption(t("agent_hint"))
             if can_act(role):
+                if seconds_left(game, time.time()) is not None:
+                    st.button(t("hint_button"), key="pedir_dica", on_click=ask_hint)
                 st.button(t("restart_level_text"), key="reiniciar_nivel", on_click=restart_level)
 
         if role:
@@ -907,6 +1037,8 @@ def show_menu_text_mode(saved, problem):
             st.button(label, key=f"nivel_{level['number']}", on_click=open_level, args=(level["number"],), disabled=not level["unlocked"])
             if not level["unlocked"]:
                 st.caption(t("level_locked", level=number - 1))
+        for number in COMING_SOON:
+            st.caption(f"{t('level_n', n=number)} — {t('coming_soon')}")
         with st.expander(t("how_to_play")):
             st.markdown("\n".join(f"- {rule}" for rule in UI_TEXT["how_to_play_rules"][LANG]))
         show_account_text_mode()
@@ -953,7 +1085,7 @@ def show_account_text_mode():
 
 def show_start_screen():
     try:
-        game = load_game(DB_PATH, SAVE_KEY)
+        game = load_saved()
     except StorageError:
         game = None
         st.session_state.db_error = True
@@ -1000,9 +1132,11 @@ def show_waiting_room():
 def show_room_game():
     """Both players: the room's game, reloaded from the database every few seconds."""
     try:
-        game = load_game(DB_PATH, SAVE_KEY)
+        game = load_saved()
     except StorageError:
         st.session_state.db_error = True
+        return
+    if game is None:
         return
     st.session_state.game = game
     show_fullscreen(game, ROLE)
@@ -1011,7 +1145,11 @@ def show_room_game():
 def show_room():
     try:
         members = room_members(DB_PATH, ROOM)
-        game = load_game(DB_PATH, SAVE_KEY)
+        game = load_saved()
+        if game is None:
+            # A room from another version of the story: a fresh game
+            game = new_game()
+            save_game(DB_PATH, game, SAVE_KEY)
     except StorageError:
         st.error(t("db_down"))
         return

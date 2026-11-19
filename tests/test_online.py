@@ -59,7 +59,7 @@ def test_offline_the_player_is_always_local():
 
 def test_two_players_have_separate_saves(tmp_path):
     db = tmp_path / "game.db"
-    _, alice_state, _ = apply_action(new_game(), "apanhar_cartao")
+    _, alice_state, _ = apply_action(new_game(), "apanhar_casaco")
 
     save_game(db, alice_state, ALICE)
 
@@ -75,10 +75,11 @@ def test_a_new_game_for_one_player_does_not_touch_the_other(tmp_path):
     save_game(db, alice_state, ALICE)
     save_game(db, bruno_state, BRUNO)
 
-    save_game(db, new_game(), BRUNO)
+    fresh = new_game(now=1_000_000)
+    save_game(db, fresh, BRUNO)
 
     assert load_game(db, ALICE) == alice_state
-    assert load_game(db, BRUNO) == new_game()
+    assert load_game(db, BRUNO) == fresh
 
 
 def test_inventory_order_is_kept(tmp_path):
@@ -166,7 +167,7 @@ def test_malformed_code_in_the_link_is_replaced(online_db):
 
 
 def test_players_only_see_their_own_save(online_db):
-    save_game(online_db, {"scene": "arquivo", "inventory": ["cartao_acesso"], "decisions": {}}, ALICE)
+    save_game(online_db, {"scene": "corredor", "inventory": ["casaco", "cartao_jogador"], "decisions": {}}, ALICE)
 
     alice = open_app(ALICE)
     bruno = open_app(BRUNO)
@@ -178,13 +179,13 @@ def test_players_only_see_their_own_save(online_db):
 def test_same_link_resumes_the_game(online_db):
     at = open_app(ALICE)
     at.button(key="novo_jogo").click().run()
-    at.button(key="apanhar_cartao").click().run()
+    at.button(key="apanhar_casaco").click().run()
 
     reopened = open_app(ALICE)
     reopened.button(key="continuar_jogo").click().run()
 
-    assert reopened.title[0].value == "Ministry of Truth"
-    assert load_game(online_db, ALICE)["inventory"] == ["cartao_acesso"]
+    assert reopened.title[0].value == "Study Room B"
+    assert load_game(online_db, ALICE)["inventory"] == ["casaco", "cartao_jogador"]
     assert load_game(online_db, BRUNO) is None
 
 
@@ -228,5 +229,6 @@ def test_an_explicit_test_database_wins_over_database_url(tmp_path, monkeypatch)
     at.button(key="novo_jogo").click().run()
 
     assert not at.error
-    assert at.title[0].value == "Ministry of Truth"
-    assert load_game(tmp_path / "game.db") == new_game()
+    assert at.title[0].value == "Study Room B"
+    saved = load_game(tmp_path / "game.db")
+    assert (saved["scene"], saved["inventory"]) == ("sala_estudo", [])

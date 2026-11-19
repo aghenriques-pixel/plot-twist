@@ -62,6 +62,8 @@ const VOICE_STYLE = {
   "Júlia": { pitch: 1.2, rate: 1.0, pick: 2 },
   Seller: { pitch: 0.9, rate: 1.1, pick: 3 },
   Clara: { pitch: 1.3, rate: 1.05, pick: 4 },
+  Tiago: { pitch: 0.85, rate: 0.9, pick: 1 },
+  Rita: { pitch: 1.25, rate: 1.05, pick: 2 },
 };
 
 function speak(text, speaker, lang, onEnd) {
@@ -424,7 +426,7 @@ export default function render({ data, parentElement, setTriggerValue }) {
   if (!loadSettings().showText) game.classList.add("text-hidden");
   // Around the picture, a blurred copy of it fills the screen
   const backdrop = el("div", "backdrop");
-  backdrop.innerHTML = `<img src="${data.background}" alt="">`;
+  if (data.background) backdrop.innerHTML = `<img src="${data.background}" alt="">`;
   game.append(backdrop, topBar(data, setTriggerValue));
   const stageWrap = el("div", "stage-wrap");
   const stage = el("div", "stage");
@@ -436,10 +438,20 @@ export default function render({ data, parentElement, setTriggerValue }) {
   game.append(stageWrap, bottom);
   parentElement.appendChild(game);
 
-  Timer.attach(data.timer, game.querySelector(".clock"));
+  // A level with a countdown shows the time of day; the level clock still counts, out of sight
+  Timer.attach(data.timer, data.countdown ? el("span") : game.querySelector(".clock"));
+  if (data.countdown) startCountdown(game, data, setTriggerValue);
   // A place with a 3D room is drawn in 3D (scene3d.js); everything else is the 2D picture
   const keys = wants3D(data) ? buildRoom3D(stage, data, setTriggerValue) : buildPicture(stage, data, setTriggerValue);
   if (data.ending) stage.append(endingCard(data, setTriggerValue));
+  // Something just picked up appears as itself for a moment (a card with its number, a post-it...)
+  const have = data.notebook.items.map((item) => item.id);
+  const before = globalThis.__forbiddenArchiveItems;
+  if (before && before.run === data.timer.run && data.message?.ok) {
+    const fresh = data.notebook.items.filter((item) => !before.have.includes(item.id));
+    if (fresh.length) showPickedUp(game, fresh);
+  }
+  globalThis.__forbiddenArchiveItems = { run: data.timer.run, have };
   if (data.dialogue) {
     const overlay = dialogueOverlay(data.dialogue, data);
     // The hero stays where it stood while they talk
@@ -523,6 +535,15 @@ function gameKeys(game, data, setTriggerValue, keys, event, down) {
     if (key === "Enter") return click(ending.querySelector(".big.primary"));
     if (numbered(ending)) return;
   }
+  // Looking at a thing close up (3D): Esc, E, Enter or Space go back to the room
+  const inspecting = game.querySelector(".inspect3d");
+  if (inspecting && ["Escape", "e", "E", "Enter", " "].includes(key)) return click(inspecting.querySelector(".inspect-back"));
+  // A lock or the laptop's screen (3D) takes the keys while it is open; Esc closes it
+  const device = game.querySelector(".lock3d, .laptop3d");
+  if (device) {
+    if (key === "Escape") return click(device.querySelector(".device-close"));
+    return;
+  }
   const bubble = game.querySelector(".bubble");
   if (bubble) {
     if (key === "Escape") return click(bubble.querySelector(".leave"));
@@ -564,6 +585,11 @@ function gameKeys(game, data, setTriggerValue, keys, event, down) {
     case "N":
       handled();
       return openNotebook(game, data.notebook, "items");
+    case "h":
+    case "H":
+      if (!data.countdown?.can_hint) return;
+      handled();
+      return game.querySelector(".hint-button")?.click();
     case "t":
     case "T":
       handled();
@@ -610,9 +636,11 @@ function askRestart(game, data, setTriggerValue) {
 // --- A conversation: shown over the picture as it was, one line at a time, spoken ---------
 
 function dialogueOverlay(dialogue, data) {
+  if (dialogue.phone) return phoneOverlay(dialogue, data);
   const overlay = el("div", "dialogue");
   overlay.onclick = (event) => event.stopPropagation();
-  overlay.innerHTML = `<img class="bg" src="${dialogue.background}" alt="">`;
+  if (dialogue.background) overlay.innerHTML = `<img class="bg" src="${dialogue.background}" alt="">`;
+  else overlay.classList.add("over-room");
   const box = el("div", "dialogue-box");
   const who = el("div", "dialogue-who");
   const text = el("p", "dialogue-text");
@@ -639,6 +667,45 @@ function dialogueOverlay(dialogue, data) {
     nextLine();
   };
   // Starts once the browser has drawn it (voices need the page to be visible)
+  setTimeout(nextLine, 250);
+  return overlay;
+}
+
+// Text messages: your phone, held up, the messages arriving one by one
+function phoneOverlay(dialogue, data) {
+  const overlay = el("div", "dialogue over-room phone-chat");
+  overlay.onclick = (event) => event.stopPropagation();
+  const phone = el("div", "phone");
+  const head = el("div", "phone-head");
+  const other = dialogue.lines.find((line) => line.speaker !== "you");
+  head.append(el("span", "phone-avatar", (other?.who || "?").slice(0, 1)), el("span", "phone-title", other?.who || dialogue.phone));
+  const list = el("div", "phone-messages");
+  const next = el("button", "choice dialogue-next", data.ui.dialogue_continue);
+  phone.append(head, list);
+  overlay.append(phone, next);
+  let index = -1;
+  function nextLine() {
+    index += 1;
+    if (index >= dialogue.lines.length) {
+      overlay.classList.add("closing");
+      setTimeout(() => overlay.remove(), 400);
+      return;
+    }
+    const line = dialogue.lines[index];
+    const mine = line.speaker === "you";
+    const bubble = el("div", mine ? "phone-bubble mine" : "phone-bubble");
+    bubble.textContent = line.text.replace(/^“|”$/g, "");
+    if (!mine) {
+      // "…" first, as if they were typing
+      const typing = el("div", "phone-bubble typing", "• • •");
+      list.append(typing);
+      setTimeout(() => typing.replaceWith(bubble), 700);
+    } else {
+      list.append(bubble);
+    }
+    Sound.click();
+  }
+  next.onclick = () => nextLine();
   setTimeout(nextLine, 250);
   return overlay;
 }
@@ -675,7 +742,7 @@ function topBar(data, setTriggerValue) {
     restart.onclick = () => askRestart(bar.closest(".game"), data, setTriggerValue);
     buttons.append(restart);
   }
-  const clock = el("div", "clock", "⏱ 00:00");
+  const clock = el("div", data.countdown ? "clock countdown" : "clock", data.countdown ? "🕐 --:--:--" : "⏱ 00:00");
   clock.setAttribute("aria-live", "off");
   const textButton = el("button", "menu-button icon", "💬");
   textButton.title = data.ui.toggle_text;
@@ -692,9 +759,20 @@ function topBar(data, setTriggerValue) {
     toggleFullscreen();
   };
   const tools = el("div", "bar-tools");
-  tools.append(clock, textButton);
-  // A place with a 3D room: switch between the 3D room and the 2D picture (kept in this browser)
-  if (data.world) {
+  tools.append(clock);
+  // 💡 A hint (it costs a minute on the clock): only the one who acts
+  if (data.countdown?.can_hint) {
+    const hint = el("button", "menu-button hint-button", data.countdown.hint_label);
+    hint.title = `${data.countdown.hint_label} (H)`;
+    hint.onclick = () => {
+      Sound.click();
+      setTriggerValue("command", { name: "hint" });
+    };
+    tools.append(hint);
+  }
+  tools.append(textButton);
+  // A place with a 3D room and a 2D picture: switch between them (kept in this browser)
+  if (data.world && data.background) {
     const view = el("button", "menu-button icon view-button", loadSettings().view3d ? "2D" : "3D");
     view.title = data.ui.toggle_view;
     view.setAttribute("aria-label", data.ui.toggle_view);
@@ -731,14 +809,14 @@ function openNotebook(game, book, tab) {
   const pages = {
     items: [L.nb_items, () => {
       if (!book.items.length) return [el("p", "nb-empty", L.nb_empty)];
-      return book.items.map((item) => {
-        const card = el("div", "nb-item");
-        card.append(el("div", "nb-icon", item.icon));
-        const words = el("div", "");
-        words.append(el("strong", "", item.name), el("p", "", item.text));
-        card.append(words);
-        return card;
-      });
+      // Each item as the real thing, with its name on a label under it
+      const shelf = el("div", "nb-things");
+      for (const item of book.items) {
+        const holder = el("div", "nb-thing");
+        holder.append(realThing(item.face), el("div", "nb-thing-name", `${item.icon} ${item.name}`));
+        shelf.append(holder);
+      }
+      return [shelf];
     }],
     conversations: [L.nb_conversations, () => {
       if (!book.conversations.length) return [el("p", "nb-empty", L.nb_empty)];
@@ -784,12 +862,15 @@ function openNotebook(game, book, tab) {
 
 function narration(data) {
   const box = el("div", "narration");
-  if (data.message) box.append(el("p", data.message.ok ? "message ok" : "message refused", data.message.text));
+  const room3d = wants3D(data);
+  // In 3D a hint is the character thinking (a thought bubble), not a line here
+  if (data.message && !(room3d && data.message.hint)) box.append(el("p", data.message.ok ? "message ok" : "message refused", data.message.text));
   if (data.narration) box.append(el("p", "scene-text", data.narration));
   if (data.hint) box.append(el("p", "hint", data.hint));
   // Until the player has used the keyboard once, a reminder of the keys (computers only)
   if (!loadSettings().usedKeys && globalThis.matchMedia?.("(hover: hover)").matches) box.append(el("p", "key-hint", wants3D(data) ? data.ui.key_hint_3d : data.ui.key_hint));
-  if (data.clues) {
+  // In 3D the contact zooms the security camera in on the things and reads them there
+  if (data.clues && !room3d) {
     const clues = el("div", "clues");
     clues.append(el("div", "clues-title", data.clues.title));
     if (!data.clues.items.length) clues.append(el("p", "clue empty", data.clues.empty));
@@ -810,10 +891,25 @@ function endingCard(data, setTriggerValue) {
   const card = el("div", "ending");
   const inner = el("div", "ending-inner");
   inner.append(el("div", "ending-kicker", ending.kicker), el("h2", "ending-title", ending.title));
-  inner.append(el("p", "ending-text", ending.text));
+  // A text message at the end (Tiago, Rita) arrives on the phone
+  const [told, texted] = ending.text.split("📱");
+  if (texted) {
+    if (told.trim()) inner.append(el("p", "ending-text", told.trim()));
+    const [who, ...said] = texted.split(":");
+    const phone = el("div", "phone small");
+    const head = el("div", "phone-head");
+    head.append(el("span", "phone-avatar", who.trim().slice(0, 1)), el("span", "phone-title", who.trim()));
+    const list = el("div", "phone-messages");
+    list.append(el("div", "phone-bubble", said.join(":").trim().replace(/^“|”$/g, "")));
+    phone.append(head, list);
+    inner.append(phone);
+  } else {
+    inner.append(el("p", "ending-text", ending.text));
+  }
   if (ending.journey.length) inner.append(el("p", "ending-journey", ending.journey.join(" · ")));
+  if (ending.clock) inner.append(el("p", "ending-clock", ending.clock));
   const run = Timer.current();
-  if (run) {
+  if (run && !ending.clock) {
     const best = Timer.best(data.timer.level);
     const time = el("p", "ending-time", `⏱ ${data.ui.your_time}: ${formatTime(run.ms)}`);
     if (best) time.append(el("span", "", ` · 🏆 ${data.ui.best_time}: ${formatTime(best)}`));
@@ -880,7 +976,9 @@ function updateChat(game, chat) {
 
 function buildPicture(stage, data, setTriggerValue) {
   const { background, character, walk, x: startX, spots, looks } = data;
-  stage.innerHTML = `<img class="bg" src="${background}" alt="">`;
+  // A place drawn only in 3D, shown in 2D (the browser cannot draw 3D): a plain background, labels shown
+  stage.innerHTML = background ? `<img class="bg" src="${background}" alt="">` : `<div class="bg no-art"></div>`;
+  if (!background) stage.classList.add("no-art");
 
   let x = startX;
   let busy = false;
@@ -1144,6 +1242,10 @@ function interactions(stage, data, setTriggerValue, hooks) {
   }
 
   function openKeypad(spot) {
+    // Rita's padlock and the terrace door's keypad are drawn as themselves
+    const send = (code) => setTriggerValue("action", { id: spot.action, x: spot.stand, code });
+    if (spot.lock === "padlock") return openPadlock(stage, spot, data, send);
+    if (spot.lock === "keypad") return openDoorKeypad(stage, spot, data, send);
     const form = el("form", "keypad");
     const input = el("input");
     // Number locks open a numeric keyboard on phones; letter locks a normal one
@@ -1171,6 +1273,384 @@ function interactions(stage, data, setTriggerValue, hooks) {
   }
 
   return { closeBubble, openBubble, choice, openTalk, openKeypad };
+}
+
+// --- The real things, over the room: the locks, the laptop's screen, the items ----------------
+// Rita's padlock is a padlock with 5 wheels, the terrace door has its keypad, and at the laptop
+// its screen fills the view (log in, the pen drive, the Wi-Fi, the terminal). Items appear as
+// themselves: a student card with its number, a post-it in handwriting...
+
+// One open device at a time; it takes the keyboard while it is open (Esc closes it)
+function openDevice(stage, className, build) {
+  stage.querySelector(".lock3d, .laptop3d")?.remove();
+  const overlay = el("div", className);
+  let onKey = null;
+  const close = () => {
+    overlay.remove();
+    if (onKey) document.removeEventListener("keydown", onKey, true);
+  };
+  overlay.onclick = (event) => {
+    event.stopPropagation();
+    if (event.target === overlay) close();
+  };
+  const closeButton = el("button", "device-close", "✕");
+  closeButton.onclick = (event) => {
+    event.stopPropagation();
+    Sound.click();
+    close();
+  };
+  const keys = (handler) => {
+    onKey = (event) => {
+      if (!overlay.isConnected) return document.removeEventListener("keydown", onKey, true);
+      const target = event.composedPath?.()[0] || event.target;
+      if (target?.tagName === "INPUT") return; // typing in a field of the laptop
+      handler(event);
+    };
+    document.addEventListener("keydown", onKey, true);
+  };
+  build({ overlay, close, keys });
+  overlay.append(closeButton);
+  stage.append(overlay);
+  return close;
+}
+
+// Rita's padlock: five number wheels; turn them (click, arrows or digits), then pull it open
+function openPadlock(stage, spot, data, send) {
+  const digits = [0, 0, 0, 0, 0];
+  let at = 0;
+  openDevice(stage, "lock3d", ({ overlay, close, keys }) => {
+    const lock = el("div", "padlock");
+    const shackle = el("div", "padlock-shackle");
+    const body = el("div", "padlock-body");
+    const wheels = el("div", "padlock-wheels");
+    const turn = (i, by) => {
+      digits[i] = (digits[i] + by + 10) % 10;
+      at = i;
+      Sound.tick();
+      draw();
+    };
+    function draw() {
+      wheels.replaceChildren(
+        ...digits.map((digit, i) => {
+          const wheel = el("div", i === at ? "wheel on" : "wheel");
+          const up = el("button", "wheel-turn", "▲");
+          up.onclick = () => turn(i, 1);
+          const down = el("button", "wheel-turn", "▼");
+          down.onclick = () => turn(i, -1);
+          const window_ = el("div", "wheel-window");
+          window_.append(el("span", "wheel-side", String((digit + 9) % 10)), el("span", "wheel-digit", String(digit)), el("span", "wheel-side", String((digit + 1) % 10)));
+          window_.onclick = () => {
+            at = i;
+            draw();
+          };
+          wheel.append(up, window_, down);
+          return wheel;
+        })
+      );
+    }
+    const pull = el("button", "choice lock-open", `🔓 ${data.ui.lock_open}`);
+    pull.onclick = () => {
+      shackle.classList.add("pull");
+      Sound.click();
+      setTimeout(() => {
+        close();
+        send(digits.join(""));
+      }, 380);
+    };
+    body.append(el("div", "padlock-engraving", spot.code_prompt), wheels);
+    lock.append(shackle, body);
+    overlay.append(lock, pull);
+    draw();
+    keys((event) => {
+      const key = event.key;
+      if (/^[0-9]$/.test(key)) {
+        digits[at] = Number(key);
+        at = Math.min(4, at + 1);
+        Sound.tick();
+        draw();
+      } else if (key === "ArrowLeft" || key === "Backspace") {
+        at = Math.max(0, at - 1);
+        draw();
+      } else if (key === "ArrowRight") {
+        at = Math.min(4, at + 1);
+        draw();
+      } else if (key === "ArrowUp") turn(at, 1);
+      else if (key === "ArrowDown") turn(at, -1);
+      else if (key === "Enter") pull.click();
+      else return;
+      event.preventDefault();
+      event.stopPropagation();
+    });
+  });
+}
+
+// The terrace door's keypad: a little screen, twelve keys and a light
+function openDoorKeypad(stage, spot, data, send) {
+  let typed = "";
+  openDevice(stage, "lock3d", ({ overlay, close, keys }) => {
+    const panel = el("div", "keypad-panel");
+    const screen = el("div", "keypad-screen");
+    const led = el("span", "keypad-led");
+    const show = () => (screen.textContent = typed || "_ _ _");
+    const submit = () => {
+      if (!typed) {
+        panel.classList.remove("shake");
+        void panel.offsetWidth;
+        panel.classList.add("shake");
+        return;
+      }
+      led.classList.add("busy");
+      setTimeout(() => {
+        close();
+        send(typed);
+      }, 300);
+    };
+    const press = (key) => {
+      Sound.tick();
+      if (key === "⌫") typed = typed.slice(0, -1);
+      else if (key === "✓") return submit();
+      else if (typed.length < 8) typed += key;
+      show();
+    };
+    const pad = el("div", "keypad-keys");
+    for (const key of ["1", "2", "3", "4", "5", "6", "7", "8", "9", "⌫", "0", "✓"]) {
+      const b = el("button", key === "✓" ? "keypad-key ok" : "keypad-key", key);
+      b.onclick = () => press(key);
+      pad.append(b);
+    }
+    const top = el("div", "keypad-top");
+    top.append(el("span", "keypad-label", spot.code_prompt), led);
+    panel.append(top, screen, pad);
+    overlay.append(panel);
+    show();
+    keys((event) => {
+      const key = event.key;
+      if (/^[0-9.]$/.test(key)) press(key);
+      else if (key === "Backspace") press("⌫");
+      else if (key === "Enter") press("✓");
+      else return;
+      event.preventDefault();
+      event.stopPropagation();
+    });
+  });
+}
+
+// Your laptop on the terrace: its screen fills the view. What it shows follows what is left to do
+// (Python offers one step at a time): log in, then the pen drive, then the Wi-Fi, then the terminal.
+function openLaptop(stage, data, setTriggerValue) {
+  const L = data.ui;
+  const state = data.world.laptop;
+  const spots = data.spots;
+  const login = spots.find((s) => s.lock === "login");
+  const pen = spots.find((s) => s.talk === "pen");
+  const wifi = spots.find((s) => s.lock === "wifi");
+  const terminal = spots.find((s) => s.talk === "terminal");
+  const act = (id, spot, code) => setTriggerValue("action", { id, x: spot.stand, code });
+  const message = data.message && !data.message.hint ? data.message : null;
+
+  openDevice(stage, "laptop3d", ({ overlay }) => {
+    const machine = el("div", "laptop-machine");
+    const lid = el("div", "laptop-lid");
+    const screen = el("div", "laptop-screen");
+    const bar = el("div", "laptop-bar");
+    const clock = el("span", "laptop-time", "");
+    const copyClock = () => (clock.textContent = (document.querySelector(".clock-text")?.textContent || "").replace("🕐", "").trim().slice(0, 5));
+    copyClock();
+    const timer = setInterval(() => (overlay.isConnected ? copyClock() : clearInterval(timer)), 1000);
+    bar.append(el("span", "", "nova OS"), el("span", "laptop-icons", `${state.wifi ? "📶" : "⚠"}  🔌 4%`), clock);
+    screen.append(bar);
+    const desk = el("div", "laptop-desk");
+    screen.append(desk);
+    const windowBox = (title, cls = "") => {
+      const w = el("div", `laptop-window ${cls}`);
+      const head = el("div", "laptop-window-head");
+      head.append(el("span", "dots", "● ● ●"), el("span", "", title));
+      w.append(head);
+      desk.append(w);
+      return w;
+    };
+    const toast = (text, ok) => {
+      const t = el("div", ok ? "laptop-toast ok" : "laptop-toast bad", `${ok ? "✅" : "❌"} ${text}`);
+      screen.append(t);
+    };
+
+    if (login) {
+      // The login screen, with Tiago's post-it stuck on it
+      desk.classList.add("login");
+      const form = el("form", "laptop-login");
+      const input = el("input", "laptop-input");
+      input.type = "password";
+      input.placeholder = login.code_prompt;
+      input.autocomplete = "off";
+      const go = el("button", "laptop-button", L.lap_login);
+      go.type = "submit";
+      form.append(el("div", "laptop-avatar", "👤"), el("div", "laptop-user", L.lap_user), input, go);
+      form.onsubmit = (event) => {
+        event.preventDefault();
+        if (input.value.trim()) act(login.action, login, input.value);
+      };
+      desk.append(form);
+      const tiago = data.laptop_notes?.tiago;
+      if (tiago) lid.append(realThing({ kind: "postit", text: tiago.postit, sign: tiago.sign }, "screen-note"));
+      if (message && !message.ok) toast(message.text, false);
+      setTimeout(() => input.focus(), 50);
+    } else if (pen) {
+      // The pen drive: four files; clicking one runs its tests
+      const w = windowBox(`📁 ${L.lap_usb}`);
+      w.append(el("p", "laptop-help", L.lap_open_hint));
+      for (const option of pen.options) {
+        const row = el("button", "laptop-file", `📄 ${option.say}`);
+        row.onclick = () => {
+          Sound.click();
+          w.append(el("div", "laptop-running", `⏳ ${L.lap_tests}`));
+          setTimeout(() => act(option.action, pen), 700);
+        };
+        w.append(row);
+      }
+      if (message) toast(message.text, message.ok);
+    } else if (wifi) {
+      // The Wi-Fi networks: only the terrace's has any signal
+      const w = windowBox(`📶 ${L.lap_wifi}`, "small");
+      const form = el("form", "laptop-wifi");
+      const input = el("input", "laptop-input");
+      input.type = "password";
+      input.placeholder = wifi.code_prompt;
+      input.autocomplete = "off";
+      const go = el("button", "laptop-button", L.lap_connect);
+      go.type = "submit";
+      form.append(input, go);
+      form.onsubmit = (event) => {
+        event.preventDefault();
+        if (input.value.trim()) act(wifi.action, wifi, input.value);
+      };
+      const esplanada = el("button", "laptop-network on", `📶 Esplanada  🔒 ${L.lap_secured}`);
+      esplanada.onclick = () => input.focus();
+      w.append(esplanada, form);
+      for (const name of ["eduroam", "NOVA-Guest"]) w.append(el("div", "laptop-network off", `▫ ${name} — ${L.lap_no_signal}`));
+      if (state.file) toast(message?.ok ? message.text : "trabalho_final_v3.py ✓", true);
+      if (message && !message.ok) toast(message.text, false);
+      setTimeout(() => input.focus(), 50);
+    } else if (terminal) {
+      // The terminal: type the commands from Rita's post-it, in order
+      const w = windowBox("▮ Terminal — ~/trabalho", "terminal");
+      const log = el("div", "terminal-log");
+      const line = (text, cls = "") => log.append(el("div", `terminal-line ${cls}`, text));
+      line(`# ${L.lap_type}`, "dim");
+      const done = { _git_add: 'git add .', _git_commit: 'git commit -m "final"' };
+      for (const step of state.git) line(`$ ${done[step]}`);
+      if (message) line(message.text, message.ok ? "ok" : "bad");
+      const form = el("form", "terminal-form");
+      const input = el("input", "terminal-input");
+      input.autocomplete = "off";
+      input.spellcheck = false;
+      form.append(el("span", "terminal-prompt", "$"), input);
+      const tidy = (text) => text.trim().replace(/\s+/g, " ").replace(/[“”]/g, '"');
+      const commandFor = (typed) => {
+        const exact = terminal.options.find((o) => tidy(o.say) === typed);
+        if (exact) return exact;
+        const verb = typed.match(/^git (add|commit|push)\b/)?.[1];
+        return verb ? terminal.options.find((o) => o.say.startsWith(`git ${verb}`)) : null;
+      };
+      form.onsubmit = (event) => {
+        event.preventDefault();
+        const typed = tidy(input.value);
+        if (!typed) return;
+        input.value = "";
+        line(`$ ${typed}`);
+        const option = commandFor(typed);
+        if (option) setTimeout(() => act(option.action, terminal), 250);
+        else line(`bash: ${typed.split(" ")[0]}: ${L.lap_not_found}`, "bad");
+        log.scrollTop = log.scrollHeight;
+      };
+      w.append(log, form);
+      w.onclick = () => input.focus();
+      setTimeout(() => input.focus(), 50);
+    }
+    lid.append(screen);
+    machine.append(lid, el("div", "laptop-base"));
+    overlay.append(machine);
+    // Rita's post-it, next to the keyboard
+    const rita = data.laptop_notes?.rita;
+    if (rita) overlay.append(realThing(rita, "side-note"));
+  });
+}
+
+// An item as the real thing (story.py ITEM_FACES), with its words on it
+function realThing(face, extra = "") {
+  const thing = el("div", `real ${face.kind} ${extra}`);
+  if (face.kind === "card") {
+    const band = el("div", "card-band", "nova SBE");
+    const photo = el("div", "card-photo", "👤");
+    const words = el("div", "card-words");
+    words.append(el("div", "card-name", face.name || face._name), el("div", "card-number", `Nº ${face._number}`), el("div", "card-note", face.note));
+    thing.append(band, photo, words, el("div", "card-chip"));
+  } else if (face.kind === "postit") {
+    thing.append(el("p", "postit-text", face.text));
+    for (const step of face._steps || []) thing.append(el("p", "postit-step", step));
+    if (face.sign) thing.append(el("p", "postit-sign", face.sign));
+  } else if (face.kind === "coat") {
+    thing.append(el("div", "coat-hood"), el("div", "coat-body"));
+    const tag = el("div", "coat-tag");
+    tag.append(el("b", "", "−50%"), el("span", "", face.tag));
+    thing.append(tag);
+  } else if (face.kind === "usb") {
+    const tape = el("div", "usb-tape", face._label);
+    thing.append(el("div", "usb-plug"), tape, el("div", "usb-tag", face.tag));
+  } else if (face.kind === "charger") {
+    thing.append(el("div", "charger-brick", face._label), el("div", "charger-cable"), el("div", "charger-note", face.tag));
+  }
+  return thing;
+}
+
+// Something you just picked up: shown as itself for a moment, then into the backpack
+function showPickedUp(game, items) {
+  const overlay = el("div", "picked-up");
+  for (const item of items) {
+    const holder = el("div", "picked-item");
+    holder.append(realThing(item.face), el("div", "picked-name", item.name));
+    overlay.append(holder);
+  }
+  overlay.onclick = () => overlay.classList.add("leaving");
+  game.append(overlay);
+  setTimeout(() => overlay.classList.add("leaving"), 3200);
+  setTimeout(() => overlay.remove(), 4000);
+}
+
+// --- The countdown (specs/entrega-2359.md): the real time, from 23:44 to 00:00 ------------------
+// Python sends how many seconds are left (penalties included) and decides what happens at 00:00;
+// the browser only shows the clock and, when it reaches 00:00, asks Python to end the game.
+
+function startCountdown(game, data, setTriggerValue) {
+  const { left, starts_at: startsAt, total, lost, time_up_action: timeUp, can_hint: canAct } = data.countdown;
+  const label = game.querySelector(".clock");
+  // The time is written in its own span, so the "−30 s" flash next to it stays
+  const text = el("span", "clock-text");
+  label.textContent = "";
+  label.append(text);
+  const deadline = performance.now() + left * 1000;
+  const two = (n) => String(n).padStart(2, "0");
+  let sent = false;
+  const show = () => {
+    if (!label.isConnected) return clearInterval(timer);
+    const remaining = Math.max(0, (deadline - performance.now()) / 1000);
+    const shown = Math.floor(startsAt + total - remaining) % 86400;
+    text.textContent = `🕐 ${two(Math.floor(shown / 3600))}:${two(Math.floor(shown / 60) % 60)}:${two(shown % 60)}`;
+    label.classList.toggle("late", remaining <= 180);
+    label.classList.toggle("last", remaining <= 60);
+    if (remaining <= 0 && !sent && canAct) {
+      sent = true;
+      setTriggerValue("action", { id: timeUp, x: 0 });
+    }
+  };
+  const timer = setInterval(show, 250);
+  show();
+  // A wrong answer or a hint: the clock jumps, and says by how much
+  if (lost > 0) {
+    const flash = el("span", "time-lost", `−${lost >= 60 ? `${Math.round(lost / 60)} min` : `${lost} s`}`);
+    label.append(flash);
+    label.classList.add("jumped");
+    setTimeout(() => label.classList.remove("jumped"), 900);
+  }
 }
 
 function rememberKeys() {
@@ -1201,6 +1681,8 @@ function menuScreen(data, setTriggerValue) {
     backdrop.append(dot);
   }
   root.append(backdrop);
+  // The terrace of the library at night, in 3D, behind the menu (scene3d.js)
+  menuRoom3D(backdrop, menu.world);
 
   const panel = el("div", "menu-panel");
   root.append(panel);

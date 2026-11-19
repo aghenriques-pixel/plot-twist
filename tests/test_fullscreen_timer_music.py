@@ -8,6 +8,7 @@ Assumed interface:
 """
 
 import re
+import time
 from pathlib import Path
 
 import pytest
@@ -22,6 +23,7 @@ from logic import (
     SCENES,
     apply_action,
     available_actions,
+    hint_for,
     is_finished,
     new_game,
     scene_music,
@@ -31,8 +33,8 @@ from translations import UI_TEXT
 ROOT = Path(__file__).parent.parent
 APP_PATH = str(ROOT / "app.py")
 JS = (ROOT / "components" / "scene_view.js").read_text(encoding="utf-8")
-# Scenes whose code clue is in the same room, so no way back is needed to solve it
-CLUE_IN_THE_ROOM = {"vigilancia"}
+# Scenes with no way back: the laptop's hints repeat its clues (specs/entrega-2359.md)
+CLUE_IN_THE_ROOM = {"portatil"}
 
 
 def goes_to_graph():
@@ -84,15 +86,6 @@ def test_every_code_puzzle_scene_leads_back_to_the_start_of_its_level():
             assert start in reachable(scene, edges), f"{scene} has no way back to {start}"
 
 
-def test_the_studio_has_a_safe_way_back_to_the_tower():
-    state = {"scene": "c2_estudio", "inventory": [], "decisions": {}}
-
-    assert "voltar_torre" in available_actions(state)
-    accepted, after, _ = apply_action(state, "voltar_torre")
-    assert accepted and after["scene"] == "c2_torre"
-    assert ACTIONS["voltar_torre"]["hotspot"].get("edge")
-
-
 @pytest.mark.parametrize("chapter", sorted(CHAPTER_STARTS))
 def test_no_reachable_state_is_a_dead_end(chapter):
     states = reachable_states(chapter)
@@ -104,12 +97,10 @@ def test_no_reachable_state_is_a_dead_end(chapter):
             assert available_actions(state), f"nothing to do in {state}"
 
 
-# Done when 2
-def test_a_wrong_frequency_points_to_the_hideout():
-    accepted, _, message = apply_action({"scene": "c2_estudio", "inventory": [], "decisions": {}}, "sintonizar", "99.9")
-
-    assert not accepted
-    assert "hideout" in message
+# Done when 2 (the new level): the laptop's hints repeat the clues there is no way back to
+def test_the_laptop_hints_repeat_the_clues():
+    assert "x * 3 + 1" in hint_for({"scene": "portatil", "inventory": [], "decisions": {}})
+    assert "Bica €0.70" in hint_for({"scene": "portatil", "inventory": [], "decisions": {"_portatil": "x", "_ficheiro": "v3"}})
 
 
 # Done when 3
@@ -130,16 +121,17 @@ def continue_saved(db, state):
 
 
 def test_restart_level_starts_the_same_level_again(db):
-    at = continue_saved(db, {"scene": "c2_estudio", "inventory": ["mensagem_cifrada"], "decisions": {}})
+    at = continue_saved(db, {"scene": "corredor", "inventory": ["casaco", "cartao_jogador"], "decisions": {"_inicio": str(int(time.time()))}})
 
     at.button(key="reiniciar_nivel").click().run()
 
-    assert load_game(db) == new_game(2)
-    assert at.sidebar.title[0].value == SCENES["c2_esconderijo"]["title"]
+    saved = load_game(db)
+    assert (saved["scene"], saved["inventory"]) == ("sala_estudo", [])
+    assert at.sidebar.title[0].value == SCENES["sala_estudo"]["title"]
 
 
 def test_restart_is_not_offered_at_an_ending(db):
-    at = continue_saved(db, {"scene": "final_c2_voz", "inventory": [], "decisions": {}})
+    at = continue_saved(db, {"scene": "final_afogado", "inventory": [], "decisions": {}})
 
     assert "reiniciar_nivel" not in [button.key for button in at.sidebar.button]
 
@@ -165,7 +157,7 @@ def test_each_new_run_gets_a_new_run_token(db):
 
 
 def test_continuing_a_saved_game_keeps_the_clock(db):
-    at = continue_saved(db, new_game(2))
+    at = continue_saved(db, new_game(1))
 
     assert at.session_state["run_token"] is None
 
@@ -187,9 +179,8 @@ def test_danger_and_endings_have_their_own_music():
     for scene_id, scene in SCENES.items():
         if "danger" in scene:
             assert music(scene_id) == "danger", scene_id
-    assert music("final_c2_voz") != music("final_c2_reconhecido")
-    assert music("final_c3_nomes") == music("final_resistencia")
-    assert music("final_apanhado") == music("final_c3_apanhados")
+    assert music("final_entregue") == music("final_tiago") == "victory"
+    assert music("final_afogado") == music("final_seguranca") == music("final_meia_noite") == "defeat"
 
 
 def test_each_level_has_its_own_music():
@@ -198,8 +189,8 @@ def test_each_level_has_its_own_music():
         if not scene.get("ending") and "danger" not in scene:
             themes.setdefault(scene.get("chapter", 1), set()).add(scene_music({"scene": scene_id, "inventory": [], "decisions": {}}))
 
-    assert themes[1].isdisjoint(themes[2]) and themes[2].isdisjoint(themes[3]) and themes[1].isdisjoint(themes[3])
-    assert len(themes[1]) >= 2 and len(themes[2]) >= 2
+    # One level for now (specs/entrega-2359.md): its places have several themes
+    assert len(themes[1]) >= 3
 
 
 # Done when 6

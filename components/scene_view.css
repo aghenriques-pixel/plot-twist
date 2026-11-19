@@ -852,3 +852,345 @@ button.chip:hover { border-color: var(--warm); }
 .cctv-overlay .cam { right: 18px; }
 @keyframes rec-blink { 50% { opacity: 0.2; } }
 .view-button { font: bold 13px sans-serif; }
+
+/* --- Level 1 "Submission at 23:59" (specs/entrega-2359.md) ----------------------------- */
+/* The countdown: the real time, in a digital font; orange in the last 3 minutes, red in the last */
+.clock.countdown { position: relative; font-variant-numeric: tabular-nums; letter-spacing: 1px; min-width: 128px; text-align: center; }
+.clock.countdown.late { color: #ffb347; border-color: rgba(255, 179, 71, 0.6); }
+.clock.countdown.last { color: #ff5a5a; border-color: rgba(255, 90, 90, 0.8); animation: last-minute 1s steps(2) infinite; }
+@keyframes last-minute { 50% { background: rgba(200, 52, 58, 0.35); } }
+.clock.countdown.jumped { animation: clock-jump 0.9s ease-out; }
+@keyframes clock-jump { 0% { transform: scale(1.25); background: rgba(200, 52, 58, 0.6); } 100% { transform: scale(1); } }
+.time-lost {
+  position: absolute; left: 50%; top: 100%; transform: translateX(-50%); margin-top: 4px;
+  color: #ff6b6b; font: bold 14px sans-serif; white-space: nowrap; pointer-events: none;
+  animation: time-lost 2.4s ease-out forwards;
+}
+@keyframes time-lost { 0% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, 18px); } }
+.hint-button { white-space: nowrap; }
+.ending-clock { font: bold 18px sans-serif; color: #f2c14e; margin: 4px 0 10px; letter-spacing: 1px; }
+
+/* Actions with nothing in the room for them (texting Rita): buttons over the 3D view */
+.free3d {
+  position: absolute; left: 14px; top: 84px; z-index: 3; display: flex; flex-direction: column; gap: 6px;
+  padding: 8px 10px; border-radius: 12px; background: rgba(14, 12, 30, 0.82); border: 1px solid rgba(242, 193, 78, 0.4);
+}
+.free3d-title { color: #f2c14e; font: bold 12px sans-serif; letter-spacing: 1px; text-transform: uppercase; }
+.free3d .choice { margin: 0; }
+
+/* A conversation over the 3D room (no picture behind it) */
+.dialogue.over-room { background: linear-gradient(to top, rgba(6, 6, 14, 0.75), rgba(6, 6, 14, 0.15) 60%); }
+
+/* An ending shown in its room: warmer for a submission, colder and darker for a failure */
+.stage.mood-victory canvas.room3d { filter: saturate(1.15) brightness(1.05); }
+.stage.mood-defeat canvas.room3d { filter: saturate(0.45) brightness(0.75) hue-rotate(-12deg); }
+
+/* A place drawn only in 3D, shown in 2D: a plain background and every spot's label visible */
+.stage .bg.no-art { position: absolute; inset: 0; background: linear-gradient(160deg, #26304f, #11131f); }
+.stage.no-art .spot .label { opacity: 1; }
+
+/* On narrower screens the decisions stay in the notebook, so the top bar does not overflow */
+@media (max-width: 1180px) { .topbar .chip.decision, .topbar .items { display: none; } }
+
+/* The main menu over the 3D terrace at night */
+.menu-3d { position: absolute; inset: 0; width: auto !important; aspect-ratio: auto !important; border-radius: 0; box-shadow: none; pointer-events: none; }
+.menu-backdrop.has-3d .menu-art { opacity: 0; transition: opacity 1.2s; }
+.menu-backdrop.has-3d .menu-3d canvas.room3d { filter: brightness(0.85) saturate(1.1); }
+
+/* --- The real things (3D): looking close up, thoughts, the security camera's list ------------ */
+.inspect3d {
+  position: absolute; left: 50%; bottom: 18px; z-index: 6; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 12px; padding: 6px 8px 6px 14px; border-radius: 999px;
+  background: rgba(14, 12, 30, 0.78); border: 1px solid rgba(242, 193, 78, 0.45);
+  color: #f3ead6; font: 14px/1.2 sans-serif; white-space: nowrap;
+}
+.inspect3d .choice { margin: 0; padding: 5px 12px; }
+.inspect-thought {
+  position: absolute; left: 50%; top: 16%; z-index: 6; transform: translateX(-50%);
+  max-width: min(520px, 80%); padding: 10px 16px; border-radius: 18px;
+  background: #fff8e6; color: #2a1a05; font: italic 16px/1.4 Georgia, serif;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45); animation: think-in 0.35s ease-out;
+}
+.inspect-thought::before { content: "💭 "; font-style: normal; }
+@keyframes think-in { from { opacity: 0; transform: translate(-50%, 8px); } }
+/* A hint: the character thinks, in a cloud */
+.say3d.thought {
+  max-width: 340px; background: #f4f7ff; color: #1d2340; border: 2px solid #c8d4ff;
+  border-radius: 22px; font-style: italic;
+}
+.say3d.thought::after {
+  content: ""; position: absolute; left: 50%; bottom: -14px; width: 12px; height: 12px; border-radius: 50%;
+  background: #f4f7ff; border: 2px solid #c8d4ff; box-shadow: 10px 12px 0 -3px #f4f7ff;
+}
+.cctv-list {
+  position: absolute; left: 14px; top: 84px; z-index: 4; display: flex; flex-direction: column; gap: 6px;
+  padding: 8px 10px; border-radius: 12px; background: rgba(8, 20, 12, 0.82); border: 1px solid rgba(160, 230, 170, 0.4);
+}
+.cctv-list .choice { margin: 0; }
+
+/* --- Devices over the room: the padlock, the door keypad, the laptop's screen --------------- */
+.lock3d, .laptop3d {
+  position: absolute; inset: 0; z-index: 12; display: flex; align-items: center; justify-content: center; gap: 28px;
+  background: radial-gradient(ellipse at center, rgba(10, 10, 20, 0.35), rgba(5, 5, 12, 0.8));
+  animation: device-in 0.25s ease-out;
+}
+@keyframes device-in { from { opacity: 0; transform: scale(0.97); } }
+.device-close {
+  position: absolute; right: 18px; top: 18px; width: 40px; height: 40px; border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.35); background: rgba(0, 0, 0, 0.55); color: #fff; font-size: 18px; cursor: pointer;
+}
+.lock3d { flex-direction: column; }
+/* Rita's padlock: brass, with five steel number wheels */
+.padlock { position: relative; display: flex; flex-direction: column; align-items: center; }
+.padlock-shackle {
+  width: 170px; height: 120px; margin-bottom: -28px; border: 22px solid #c8ccd3; border-bottom: none;
+  border-radius: 90px 90px 0 0; box-shadow: inset 0 4px 6px rgba(255, 255, 255, 0.5), 0 2px 4px rgba(0, 0, 0, 0.5);
+  transition: transform 0.35s cubic-bezier(.3, 1.6, .5, 1);
+}
+.padlock-shackle.pull { transform: translateY(-34px); }
+.padlock-body {
+  position: relative; padding: 26px 26px 22px; border-radius: 22px;
+  background: linear-gradient(160deg, #e9c45a, #b8892a 55%, #8e6618);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.45), 0 18px 40px rgba(0, 0, 0, 0.6);
+}
+.padlock-engraving {
+  text-align: center; margin-bottom: 12px; color: rgba(70, 45, 5, 0.85); font: 600 13px/1.2 Georgia, serif;
+  letter-spacing: 1px; text-shadow: 0 1px 0 rgba(255, 235, 170, 0.6);
+}
+.padlock-wheels { display: flex; gap: 8px; padding: 10px; border-radius: 10px; background: #3c2a08; box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.7); }
+.wheel { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.wheel-turn {
+  width: 46px; height: 22px; border: none; border-radius: 6px; cursor: pointer;
+  background: rgba(255, 255, 255, 0.12); color: #f2d27a; font-size: 12px;
+}
+.wheel-turn:hover { background: rgba(255, 255, 255, 0.25); }
+.wheel-window {
+  width: 46px; height: 86px; border-radius: 6px; cursor: pointer; overflow: hidden;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: linear-gradient(#5d636b, #e4e7ec 30%, #ffffff 50%, #e4e7ec 70%, #5d636b);
+  font: 700 30px/1 "Courier New", monospace; color: #1a1a1a;
+}
+.wheel-side { font-size: 18px; opacity: 0.35; line-height: 1.05; }
+.wheel.on .wheel-window { outline: 3px solid #f2c14e; }
+.lock-open { margin-top: 26px; font-size: 16px; padding: 10px 26px; }
+/* The terrace door's keypad: brushed steel, a green screen, rubber keys */
+.keypad-panel {
+  width: 260px; padding: 18px; border-radius: 16px;
+  background: linear-gradient(160deg, #d9dce1, #9ea3ab); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), inset 0 2px 0 #fff;
+}
+.keypad-panel.shake { animation: shake 0.35s; }
+.keypad-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.keypad-label { color: #2b2f36; font: 700 12px sans-serif; text-transform: uppercase; letter-spacing: 1px; }
+.keypad-led { width: 12px; height: 12px; border-radius: 50%; background: #ff3b3b; box-shadow: 0 0 10px #ff3b3b; }
+.keypad-led.busy { background: #ffb300; box-shadow: 0 0 10px #ffb300; }
+.keypad-screen {
+  height: 52px; margin-bottom: 14px; padding: 0 14px; border-radius: 8px; display: flex; align-items: center; justify-content: flex-end;
+  background: #0f2a1a; color: #7dff9e; font: 700 30px "Courier New", monospace; letter-spacing: 4px;
+  box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.8);
+}
+.keypad-keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.keypad-key {
+  height: 50px; border-radius: 10px; border: none; cursor: pointer; font: 700 22px sans-serif; color: #1d2026;
+  background: linear-gradient(#fbfbfc, #c9cdd3); box-shadow: 0 3px 0 #7d828a;
+}
+.keypad-key:active { transform: translateY(2px); box-shadow: 0 1px 0 #7d828a; }
+.keypad-key.ok { background: linear-gradient(#7be08f, #2f9e4a); color: #fff; }
+
+/* The laptop: its screen, its keyboard edge, the post-its */
+.laptop-machine { position: relative; width: min(860px, calc(100% - 300px)); display: flex; flex-direction: column; align-items: center; }
+.laptop-lid {
+  position: relative; width: 100%; aspect-ratio: 16 / 10; padding: 16px; border-radius: 18px 18px 6px 6px;
+  background: #1a1b1f; box-shadow: 0 0 0 2px #8c9198, 0 24px 50px rgba(0, 0, 0, 0.6);
+}
+.laptop-base { width: 112%; height: 18px; border-radius: 0 0 16px 16px; background: linear-gradient(#c9cdd3, #8c9198); }
+.laptop-screen {
+  position: relative; width: 100%; height: 100%; overflow: hidden; border-radius: 4px;
+  background: linear-gradient(135deg, #0f2a5c, #1f7a8c); color: #eef3ff; font: 14px/1.35 "Segoe UI", sans-serif;
+}
+.laptop-bar {
+  display: flex; justify-content: space-between; padding: 4px 12px; background: rgba(0, 0, 0, 0.35);
+  font: 600 12px "Segoe UI", sans-serif; letter-spacing: 0.5px;
+}
+.laptop-desk { position: absolute; inset: 26px 0 0 0; display: flex; align-items: center; justify-content: center; }
+.laptop-login { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.laptop-avatar { width: 84px; height: 84px; border-radius: 50%; display: grid; place-items: center; font-size: 46px; background: rgba(255, 255, 255, 0.85); }
+.laptop-user { font: 600 18px "Segoe UI", sans-serif; }
+.laptop-input {
+  width: 240px; padding: 9px 12px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.92); color: #111; font: 16px "Segoe UI", sans-serif;
+}
+.laptop-button {
+  padding: 8px 18px; border-radius: 8px; border: none; cursor: pointer; background: #2f7cf6; color: #fff; font: 600 14px "Segoe UI", sans-serif;
+}
+.laptop-window {
+  width: 74%; max-height: 82%; overflow: auto; border-radius: 10px; background: #f4f5f8; color: #1d2230;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+}
+.laptop-window.small { width: 52%; }
+.laptop-window-head { display: flex; gap: 12px; padding: 7px 12px; background: #dfe2e8; font: 600 13px "Segoe UI", sans-serif; }
+.laptop-window-head .dots { color: #ff5f57; letter-spacing: 2px; font-size: 10px; }
+.laptop-help { margin: 8px 14px; color: #5b6272; font-size: 13px; }
+.laptop-file {
+  display: block; width: calc(100% - 16px); margin: 2px 8px; padding: 8px 10px; border: none; border-radius: 6px;
+  text-align: left; background: transparent; cursor: pointer; font: 15px "Consolas", "Courier New", monospace; color: #1d2230;
+}
+.laptop-file:hover { background: #dbe7ff; }
+.laptop-running { margin: 8px 14px 12px; color: #2f7cf6; font-weight: 600; }
+.laptop-network { display: block; width: calc(100% - 16px); margin: 4px 8px; padding: 8px 10px; border-radius: 6px; border: none; text-align: left; font: 14px "Segoe UI", sans-serif; }
+.laptop-network.on { background: #e3ecff; cursor: pointer; color: #1d2230; font-weight: 600; }
+.laptop-network.off { color: #9aa0ab; background: transparent; }
+.laptop-wifi { display: flex; gap: 8px; padding: 6px 8px 10px; }
+.laptop-wifi .laptop-input { flex: 1; width: auto; border-color: #c4c9d3; }
+.laptop-window.terminal { background: #0e1117; color: #d7e0ea; }
+.laptop-window.terminal .laptop-window-head { background: #20242c; color: #c9d1d9; }
+.terminal-log { padding: 10px 14px 0; font: 15px/1.5 "Consolas", "Courier New", monospace; max-height: 220px; overflow: auto; }
+.terminal-line.dim { color: #6e7681; }
+.terminal-line.ok { color: #7ee787; }
+.terminal-line.bad { color: #ff7b72; }
+.terminal-form { display: flex; gap: 8px; align-items: center; padding: 4px 14px 14px; font: 15px "Consolas", "Courier New", monospace; }
+.terminal-prompt { color: #7ee787; }
+.terminal-input { flex: 1; border: none; outline: none; background: transparent; color: #f0f6fc; font: inherit; caret-color: #7ee787; }
+.laptop-toast {
+  position: absolute; right: 14px; bottom: 14px; max-width: 46%; padding: 10px 14px; border-radius: 10px;
+  font: 600 14px "Segoe UI", sans-serif; box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4); animation: device-in 0.3s;
+}
+.laptop-toast.ok { background: #e7f8ec; color: #136b2e; }
+.laptop-toast.bad { background: #ffe9e7; color: #a4161a; }
+
+/* --- Items as the real things --------------------------------------------------------------- */
+.real { position: relative; font-family: "Segoe UI", sans-serif; }
+.real.postit {
+  width: 190px; min-height: 170px; padding: 18px 16px 14px; background: #ffe766; color: #23246a;
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.35); transform: rotate(-2deg);
+  font: 17px/1.35 "Segoe Print", "Ink Free", "Bradley Hand", "Comic Sans MS", cursive;
+}
+.real.postit::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 22px; background: rgba(0, 0, 0, 0.05); }
+.real.postit p { margin: 0 0 6px; }
+.postit-step { padding-left: 14px; }
+.postit-sign { text-align: right; }
+.real.postit.screen-note { position: absolute; right: 26px; top: 46px; width: 170px; min-height: 0; font-size: 15px; transform: rotate(4deg); z-index: 2; }
+.real.postit.side-note { align-self: flex-end; margin-bottom: 40px; transform: rotate(-5deg); }
+.real.card {
+  width: 250px; height: 158px; border-radius: 12px; overflow: hidden; background: #fbfbfd;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.4); color: #14213d;
+}
+.card-band { height: 34px; padding: 6px 12px; background: #0d1b4c; color: #fff; font: 800 17px "Segoe UI", sans-serif; letter-spacing: 1px; }
+.card-photo { position: absolute; left: 12px; top: 46px; width: 62px; height: 76px; border-radius: 6px; display: grid; place-items: center; font-size: 40px; background: #d9dde6; }
+.card-words { position: absolute; left: 86px; top: 46px; right: 10px; }
+.card-name { font: 700 16px "Segoe UI", sans-serif; }
+.card-number { margin-top: 4px; font: 700 22px "Consolas", "Courier New", monospace; letter-spacing: 1px; color: #0d1b4c; }
+.card-note { margin-top: 6px; font-size: 11px; color: #5b6272; }
+.card-chip { position: absolute; right: 14px; bottom: 12px; width: 34px; height: 26px; border-radius: 5px; background: linear-gradient(135deg, #e8c96a, #b08a2a); }
+.real.coat { width: 170px; height: 190px; }
+.coat-hood { position: absolute; left: 55px; top: 0; width: 60px; height: 46px; border-radius: 30px 30px 10px 10px; background: #e0b021; }
+.coat-body { position: absolute; left: 25px; top: 36px; width: 120px; height: 150px; border-radius: 26px 26px 12px 12px; background: linear-gradient(#f5c934, #d9a91d); box-shadow: 0 10px 18px rgba(0, 0, 0, 0.35); }
+.coat-tag {
+  position: absolute; right: -6px; top: 70px; width: 88px; padding: 6px; background: #fff; color: #222;
+  border-radius: 4px; transform: rotate(10deg); font-size: 11px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+.coat-tag b { display: block; color: #c8343a; font-size: 15px; }
+.real.usb { width: 160px; height: 70px; border-radius: 10px; background: linear-gradient(#3f6fb5, #24467d); box-shadow: 0 8px 16px rgba(0, 0, 0, 0.35); }
+.usb-plug { position: absolute; right: -34px; top: 18px; width: 36px; height: 34px; border-radius: 3px; background: linear-gradient(#e4e7ec, #a5abb4); }
+.usb-tape { position: absolute; left: 16px; top: 18px; padding: 4px 12px; background: #f4ecd2; color: #222; transform: rotate(-3deg); font: 700 18px "Segoe Print", "Comic Sans MS", cursive; }
+.usb-tag { position: absolute; left: 0; top: 78px; font-size: 13px; color: inherit; white-space: nowrap; }
+.real.charger { width: 120px; height: 120px; }
+.charger-brick { width: 90px; height: 90px; border-radius: 14px; display: grid; place-items: center; background: #f6f6f6; color: #555; font: 700 15px sans-serif; box-shadow: 0 8px 16px rgba(0, 0, 0, 0.35); }
+.charger-cable { position: absolute; left: 86px; top: 40px; width: 50px; height: 10px; border-radius: 5px; background: #eee; }
+.charger-note { margin-top: 8px; font-size: 13px; }
+/* Picked up just now: it comes up close, then goes into the backpack */
+.picked-up {
+  position: absolute; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; gap: 40px;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.65)); animation: device-in 0.3s;
+  cursor: pointer; transition: opacity 0.7s, transform 0.7s;
+}
+.picked-up.leaving { opacity: 0; transform: translate(-36%, -42%) scale(0.2); }
+.picked-item { display: flex; flex-direction: column; align-items: center; gap: 16px; color: #fff; }
+.picked-name { padding: 4px 12px; border-radius: 999px; background: rgba(14, 12, 30, 0.85); font: 600 14px sans-serif; }
+/* The backpack: the things themselves, on a desk */
+.nb-things { display: flex; flex-wrap: wrap; gap: 26px 30px; padding: 10px 6px 18px; }
+.nb-thing { display: flex; flex-direction: column; align-items: center; gap: 10px; color: #f3ead6; }
+.real.usb { margin-right: 40px; }
+.nb-thing-name { font: 600 13px sans-serif; }
+
+/* Text messages, on the phone */
+.dialogue.phone-chat { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; }
+.phone {
+  width: 300px; height: min(520px, 76%); padding: 12px 10px; border-radius: 34px; display: flex; flex-direction: column;
+  background: #0d0e12; box-shadow: 0 0 0 3px #3a3d44, 0 24px 50px rgba(0, 0, 0, 0.6);
+}
+.phone.small { width: 280px; height: auto; margin: 10px auto; }
+.phone-head { display: flex; align-items: center; gap: 10px; padding: 8px 10px 10px; color: #fff; font: 600 15px "Segoe UI", sans-serif; border-bottom: 1px solid #22252c; }
+.phone-avatar { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: #c8343a; color: #fff; font-weight: 700; }
+.phone-messages { flex: 1; display: flex; flex-direction: column; gap: 8px; padding: 12px 6px; overflow: auto; background: #12151b; border-radius: 0 0 24px 24px; }
+.phone-bubble {
+  align-self: flex-start; max-width: 82%; padding: 8px 12px; border-radius: 16px 16px 16px 4px;
+  background: #262a33; color: #f1f3f7; font: 15px/1.35 "Segoe UI", sans-serif; animation: device-in 0.25s;
+}
+.phone-bubble.mine { align-self: flex-end; border-radius: 16px 16px 4px 16px; background: #1f8b4c; }
+.phone-bubble.typing { color: #9aa0ab; letter-spacing: 2px; }
+
+/* A choice in 3D (specs/3d-fixes-and-choices.md): the line over the speaker, big cards with icons,
+   a card floating over the place it leads to. The layer covers the stage; only its pieces take clicks. */
+.bubble.choices3d {
+  inset: 0; left: 0; top: 0; width: auto; padding: 0; z-index: 6;
+  background: none; border: none; border-radius: 0; pointer-events: none;
+}
+.choices3d > * { pointer-events: auto; }
+.choice-line {
+  position: absolute; left: 50%; top: 24%; transform: translate(-50%, -100%);
+  max-width: min(420px, 80%); width: max-content; padding: 10px 14px; border-radius: 14px;
+  background: #fff8e6; color: #2a1a05; font: 16px/1.4 Georgia, serif;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); animation: choice-pop 0.3s ease-out both;
+}
+.choice-line::after {
+  content: ""; position: absolute; left: 50%; bottom: -8px; margin-left: -8px;
+  border: 8px solid transparent; border-bottom: 0; border-top-color: #fff8e6;
+}
+/* Cards over places in the room: the line stays at the top, under the danger clock */
+.with-places .choice-line { top: 12%; transform: translateX(-50%); }
+.with-places .choice-line::after { display: none; }
+.choice-speaker { display: block; font: bold 12px/1.4 sans-serif; letter-spacing: 0.08em; text-transform: uppercase; color: #9a5a12; }
+.choice-row {
+  position: absolute; left: 50%; bottom: 6%; transform: translateX(-50%);
+  display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; width: min(760px, 94%);
+}
+.bubble .card3d, .card3d {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px;
+  width: 190px; margin: 0; padding: 14px 12px 12px; border-radius: 16px;
+  border: 2px solid rgba(242, 193, 78, 0.75); background: rgba(16, 14, 32, 0.9);
+  color: #f3ead6; font: 15px/1.3 sans-serif; text-align: center; cursor: pointer;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.5);
+  animation: choice-pop 0.35s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+  transition: transform 0.15s, border-color 0.15s, background 0.15s;
+}
+.bubble .card3d:hover, .bubble .card3d:focus-visible {
+  transform: translateY(-6px) scale(1.04); border-color: #f2c14e; background: rgba(60, 44, 10, 0.92);
+}
+.card3d .card-icon { font-size: 38px; line-height: 1; filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.5)); }
+.card3d .card-say { font-weight: 600; }
+.bubble .card3d[data-key]::before {
+  content: attr(data-key); position: absolute; top: -10px; left: -10px; display: grid; place-items: center;
+  width: 26px; height: 26px; margin: 0; border-radius: 50%; background: #f2c14e; color: #1a1205;
+  font: bold 14px/1 sans-serif; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+/* A card over a place in the room: smaller, pointing down to its ring on the floor */
+.card3d.placed { position: absolute; width: 160px; transform: translate(-50%, -100%); }
+.card3d.placed:hover, .card3d.placed:focus-visible { transform: translate(-50%, -100%) scale(1.06); }
+.card3d.placed::after {
+  content: ""; position: absolute; left: 50%; bottom: -10px; margin-left: -9px;
+  border: 9px solid transparent; border-bottom: 0; border-top-color: rgba(242, 193, 78, 0.85);
+}
+.card3d.chosen { border-color: #7dffa0; background: rgba(20, 70, 40, 0.92); }
+.choices3d.urgent .card3d { border-color: rgba(255, 96, 80, 0.85); animation: choice-pop 0.3s ease-out both, choice-urgent 0.9s ease-in-out 0.4s infinite; }
+.choices3d.urgent .card3d.placed::after { border-top-color: rgba(255, 96, 80, 0.85); }
+.card-leave {
+  position: absolute; right: 3%; bottom: 3%; width: auto !important; opacity: 0.75;
+  background: rgba(16, 14, 32, 0.8) !important; border-radius: 999px !important; padding: 6px 14px !important;
+}
+@keyframes choice-pop { from { opacity: 0; scale: 0.6; } }
+@keyframes choice-urgent { 50% { box-shadow: 0 0 0 6px rgba(255, 96, 80, 0.25), 0 10px 26px rgba(0, 0, 0, 0.5); } }
+@media (max-width: 600px) {
+  .bubble .card3d, .card3d { width: 44%; padding: 10px 8px; font-size: 13px; }
+  .card3d .card-icon { font-size: 28px; }
+  .card3d.placed { width: 120px; }
+}
