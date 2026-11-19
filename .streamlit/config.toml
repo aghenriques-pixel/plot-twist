@@ -9,3 +9,7 @@ font = "serif"
 
 [client]
 toolbarMode = "minimal"
+
+[server]
+# Serves static/ (Three.js for the 3D rooms) at app/static/, once, instead of with every click
+enableStaticServing = true

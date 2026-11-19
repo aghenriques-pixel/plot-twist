@@ -61,6 +61,7 @@ from rooms import (
     send_message,
 )
 from translations import LANGUAGES, UI_TEXT, tr, ui
+from world3d import world_view
 
 
 def secret(name):
@@ -90,7 +91,10 @@ COMPONENT_DIR = Path(__file__).parent / "components"
 scene_view = st.components.v2.component(
     "scene_view",
     css=(COMPONENT_DIR / "scene_view.css").read_text(encoding="utf-8"),
-    js=(COMPONENT_DIR / "scene_view.js").read_text(encoding="utf-8"),
+    # scene3d.js (the 3D rooms) is added to the same script; Three.js itself is a static file
+    js=(COMPONENT_DIR / "scene_view.js").read_text(encoding="utf-8")
+    + "\n"
+    + (COMPONENT_DIR / "scene3d.js").read_text(encoding="utf-8"),
 )
 
 # The language is kept in the link (?lang=pt), so it survives a reload; English by default
@@ -626,6 +630,8 @@ def view_data(game, role, message, chat):
         subtitle += f" · {t('room_n', room=ROOM)} · {role_name(role)}"
     data = {
         "mode": "game",
+        # Which place this is (scene3d.js keeps the character where it was within the same place)
+        "place": game["scene"],
         "background": svg_data_uri(ART_DIR / scene_image(game)),
         "character": None if finished or watching else (ASSETS_DIR / "character.svg").read_text(encoding="utf-8"),
         "walk": None if finished or watching else scene["walk"],
@@ -634,6 +640,8 @@ def view_data(game, role, message, chat):
         "looks": [translated_spot(look) for look in scene_looks(game, role)],
         # Co-op: dark patches over the clues in the agent's picture (only the contacto reads them)
         "shadows": scene_shadows(game, role),
+        # The place as a 3D room (world3d.py), or None: then the 2D picture is drawn
+        "world": world_view(game, role),
         "hud": {
             "title": say(scene["title"]),
             "subtitle": subtitle,
@@ -653,6 +661,7 @@ def view_data(game, role, message, chat):
             for key in (
                 "talk_leave", "keypad_try", "cancel", "close", "dialogue_continue", "danger_hurry", "restart_level",
                 "restart_confirm", "yes", "no", "your_time", "best_time", "toggle_text", "toggle_fullscreen", "key_hint",
+                "toggle_view", "key_hint_3d",
             )
         },
         # The level clock lives in the browser; a new run_token starts it again from zero
