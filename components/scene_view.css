@@ -1128,3 +1128,69 @@ button.chip:hover { border-color: var(--warm); }
 }
 .phone-bubble.mine { align-self: flex-end; border-radius: 16px 16px 4px 16px; background: #1f8b4c; }
 .phone-bubble.typing { color: #9aa0ab; letter-spacing: 2px; }
+
+/* A choice in 3D (specs/3d-fixes-and-choices.md): the line over the speaker, big cards with icons,
+   a card floating over the place it leads to. The layer covers the stage; only its pieces take clicks. */
+.bubble.choices3d {
+  inset: 0; left: 0; top: 0; width: auto; padding: 0; z-index: 6;
+  background: none; border: none; border-radius: 0; pointer-events: none;
+}
+.choices3d > * { pointer-events: auto; }
+.choice-line {
+  position: absolute; left: 50%; top: 24%; transform: translate(-50%, -100%);
+  max-width: min(420px, 80%); width: max-content; padding: 10px 14px; border-radius: 14px;
+  background: #fff8e6; color: #2a1a05; font: 16px/1.4 Georgia, serif;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); animation: choice-pop 0.3s ease-out both;
+}
+.choice-line::after {
+  content: ""; position: absolute; left: 50%; bottom: -8px; margin-left: -8px;
+  border: 8px solid transparent; border-bottom: 0; border-top-color: #fff8e6;
+}
+/* Cards over places in the room: the line stays at the top, under the danger clock */
+.with-places .choice-line { top: 12%; transform: translateX(-50%); }
+.with-places .choice-line::after { display: none; }
+.choice-speaker { display: block; font: bold 12px/1.4 sans-serif; letter-spacing: 0.08em; text-transform: uppercase; color: #9a5a12; }
+.choice-row {
+  position: absolute; left: 50%; bottom: 6%; transform: translateX(-50%);
+  display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; width: min(760px, 94%);
+}
+.bubble .card3d, .card3d {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px;
+  width: 190px; margin: 0; padding: 14px 12px 12px; border-radius: 16px;
+  border: 2px solid rgba(242, 193, 78, 0.75); background: rgba(16, 14, 32, 0.9);
+  color: #f3ead6; font: 15px/1.3 sans-serif; text-align: center; cursor: pointer;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.5);
+  animation: choice-pop 0.35s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+  transition: transform 0.15s, border-color 0.15s, background 0.15s;
+}
+.bubble .card3d:hover, .bubble .card3d:focus-visible {
+  transform: translateY(-6px) scale(1.04); border-color: #f2c14e; background: rgba(60, 44, 10, 0.92);
+}
+.card3d .card-icon { font-size: 38px; line-height: 1; filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.5)); }
+.card3d .card-say { font-weight: 600; }
+.bubble .card3d[data-key]::before {
+  content: attr(data-key); position: absolute; top: -10px; left: -10px; display: grid; place-items: center;
+  width: 26px; height: 26px; margin: 0; border-radius: 50%; background: #f2c14e; color: #1a1205;
+  font: bold 14px/1 sans-serif; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+/* A card over a place in the room: smaller, pointing down to its ring on the floor */
+.card3d.placed { position: absolute; width: 160px; transform: translate(-50%, -100%); }
+.card3d.placed:hover, .card3d.placed:focus-visible { transform: translate(-50%, -100%) scale(1.06); }
+.card3d.placed::after {
+  content: ""; position: absolute; left: 50%; bottom: -10px; margin-left: -9px;
+  border: 9px solid transparent; border-bottom: 0; border-top-color: rgba(242, 193, 78, 0.85);
+}
+.card3d.chosen { border-color: #7dffa0; background: rgba(20, 70, 40, 0.92); }
+.choices3d.urgent .card3d { border-color: rgba(255, 96, 80, 0.85); animation: choice-pop 0.3s ease-out both, choice-urgent 0.9s ease-in-out 0.4s infinite; }
+.choices3d.urgent .card3d.placed::after { border-top-color: rgba(255, 96, 80, 0.85); }
+.card-leave {
+  position: absolute; right: 3%; bottom: 3%; width: auto !important; opacity: 0.75;
+  background: rgba(16, 14, 32, 0.8) !important; border-radius: 999px !important; padding: 6px 14px !important;
+}
+@keyframes choice-pop { from { opacity: 0; scale: 0.6; } }
+@keyframes choice-urgent { 50% { box-shadow: 0 0 0 6px rgba(255, 96, 80, 0.25), 0 10px 26px rgba(0, 0, 0, 0.5); } }
+@media (max-width: 600px) {
+  .bubble .card3d, .card3d { width: 44%; padding: 10px 8px; font-size: 13px; }
+  .card3d .card-icon { font-size: 28px; }
+  .card3d.placed { width: 120px; }
+}

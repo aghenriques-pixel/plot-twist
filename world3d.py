@@ -57,6 +57,8 @@ ROOMS_3D = {
         "size": [14, 11],
         "height": 4.2,
         "start": [-4.6, 3.6],
+        # Coming back from the corridor: just inside the door, facing the room
+        "arrive": {"corredor": {"at": [-5.9, 2.6], "turn": 1.571}},
         "style": {"floor": "lino", "ceiling": "perforated", "palette": {**NOVA, "floor": "#a8a39b"}},
         "things": [
             {"kind": "oak_wall", "wall": "back", "at": [-2.7, -5.5], "width": 8.6},
@@ -84,13 +86,20 @@ ROOMS_3D = {
         "size": [18, 12],
         "height": 4.8,
         "start": [-7.4, -1.6],
+        # Through the door you came from: the study room's, the foot of the stairs, the glass door
+        "arrive": {
+            "sala_estudo": {"at": [-7.4, -1.6], "turn": 1.571},
+            "cafetaria": {"at": [0.6, 2.6], "turn": 0.0},
+            "terraco": {"at": [7.6, -4.4], "turn": -1.571},
+        },
         "style": {"floor": "wood", "ceiling": "perforated", "lights": "lines", "palette": NOVA,
                   "opening": [-0.9, 2.1, -4.6, -0.3]},
         "things": [
             {"kind": "door", "wall": "left", "at": [-9.0, -1.6], "stand": [-8.1, -1.6], "action": "voltar_sala"},
             {"kind": "exit_sign", "wall": "left", "at": [-9.0, -1.6]},
-            {"kind": "lockers", "wall": "back", "at": [-6.3, -6.0], "width": 4.6},
-            {"kind": "rita_locker", "wall": "back", "at": [-5.35, -6.0], "stand": [-5.35, -4.7], "action": "abrir_cacifo"},
+            # Rita's locker takes the place of one grey locker (the 7th of 9, top row)
+            {"kind": "lockers", "wall": "back", "at": [-6.3, -6.0], "width": 4.6, "gap": -5.28},
+            {"kind": "rita_locker", "wall": "back", "at": [-5.28, -6.0], "stand": [-5.28, -4.7], "action": "abrir_cacifo"},
             {"kind": "floor_note", "at": [-4.3, -4.9], "stand": [-4.3, -4.0], "look": "Note on the floor"},
             {"kind": "emergency_plan", "wall": "back", "at": [-3.1, -6.0], "stand": [-3.1, -4.8], "look": "Emergency plan"},
             {"kind": "snack_machine", "wall": "back", "at": [-1.75, -6.0], "stand": [-1.75, -4.2], "look": "Snack machine"},
@@ -144,7 +153,7 @@ ROOMS_3D = {
             {"kind": "long_table", "at": [-2.8, -2.6]},
             {"kind": "long_table", "at": [1.0, -1.0], "turn": 1.571},
             {"kind": "long_table", "at": [-2.6, 1.6], "chairs_down": True},
-            {"kind": "rita_card", "at": [-2.6, 1.6], "stand": [-2.6, 2.95], "action": "apanhar_cartao_rita",
+            {"kind": "rita_card", "at": [-2.6, 1.6], "stand": [-2.6, 3.1], "action": "apanhar_cartao_rita",
              "only_while_offered": True},
             {"kind": "atrium", "at": [4.4, 2.6], "width": 4.4, "depth": 2.4},
         ],
@@ -199,6 +208,19 @@ ROOMS_3D = {
              "actions": ["entrar_portatil", "talk:pen", "ligar_wifi", "talk:terminal"]},
         ],
     },
+}
+
+# The options of a conversation, drawn as cards in 3D: an icon, and where it happens in the room
+# (None: right where you stand). Choosing a place makes the character run there first.
+CHOICES = {
+    "tiago_incluido": {"icon": "🤝", "at": None},
+    "tiago_excluido": {"icon": "🙅", "at": None},
+    "esconder_maquina": {"icon": "🫣", "at": [-0.95, -5.2]},
+    "correr_sala": {"icon": "🏃", "at": [-8.1, -1.6]},
+    "ficar_parado_ronda": {"icon": "🧍", "at": None},
+    "tapar_casaco": {"icon": "🧥", "at": None},
+    "levantar_portatil": {"icon": "🙌", "at": None},
+    "esperar_rega": {"icon": "⏳", "at": None},
 }
 
 # Endings shown in a room with something added: the guard who caught you, the sprinklers...
@@ -297,9 +319,15 @@ def world_view(state, role=None):
         "size": room["size"],
         "height": room["height"],
         "start": room["start"],
+        "arrive": room.get("arrive", {}),
         "style": room["style"],
         "dim": room.get("dim", False),
         "spray": room.get("spray", False),
+        # The options of the conversations offered here, as cards (their words come with the spots)
+        "choices": {
+            option["action"]: CHOICES.get(option["action"], {"icon": "💬", "at": None})
+            for spot in spots if spot.get("talk") for option in spot["options"]
+        },
         # The contacto has no character: they watch through a security camera in a corner.
         # At an ending, the camera circles the character.
         "camera": "ending" if finished else "cctv" if watching else room.get("camera", "follow"),

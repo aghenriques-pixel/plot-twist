@@ -214,3 +214,61 @@ def test_the_laptop_screen_knows_what_is_done():
 
     assert world_view(state)["laptop"] == {"unlocked": True, "file": True, "wifi": True, "git": ["_git_add"]}
     assert world_view(play(new_game(now=T0), *START))["laptop"] is None
+
+
+# --- specs/3d-fixes-and-choices.md ---
+
+
+def inside(room_id, point):
+    width, depth = ROOMS_3D[room_id]["size"]
+    return abs(point[0]) < width / 2 - 0.4 and abs(point[1]) < depth / 2 - 0.2
+
+
+def test_every_option_in_a_3d_room_has_its_card():
+    s = new_game(now=T0)
+    with_coat = play(s, "apanhar_casaco")
+    round_ = play(s, *START, "ir_cafetaria", "voltar_corredor_ronda")
+    sprinklers = play(s, *START, *CARD, *TERRACE, "ligar_portatil")
+    for state in [with_coat, round_, sprinklers]:
+        view = world_view(state)
+        options = [o["action"] for spot in scene_hotspots(state) if spot.get("talk") for o in spot["options"]]
+        assert options, state["scene"]
+        assert set(view["choices"]) == set(options), state["scene"]
+        for choice in view["choices"].values():
+            assert choice["icon"]
+            assert choice["at"] is None or inside(room_of(state), choice["at"])
+
+
+def test_choosing_to_hide_or_run_points_to_its_place():
+    round_ = play(new_game(now=T0), *START, "ir_cafetaria", "voltar_corredor_ronda")
+
+    choices = world_view(round_)["choices"]
+
+    machine = next(t for t in ROOMS_3D["corredor"]["things"] if t["kind"] == "snack_machine")
+    door = next(t for t in ROOMS_3D["corredor"]["things"] if t.get("action") == "voltar_sala")
+    assert choices["esconder_maquina"]["at"][0] == pytest.approx(machine["at"][0], abs=1.2)
+    assert choices["correr_sala"]["at"] == door["stand"]
+    assert choices["ficar_parado_ronda"]["at"] is None
+
+
+def test_you_arrive_through_the_door_you_came_from():
+    expected = {"corredor": {"sala_estudo", "cafetaria", "terraco"}, "sala_estudo": {"corredor"}}
+    for room_id, came_from in expected.items():
+        arrive = ROOMS_3D[room_id]["arrive"]
+        assert set(arrive) == came_from, room_id
+        for where in arrive.values():
+            assert inside(room_id, where["at"]) and isinstance(where["turn"], float)
+
+    corridor = world_view(play(new_game(now=T0), *START))
+    assert corridor["arrive"]["cafetaria"]["at"] == ROOMS_3D["corredor"]["arrive"]["cafetaria"]["at"]
+
+
+def test_rita_locker_sits_on_a_slot_of_the_lockers():
+    things = ROOMS_3D["corredor"]["things"]
+    bank = next(t for t in things if t["kind"] == "lockers")
+    rita = next(t for t in things if t["kind"] == "rita_locker")
+    count = round(bank["width"] / 0.5)
+    slots = [bank["at"][0] - bank["width"] / 2 + (i + 0.5) * bank["width"] / count for i in range(count)]
+
+    assert bank["gap"] == rita["at"][0]
+    assert min(abs(rita["at"][0] - x) for x in slots) < 0.01

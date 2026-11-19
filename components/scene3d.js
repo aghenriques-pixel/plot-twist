@@ -417,7 +417,7 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
   scene.add(key);
 
   // --- The things in the room, from world3d.py ---
-  const obstacles = []; // outlines on the floor the character walks around: [minX, maxX, minZ, maxZ]
+  const obstacles = []; // outlines on the floor the character walks around: (x, z, margin) => touches
   const usable = []; // things the character can use
   const animated = []; // little things that move every frame: (dt, time, heroPosition) => {}
   const context = { THREE, box, cylinder, material, palette, animated, data, W, D, H, world };
@@ -441,9 +441,7 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
     if (group.userData.outlines) {
       obstacles.push(...group.userData.outlines);
     } else if (SOLID.has(thing.kind)) {
-      group.updateMatrixWorld(true);
-      const outline = new THREE.Box3().setFromObject(group);
-      obstacles.push([outline.min.x, outline.max.x, outline.min.z, outline.max.z]);
+      obstacles.push(boxOutline(THREE, group));
     }
     if (thing.facing_hero) later.push(group);
     if (SEE_THROUGH.has(thing.kind)) tall.push(group);
@@ -487,7 +485,13 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
   const visit = `${data.place}:${data.timer.run}`;
   let here = globalThis.__forbiddenArchiveHere;
   if (!here || here.visit !== visit || globalThis.__forbiddenArchiveCameFrom !== visit) {
-    here = { visit, x: world.start[0], z: world.start[1], turn: Math.PI };
+    // Through the door of the room you came from (the stairs from the cafeteria...), else the start
+    const before = globalThis.__forbiddenArchiveCameFrom;
+    const cameFrom = before && before.endsWith(`:${data.timer.run}`) ? before.slice(0, before.lastIndexOf(":")) : null;
+    const arrival = world.arrive?.[cameFrom];
+    here = arrival
+      ? { visit, x: arrival.at[0], z: arrival.at[1], turn: arrival.turn }
+      : { visit, x: world.start[0], z: world.start[1], turn: Math.PI };
     globalThis.__forbiddenArchiveHere = here;
   }
   const hero = watching || menuView ? null : makePerson(THREE, { coat: world.hero.coat });
@@ -536,7 +540,7 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
   const edge = outdoor ? 0.6 : 0.45;
   const collides = (x, z) =>
     x < -W / 2 + edge || x > W / 2 - edge || z < -D / 2 + edge + 0.1 || z > D / 2 - 0.2 ||
-    obstacles.some(([x1, x2, z1, z2]) => x > x1 - HERO_RADIUS && x < x2 + HERO_RADIUS && z > z1 - HERO_RADIUS && z < z2 + HERO_RADIUS);
+    obstacles.some((touches) => touches(x, z, HERO_RADIUS));
 
   function moveBy(dx, dz) {
     // Each axis on its own, so the character slides along a desk instead of stopping
@@ -580,9 +584,105 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
   const laptopSteps = (spot) => world.laptop && (spot.lock === "login" || spot.lock === "wifi" || spot.talk === "pen" || spot.talk === "terminal");
   function useSpot(spot) {
     if (laptopSteps(spot)) return openLaptop(stage, data, setTriggerValue);
-    if (spot.talk) return ui.openTalk(spot);
+    if (spot.talk) return hero && spot.options.every((o) => world.choices?.[o.action]) ? openChoices(spot) : ui.openTalk(spot);
     if (spot.code_prompt) return ui.openKeypad(spot);
     setTriggerValue("action", { id: spot.action, x: spot.stand });
+  }
+
+  // --- A choice: big cards in the room instead of a box of text ---
+  // The line is shown over whoever says it; each option is a card with its icon and number key.
+  // An option that is a place (the snack machine, the door) floats over that place with a ring on
+  // the floor, and choosing it makes the character run there before Python is told.
+  let choosing = null;
+  function openChoices(spot) {
+    ui.closeBubble();
+    closeChoices();
+    const speaker = usable.find((u) => u.spot === spot);
+    const panel = el("div", "bubble choices3d");
+    if (data.danger) panel.classList.add("urgent");
+    panel.onclick = (event) => event.stopPropagation();
+    const line = el("div", "choice-line");
+    if (spot.speaker) line.append(el("b", "choice-speaker", spot.speaker));
+    line.append(el("span", "", spot.line));
+    const row = el("div", "choice-row");
+    panel.append(line, row);
+    const floating = [];
+    const rings = [];
+    spot.options.forEach((option, i) => {
+      const card = world.choices[option.action];
+      const b = el("button", "choice card3d");
+      b.dataset.key = String(i + 1);
+      b.style.animationDelay = `${0.12 + i * 0.12}s`;
+      b.append(el("span", "card-icon", card.icon), el("span", "card-say", option.say.replace(/^“|”$/g, "")));
+      b.onclick = (event) => {
+        event.stopPropagation();
+        Sound.click();
+        stage.dispatchEvent(new Event("choice-sent"));
+        b.classList.add("chosen");
+        const send = () => setTriggerValue("action", { id: option.action, x: spot.stand });
+        setTimeout(closeChoices, 180);
+        if (card.at && hero) {
+          heroSays(option.say);
+          walkTo(new THREE.Vector3(card.at[0], 0, card.at[1]), () => setTimeout(send, 250), WALK_SPEED * 1.8);
+        } else {
+          setTimeout(send, 260);
+        }
+      };
+      if (card.at) {
+        b.classList.add("placed");
+        panel.append(b);
+        floating.push({ element: b, point: new THREE.Vector3(card.at[0], 1.7, card.at[1]) });
+        const ring = new THREE.Mesh(new THREE.RingGeometry(0.42, 0.58, 40), new THREE.MeshBasicMaterial({ color: data.danger ? "#ff5a4e" : "#f2c14e", transparent: true, opacity: 0.6, depthWrite: false }));
+        ring.rotation.x = -Math.PI / 2;
+        ring.position.set(card.at[0], 0.02, card.at[1]);
+        scene.add(ring);
+        rings.push(ring);
+      } else {
+        row.append(b);
+      }
+    });
+    if (!data.danger) {
+      const leave = el("button", "choice leave card-leave", data.ui.talk_leave);
+      leave.onclick = (event) => {
+        event.stopPropagation();
+        closeChoices();
+      };
+      panel.append(leave);
+    }
+    if (floating.length) panel.classList.add("with-places");
+    stage.append(panel);
+    choosing = { panel, line, floating, rings, anchor: speaker?.anchor || null };
+    speak(spot.line, spot.speaker || "you", data.voice_lang);
+  }
+  function closeChoices() {
+    if (!choosing) return;
+    choosing.panel.remove();
+    for (const ring of choosing.rings) {
+      scene.remove(ring);
+      ring.geometry.dispose();
+      ring.material.dispose();
+    }
+    choosing = null;
+  }
+  function placeChoices(time) {
+    if (!choosing) return;
+    // Closed some other way (a click on the floor, Esc): take the rings away too
+    if (!choosing.panel.isConnected) return closeChoices();
+    // The line over the speaker, unless cards float in the room too (then it stays at the top,
+    // where no card covers it)
+    if (choosing.anchor && !choosing.floating.length) placeOver(choosing.line, choosing.anchor);
+    for (const { element, point } of choosing.floating) {
+      // Over its place, but always whole on the screen (a door at the edge of the view)
+      projected.copy(point).project(camera);
+      const left = Math.min(88, Math.max(12, ((projected.x + 1) / 2) * 100));
+      const top = Math.min(92, Math.max(52, ((1 - projected.y) / 2) * 100));
+      element.style.left = `${left}%`;
+      element.style.top = `${top}%`;
+    }
+    for (const ring of choosing.rings) {
+      const pulse = 1 + Math.sin(time * 5) * 0.12;
+      ring.scale.set(pulse, pulse, pulse);
+    }
   }
 
   function use(item) {
@@ -595,7 +695,17 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
       here.turn = Math.atan2(at.x - p.x, at.z - p.z);
     }
     if (item.look) return inspect(item);
-    useSpot(item.spot);
+    // A door swings open first, then the next room is asked for
+    const spot = item.spot;
+    if (item.group.userData.hinge && !spot.talk && !spot.code_prompt) {
+      if (item.group.userData.open) return;
+      item.group.userData.open = true;
+      Sound.step();
+      // Still here after a while (Python refused: no card yet): the door closes again
+      setTimeout(() => (item.group.userData.open = false), 2500);
+      return setTimeout(() => stage.isConnected && useSpot(spot), 420);
+    }
+    useSpot(spot);
   }
 
   // --- Looking at a thing close up: the camera goes to it and its words can be read on it ---
@@ -649,11 +759,11 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
     stage.querySelectorAll(".inspect3d, .inspect-thought").forEach((node) => node.remove());
   }
 
-  function walkTo(point, then) {
+  function walkTo(point, then, speed = WALK_SPEED) {
     if (!hero) return then && then();
-    ui.closeBubble();
+    if (!choosing) ui.closeBubble();
     const path = findPath(hero.group.position, point);
-    target = { path, point: path.shift(), then };
+    target = { path, point: path.shift(), then, speed };
     stuck = 0;
   }
 
@@ -844,7 +954,7 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
       bar.style.transitionDuration = `${seconds}s`;
       bar.classList.add("running");
     });
-    if (spot) setTimeout(() => !done && ui.openTalk(spot), 700);
+    if (spot) setTimeout(() => !done && useSpot(spot), 700);
   }
 
   // --- Cameras ---
@@ -949,6 +1059,7 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
     camera.lookAt(look);
 
     seeThrough(dt, p);
+    placeChoices(time);
 
     // The nearest thing: its ring glows and its label floats over it
     nearest = findNearest();
@@ -1044,7 +1155,7 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
           if (then) then();
         }
       } else {
-        const stepLength = Math.min(distance, WALK_SPEED * dt);
+        const stepLength = Math.min(distance, target.speed * dt);
         faceTowards(tx, tz, dt);
         walking = moveBy((tx / distance) * stepLength, (tz / distance) * stepLength);
         stuck = walking ? 0 : stuck + dt;
@@ -1064,6 +1175,43 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
   shared.active = { scene, camera, update };
   // For the browser tests (Playwright): walk to a point of the room, as a click on the floor does
   if (hero) globalThis.__forbiddenArchiveWalkTo = (x, z) => walkTo(new THREE.Vector3(x, 0, z));
+  // For the browser tests: can the character reach every thing it can use from where it stands?
+  globalThis.__forbiddenArchiveReach = () => {
+    const from = hero ? hero.group.position : new THREE.Vector3(...[world.start[0], 0, world.start[1]]);
+    const seen = new Set();
+    const index = (x, z) => Math.floor((z + D / 2) / CELL) * columns + Math.floor((x + W / 2) / CELL);
+    const queue = [index(from.x, from.z)];
+    seen.add(queue[0]);
+    while (queue.length) {
+      const c = queue.pop();
+      for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const ni = (c % columns) + di;
+        const nj = Math.floor(c / columns) + dj;
+        const n = nj * columns + ni;
+        if (ni < 0 || nj < 0 || ni >= columns || nj >= rows || seen.has(n) || !free[n]) continue;
+        seen.add(n);
+        queue.push(n);
+      }
+    }
+    return {
+      room: world.room,
+      startFree: !collides(from.x, from.z),
+      things: usable.map((u) => ({
+        label: u.label,
+        stand: [+u.stand.x.toFixed(2), +u.stand.z.toFixed(2)],
+        standFree: !collides(u.stand.x, u.stand.z),
+        reachable: seen.has(index(u.stand.x, u.stand.z)),
+      })),
+      freeShare: +(seen.size / free.length).toFixed(2),
+      // A map, 50 cm a letter: # blocked, . reached, o free but cut off
+      map: Array.from({ length: Math.floor(rows / 2) }, (_, j) =>
+        Array.from({ length: Math.floor(columns / 2) }, (_, i) => {
+          const n = j * 2 * columns + i * 2;
+          return seen.has(n) ? "." : free[n] ? "o" : "#";
+        }).join("")
+      ),
+    };
+  };
 
   // Stop drawing (and free the GPU memory) once this screen is gone
   const watcher = setInterval(() => {
@@ -1873,12 +2021,41 @@ function focusOn(group, at, normal, width, height) {
   group.userData.focus = { at, normal, width, height };
 }
 
-// An outline on the floor the character walks around, for things too big or too curved for one
-// box (the rows of desks): [minX, maxX, minZ, maxZ] in the room's coordinates
-function outline(group, points) {
-  const xs = points.map((p) => p[0]);
-  const zs = points.map((p) => p[1]);
-  (group.userData.outlines ??= []).push([Math.min(...xs), Math.max(...xs), Math.min(...zs), Math.max(...zs)]);
+// An outline on the floor the character walks around, for things too curved for one box (a row
+// of desks): the ring between two radii and two angles round a centre, in the room's coordinates.
+// An outline is a function (x, z, margin) => true when the point, grown by margin, touches it.
+function arcOutline(group, cx, cz, r1, r2, a1, a2) {
+  (group.userData.outlines ??= []).push((x, z, margin) => {
+    const r = Math.hypot(x - cx, z - cz);
+    if (r < r1 - margin || r > r2 + margin) return false;
+    const a = Math.atan2(x - cx, z - cz);
+    const grow = margin / Math.max(r, 0.01);
+    return a > a1 - grow && a < a2 + grow;
+  });
+}
+
+// The outline of a thing that is one box: measured in the thing's own coordinates and turned with
+// it, so a turned table blocks only where it stands
+function boxOutline(THREE, group) {
+  const { x, z } = group.position;
+  const turn = group.rotation.y;
+  group.position.set(0, 0, 0);
+  group.rotation.y = 0;
+  group.updateMatrixWorld(true);
+  const bounds = new THREE.Box3().setFromObject(group);
+  group.position.set(x, 0, z);
+  group.rotation.y = turn;
+  group.updateMatrixWorld(true);
+  const cos = Math.cos(turn);
+  const sin = Math.sin(turn);
+  return (px, pz, margin) => {
+    // The point in the thing's coordinates (the inverse of turning by "turn" about y)
+    const dx = px - x;
+    const dz = pz - z;
+    const lx = dx * cos - dz * sin;
+    const lz = dx * sin + dz * cos;
+    return lx > bounds.min.x - margin && lx < bounds.max.x + margin && lz > bounds.min.z - margin && lz < bounds.max.z + margin;
+  };
 }
 
 // Many copies of one shape in one draw call (chairs, spotlights, railing bars)
@@ -1996,19 +2173,10 @@ const THINGS = {
         backs.push([(cr + 0.22) * Math.sin(b), 0.74, (cr + 0.22) * Math.cos(b), b + Math.PI]);
         posts.push([cr * Math.sin(b), 0.23, cr * Math.cos(b), b]);
       }
-      // What the character walks around: the desk, then the chairs behind it, in short pieces so
-      // the boxes hug the curve (the aisles between the rows stay free)
-      const cuts = Math.max(1, Math.ceil(chord / 0.4));
-      for (let k = 0; k < cuts; k++) {
-        const a1 = a - step / 2 + (k * step) / cuts;
-        const a2 = a1 + step / cuts;
-        for (const [r1, r2] of [[r - 0.34, r + 0.32], [r + 0.32, r + 0.88]]) {
-          const corners = [];
-          for (const rr of [r1, r2]) for (const aa of [a1, a2]) corners.push([cx + rr * Math.sin(aa), cz + rr * Math.cos(aa)]);
-          outline(group, corners);
-        }
-      }
     }
+    // What the character walks around: the desks and the chairs behind them, along the arc itself
+    // (boxes along the floor's axes would be much bigger than the curve and close the aisles)
+    arcOutline(group, cx, cz, r - 0.34, r + 0.82, thing.from, thing.to);
     const black = new THREE.MeshStandardMaterial({ color: "#1b1c20", roughness: 0.55 });
     const chrome = new THREE.MeshStandardMaterial({ color: "#c2c6cc", metalness: 0.7, roughness: 0.3 });
     group.add(copies(THREE, new THREE.BoxGeometry(0.46, 0.05, 0.44), black, seats));
@@ -2131,19 +2299,33 @@ const THINGS = {
     focusOn(group, [0, 1.55, 0.02], [0, 0, 1], 0.5, 0.68);
   },
 
-  door({ THREE, group, box, thing }) {
-    // A door in a wall: dark grey (or glass), with a card reader that lights up
+  door({ THREE, group, box, thing, animated }) {
+    // A door in a wall: dark grey (or glass), with a card reader that lights up. It swings open
+    // on its hinge (the left edge) when used (group.userData.open)
     const frame = box(1.3, 2.4, 0.12, "#3b3d42");
     frame.position.set(0, 1.2, 0.04);
+    // The opening behind the leaf: dark, so an open door shows a way through
+    const way = box(1.1, 2.25, 0.01, "#0d0e12", { roughness: 1 });
+    way.position.set(0, 1.13, 0.105);
+    const hinge = new THREE.Group();
+    hinge.position.set(-0.55, 0, 0.09);
     const leaf = box(1.1, 2.25, 0.06, thing.glass ? "#9fb8c8" : "#5d6168", thing.glass ? { transparent: true, opacity: 0.45, metalness: 0.4, roughness: 0.1 } : { roughness: 0.5 });
-    leaf.position.set(0, 1.13, 0.09);
+    leaf.position.set(0.55, 1.13, 0.03);
     const handle = box(0.04, 0.3, 0.05, "#d0d3d8", { metalness: 0.8, roughness: 0.2 });
-    handle.position.set(0.42, 1.05, 0.14);
+    handle.position.set(0.97, 1.05, 0.08);
+    hinge.add(leaf, handle);
+    group.add(way, hinge);
+    group.userData.hinge = hinge;
+    animated.push((dt) => {
+      // It opens away from you, into the next room (behind the wall)
+      const wanted = group.userData.open ? 1.35 : 0;
+      hinge.rotation.y += (wanted - hinge.rotation.y) * Math.min(1, dt * 7);
+    });
     const reader = box(0.1, 0.16, 0.04, "#1c1c22");
     reader.position.set(0.75, 1.2, 0.08);
     const led = new THREE.Mesh(new THREE.SphereGeometry(0.015, 8, 6), new THREE.MeshBasicMaterial({ color: "#3bff6a" }));
     led.position.set(0.75, 1.26, 0.1);
-    group.add(frame, leaf, handle, reader, led);
+    group.add(frame, reader, led);
   },
 
   exit_sign({ THREE, group }) {
@@ -2168,6 +2350,8 @@ const THINGS = {
     for (let i = 0; i < count; i++) {
       const x = -width / 2 + (i + 0.5) * (width / count);
       for (const [y, h] of [[0.55, 1.0], [1.6, 1.0]]) {
+        // The top locker where Rita's own stands (drawn by "rita_locker") is left out
+        if (y > 1 && thing.gap !== undefined && Math.abs(thing.at[0] + x - thing.gap) < 0.05) continue;
         const door = box(width / count - 0.02, h - 0.02, 0.5, "#8d949c", { metalness: 0.45, roughness: 0.45 });
         door.position.set(x, y, 0.25);
         const vent = box(0.25, 0.08, 0.01, "#5d636a");
@@ -2181,21 +2365,24 @@ const THINGS = {
 
   rita_locker({ THREE, group, box, thing, animated }) {
     // Rita's locker: a sticker, and a 5-digit padlock (or the door hanging open)
-    const body = box(0.5, 1.0, 0.52, "#2c6db0", { metalness: 0.4, roughness: 0.45 });
-    body.position.set(0, 1.6, 0.26);
+    // Exactly one slot of the grey bank (0.51 m, less the 2 cm between lockers)
+    const body = box(0.49, 0.98, 0.5, "#2c6db0", { metalness: 0.4, roughness: 0.45 });
+    body.position.set(0, 1.6, 0.25);
     group.add(body);
     const sticker = textTexture(THREE, ["RITA ✿"], { width: 256, height: 96, background: "#ffe14d", color: "#2a1a05", font: "bold 44px sans-serif" });
     const label = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.11), new THREE.MeshStandardMaterial({ map: sticker }));
     if (thing.open) {
-      body.scale.z = 0.98;
-      const door = box(0.48, 0.98, 0.03, "#2c6db0", { metalness: 0.4 });
-      door.position.set(-0.45, 1.6, 0.62);
-      door.rotation.y = -1.2;
-      label.position.set(-0.47, 1.85, 0.66);
-      label.rotation.y = -1.2;
-      const inside = box(0.44, 0.9, 0.02, "#1a1d22");
-      inside.position.set(0, 1.6, 0.53);
-      group.add(door, inside, label);
+      // The door swings out on its hinge (the left edge), into the corridor, not into the next locker
+      const hinge = new THREE.Group();
+      hinge.position.set(-0.245, 1.6, 0.52);
+      hinge.rotation.y = -1.9;
+      const door = box(0.48, 0.96, 0.03, "#2c6db0", { metalness: 0.4 });
+      door.position.set(0.245, 0, 0);
+      label.position.set(0.245, 0.25, 0.02);
+      hinge.add(door, label);
+      const inside = box(0.45, 0.94, 0.02, "#1a1d22");
+      inside.position.set(0, 1.6, 0.5);
+      group.add(hinge, inside);
     } else {
       label.position.set(0, 1.85, 0.525);
       const lock = box(0.12, 0.14, 0.05, "#c9a227", { metalness: 0.8, roughness: 0.25 });
