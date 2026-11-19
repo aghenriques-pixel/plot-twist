@@ -6,7 +6,7 @@ import pytest
 
 from accounts import AccountError, create_account, log_in
 from db import endings_reached, record_ending
-from levels import LEVELS, level_for_chapter, level_status
+from levels import COMING_SOON, LEVELS, level_for_chapter, level_status
 
 ALICE = "alice_aaaaaaaaaaaaaaaaaaaaaa"
 
@@ -19,39 +19,38 @@ def db(tmp_path):
 # --- Levels -------------------------------------------------------------------------------
 
 
-# Changed (specs/level-3.md): there are three levels now
-def test_a_new_player_has_level_1_open_and_level_2_locked():
+# Changed (specs/entrega-2359.md): one level for now; levels 2 and 3 are "coming soon"
+def test_a_new_player_has_level_1_open():
     status = level_status(set())
 
-    assert [(s["number"], s["unlocked"], s["completed"]) for s in status] == [(1, True, False), (2, False, False), (3, False, False)]
+    assert [(s["number"], s["unlocked"], s["completed"]) for s in status] == [(1, True, False)]
+    assert COMING_SOON == [2, 3]
 
 
-def test_ending_1_completes_level_1_and_opens_level_2():
-    status = level_status({"final_resistencia"})
+@pytest.mark.parametrize("ending", ["final_entregue", "final_tiago"])
+def test_submitting_completes_level_1(ending):
+    assert level_status({ending})[0]["completed"]
 
-    assert status[0]["completed"] and status[1]["unlocked"]
 
-
-def test_other_endings_do_not_open_the_next_level():
-    status = level_status({"final_descoberto", "final_traido"})
+def test_failing_endings_do_not_complete_the_level():
+    status = level_status({"final_afogado", "final_seguranca"})
 
     assert not status[0]["completed"]
-    assert not status[1]["unlocked"]
     assert status[0]["endings_found"] == 2
+    assert status[0]["endings_total"] == 5
 
 
 def test_levels_match_chapters():
-    # Changed (specs/level-3.md): three levels
-    assert [level["chapter"] for level in LEVELS] == [1, 2, 3]
-    assert level_for_chapter(2)["number"] == 2
+    assert [level["chapter"] for level in LEVELS] == [1]
+    assert level_for_chapter(1)["number"] == 1
 
 
 def test_endings_are_recorded_once_per_player_and_survive_a_restart(db):
-    record_ending(db, ALICE, "final_resistencia")
-    record_ending(db, ALICE, "final_resistencia")
-    record_ending(db, "someone_else_xxxxxxxxxxxxx", "final_traido")
+    record_ending(db, ALICE, "final_entregue")
+    record_ending(db, ALICE, "final_entregue")
+    record_ending(db, "someone_else_xxxxxxxxxxxxx", "final_afogado")
 
-    assert endings_reached(db, ALICE) == {"final_resistencia"}
+    assert endings_reached(db, ALICE) == {"final_entregue"}
 
 
 # --- Accounts -----------------------------------------------------------------------------

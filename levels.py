@@ -5,15 +5,13 @@ No Streamlit and no database here: level_status works from the set of endings a 
 
 LEVELS = [
     # completes_with: endings that complete the level (the story only continues from these)
-    {"number": 1, "chapter": 1, "completes_with": {"final_resistencia"}},
-    {"number": 2, "chapter": 2, "completes_with": {"final_c2_voz", "final_c2_estatica"}},
-    {"number": 3, "chapter": 3, "completes_with": {"final_c3_nomes", "final_c3_dois"}},
+    {"number": 1, "chapter": 1, "completes_with": {"final_entregue", "final_tiago"}},
 ]
+# Levels still being written: shown on the map, locked ("Coming soon")
+COMING_SOON = [2, 3]
 
 ENDINGS_BY_CHAPTER = {
-    1: {"final_resistencia", "final_descoberto", "final_traido", "final_apanhado"},
-    2: {"final_c2_voz", "final_c2_reconhecido", "final_c2_estatica", "final_c2_preso"},
-    3: {"final_c3_nomes", "final_c3_dois", "final_c3_apanhados"},
+    1: {"final_entregue", "final_tiago", "final_meia_noite", "final_afogado", "final_seguranca"},
 }
 
 

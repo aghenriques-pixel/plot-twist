@@ -1,22 +1,20 @@
 # The Forbidden Archive
 
-A mystery game in the browser. You work at the Ministério da Verdade and discover that history is being rewritten. Observe the scenes, solve the puzzles, decide whether to trust your colleague Tomás, and reach one of three endings.
+A 3D escape room in the browser, at Nova SBE. **Level 1 — "Submission at 23:59":** it is 23:44 in Study Room B, the group project is due on GitHub at 23:59, the code is on Rita's pen drive locked in her locker, your laptop is at 3% and Tiago changed its password as a joke. Get out of the room, find Rita's card in the cafeteria, open her locker, hide from the security round, find a working socket on the terrace, survive the sprinklers, and `git push` before midnight. Your answer to Tiago decides one of the five endings.
 
-**Three levels on a map.** Level 1 is "The Ministry". Reaching Ending 1 opens **Level 2 — "The Radio"**: the night after, take over the Party's radio. Find a safe route through the city, decipher the password, tune the right frequency, and choose whose voice the city will hear. Getting the truth on air opens **Level 3 — "The Ministry of Love"**: get Tomás's sister Clara out before dawn, disguised as laundry staff. Crack the service door and the officer's safe, pick the right cell, and decide whether to risk going back for the list of every prisoner. The map shows which levels are open, completed (✓) and how many endings you found (11 in all).
+**All in 3D, third person:** the rooms are inspired by Nova SBE (the amphitheatre classrooms, floor 0 of the library with the "STATE YOUR MIND AND MIND YOUR STEP" staircase, the cafeteria, the terrace over Carcavelos beach). Walk with WASD or the arrows, or click; E uses the nearest thing.
 
-**Chance:** some moments have a probability (Tomás may change his mind, the guard may keep sleeping, static may hide your voice), so replaying a level does not always end the same way.
+**Against the clock:** the clock shows the real time, from 23:44 to 00:00. A wrong code, file or git command costs 30 seconds; a 💡 hint costs a minute. Two danger moments give you 10 seconds to decide.
 
-**Voices:** conversations are spoken by the browser's own speech voices (Tomás has a lower voice), and choosing a tunnel or a box makes the character walk there and come back if it was wrong. Voices can be turned off in Settings.
+**Levels 2 and 3** are on the map as "Coming soon".
 
-**Events and danger:** wrong choices are not dead ends any more. A torch in the tunnel is a patrol, so hide, run or freeze before the clock runs out. Factory Street has a curfew patrol, Market Alley has a coffee seller who knows things, and a dead end hides a tin box. Getting caught is an ending of its own.
-
-**Notebook:** the 🎒 button opens a notebook from any scene. It shows every item with its full text, every conversation line by line, and your decisions.
+**Notebook:** the 🎒 button opens a notebook from any scene: every item, every conversation, your decisions.
 
 **Accounts (online):** create an account with a username and password to keep your levels when you come back, on any device.
 
-It starts on a main menu (**Play, How to Play, Settings, Exit**). The picture fills the whole screen, with the texts over it, and you can play with the mouse or the keyboard (← → walk, E use, 1–9 choose, N notebook, R restart). It has a clock for each level with a best time, its own music for each level and for danger, made in the browser, and can be played in **English or Portuguese**.
+It starts on a main menu (**Play, How to Play, Settings, Exit**) over the terrace at night, has its own music for each place and for danger, made in the browser, and can be played in **English or Portuguese**.
 
-Play **alone**, or **with a friend in cooperative mode**: one player is the *agente* who acts, the other is the *contacto da resistência* who sees the clues through the cameras. You only get through by talking in the room's chat.
+Play **alone**, or **with a friend in cooperative mode**: one player is in the building and acts, the other watches the security cameras from home and sees the clues. You only make the deadline by talking in the room's chat.
 
 **Play online:** _(link do Streamlit Cloud — a preencher depois do deploy)_
 
@@ -53,7 +51,8 @@ The same tests run on GitHub Actions for every pull request and every push to `m
 
 | Part | File | What it does |
 |---|---|---|
-| Story and rules | `logic.py` | Scenes, items, actions, puzzles, endings. `apply_action(state, action_id, code)` decides what is allowed. Pure Python. |
+| Story | `story.py` | Level 1 — "Submission at 23:59" (specs/entrega-2359.md): scenes, items, actions, puzzles, hints, endings. Only data. |
+| Rules | `logic.py` | `apply_action(state, action_id, code, now=...)` decides what is allowed, including the clock (23:44 → 00:00), the penalties and the hints. Pure Python. |
 | Players | `players.py` | Online, each player is identified by a secret code in their link (`?jogador=...`). |
 | Accounts | `accounts.py` | A username and password that own a player code. Passwords are stored only as salted PBKDF2-SHA256 hashes. |
 | Levels | `levels.py` | Which chapter each level is, which endings complete it, and which levels are open (from the endings a player reached). |

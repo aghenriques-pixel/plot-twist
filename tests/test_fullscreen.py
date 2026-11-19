@@ -12,6 +12,8 @@ from logic import ACTIONS, DECISION_LABELS, ITEM_DETAILS, ITEMS, SCENES
 APP_PATH = str(Path(__file__).parent.parent / "app.py")
 # Words and letters that only appear in Portuguese (names like Tomás and Júlia are fine)
 PORTUGUESE = re.compile(r"[ãõç]|\b(não|uma|está|tens|para|com|você|porta|caixa|sala|jogo)\b", re.IGNORECASE)
+# Names in the game that stay in Portuguese: the coffees on the menu of a Portuguese cafeteria
+NAMES = re.compile(r"Meia de leite|Galão")
 
 
 def visible_texts():
@@ -42,7 +44,7 @@ def visible_texts():
 
 # Done when 1
 def test_no_portuguese_left_in_the_game():
-    leftovers = [text for text in visible_texts() if PORTUGUESE.search(text)]
+    leftovers = [text for text in visible_texts() if PORTUGUESE.search(NAMES.sub("", text))]
     assert leftovers == []
 
 
@@ -70,8 +72,8 @@ def test_game_screen_keeps_buttons_in_the_text_mode(db):
     sidebar_buttons = [button.key for button in at.sidebar.button]
 
     assert main_buttons == []
-    assert "apanhar_cartao" in sidebar_buttons
-    assert at.sidebar.title[0].value == "Ministry of Truth"
+    assert "apanhar_casaco" in sidebar_buttons
+    assert at.sidebar.title[0].value == "Study Room B"
 
 
 # Signs and papers drawn inside the pictures are part of the game too
@@ -87,8 +89,3 @@ def svg_texts(path):
 def test_no_portuguese_in_the_pictures():
     leftovers = {path.name: text for path in ART_DIR.glob("*.svg") for text in svg_texts(path) if SVG_PORTUGUESE.search(text)}
     assert leftovers == {}
-
-
-def test_the_cipher_on_the_table_matches_the_message():
-    cipher = re.search(r"\b[A-Z]{7}\b", ACTIONS["apanhar_mensagem"]["message"]).group(0)
-    assert cipher in svg_texts(ART_DIR / "c2_esconderijo.svg")

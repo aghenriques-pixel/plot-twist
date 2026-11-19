@@ -140,21 +140,22 @@ def test_the_password_rule_says_6_to_128(store):
 # Done when 5
 @pytest.mark.parametrize("code", ["", "   ", None])
 def test_an_empty_code_asks_for_the_code(code):
-    state = {"scene": "ministerio", "inventory": ["cartao_acesso"], "decisions": {}}
+    state = {"scene": "corredor", "inventory": ["casaco", "cartao_jogador"], "decisions": {}}
 
-    accepted, after, message = apply_action(state, "ir_arquivo", code)
+    accepted, after, message = apply_action(state, "abrir_cacifo", code)
 
     assert not accepted and after == state
     assert message == "Type the code first."
 
 
-@pytest.mark.parametrize("code", [1704, ["1704"], {"a": 1}, 17.04])
+@pytest.mark.parametrize("code", [31284, ["31284"], {"a": 1}, 312.84])
 def test_a_code_that_is_not_text_is_a_wrong_code(code):
-    state = {"scene": "ministerio", "inventory": ["cartao_acesso"], "decisions": {}}
+    state = {"scene": "corredor", "inventory": ["casaco", "cartao_jogador"], "decisions": {}}
 
-    accepted, after, _ = apply_action(state, "ir_arquivo", code)
+    accepted, after, _ = apply_action(state, "abrir_cacifo", code)
 
-    assert not accepted and after == state
+    assert not accepted
+    assert (after["scene"], after["inventory"]) == (state["scene"], state["inventory"])
 
 
 @pytest.mark.parametrize(
@@ -178,7 +179,7 @@ def test_an_invite_link_joins_the_room_as_contact(online):
 
     at = open_app(BRUNO, sala=code)
 
-    assert at.title[0].value == "Ministry of Truth"
+    assert at.title[0].value == "Study Room B"
     assert "agent" in texts(at).lower() or "contact" in texts(at).lower()
     assert join_room(online, code, BRUNO) == "contacto"
 
@@ -221,5 +222,5 @@ def test_new_texts_have_portuguese():
     )
 
 
-def test_new_game_is_unchanged():
-    assert new_game() == {"scene": "ministerio", "inventory": [], "decisions": {}}
+def test_new_game_starts_the_level_and_its_clock():
+    assert new_game(now=1_000_000) == {"scene": "sala_estudo", "inventory": [], "decisions": {"_inicio": "1000000"}}

@@ -28,11 +28,10 @@ from rooms import (
 ALICE = "alice_aaaaaaaaaaaaaaaaaaaaaa"
 BRUNO = "bruno_bbbbbbbbbbbbbbbbbbbbbb"
 CARLA = "carla_cccccccccccccccccccccc"
-CLUES = {"Tomás's desk", "Calendar", "Notice board", "Newspaper", "Screens", "Wall"}
+# Level 1 "Submission at 23:59": the clues only the contact can read
+CLUES = {"Whiteboard", "Note on the floor", "Emergency plan", "Menu board"}
 # Chapter 2 adds four clue looks (specs/chapter-2.md)
-CHAPTER_2_CLUES = {"City map", "Júlia's note", "Old radio", "Curfew poster"}
 # Added (specs/level-3.md): the clues of level 3
-CHAPTER_3_CLUES = {"Notice", "Van docket", "Night roster", "Photograph", "Note"}
 
 
 @pytest.fixture
@@ -55,7 +54,20 @@ def test_creator_is_the_agent_and_the_room_starts_a_new_game(db):
     code = create_room(db, ALICE)
 
     assert room_role(db, code, ALICE) == "agente"
-    assert load_game(db, room_save_key(code)) == new_game()
+    game = load_game(db, room_save_key(code))
+    assert (game["scene"], game["inventory"]) == (new_game()["scene"], [])
+
+
+def test_the_room_clock_starts_when_the_contact_joins(db, monkeypatch):
+    import logic
+
+    monkeypatch.setattr(logic.time, "time", lambda: 1000)
+    code = create_room(db, ALICE)
+    monkeypatch.setattr(logic.time, "time", lambda: 5000)
+
+    join_room(db, code, BRUNO)
+
+    assert load_game(db, room_save_key(code))["decisions"]["_inicio"] == "5000"
 
 
 def test_second_player_joins_as_contact(db):
@@ -106,20 +118,20 @@ def test_agent_does_not_see_the_clues():
     labels = {look["label"] for look in scene_looks(new_game(), "agente")}
 
     assert not labels & CLUES
-    assert "Telescreen" in labels
+    assert "Phone" in labels
 
 
 def test_contact_and_solo_see_every_look():
     for role in ("contacto", None):
         labels = {look["label"] for look in scene_looks(new_game(), role)}
-        assert {"Calendar", "Notice board", "Tomás's desk", "Telescreen"} <= labels
+        assert {"Whiteboard", "Phone", "Laptop", "Notice on the wall"} <= labels
 
 
 def test_every_clue_look_is_marked():
     from logic import SCENES
 
     marked = {look["label"] for scene in SCENES.values() for look in scene.get("looks", []) if look.get("clue")}
-    assert marked == CLUES | CHAPTER_2_CLUES | CHAPTER_3_CLUES
+    assert marked == CLUES
 
 
 # Done when 4: only the agent acts

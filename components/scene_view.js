@@ -62,6 +62,8 @@ const VOICE_STYLE = {
   "Júlia": { pitch: 1.2, rate: 1.0, pick: 2 },
   Seller: { pitch: 0.9, rate: 1.1, pick: 3 },
   Clara: { pitch: 1.3, rate: 1.05, pick: 4 },
+  Tiago: { pitch: 0.85, rate: 0.9, pick: 1 },
+  Rita: { pitch: 1.25, rate: 1.05, pick: 2 },
 };
 
 function speak(text, speaker, lang, onEnd) {
@@ -424,7 +426,7 @@ export default function render({ data, parentElement, setTriggerValue }) {
   if (!loadSettings().showText) game.classList.add("text-hidden");
   // Around the picture, a blurred copy of it fills the screen
   const backdrop = el("div", "backdrop");
-  backdrop.innerHTML = `<img src="${data.background}" alt="">`;
+  if (data.background) backdrop.innerHTML = `<img src="${data.background}" alt="">`;
   game.append(backdrop, topBar(data, setTriggerValue));
   const stageWrap = el("div", "stage-wrap");
   const stage = el("div", "stage");
@@ -436,7 +438,9 @@ export default function render({ data, parentElement, setTriggerValue }) {
   game.append(stageWrap, bottom);
   parentElement.appendChild(game);
 
-  Timer.attach(data.timer, game.querySelector(".clock"));
+  // A level with a countdown shows the time of day; the level clock still counts, out of sight
+  Timer.attach(data.timer, data.countdown ? el("span") : game.querySelector(".clock"));
+  if (data.countdown) startCountdown(game, data, setTriggerValue);
   // A place with a 3D room is drawn in 3D (scene3d.js); everything else is the 2D picture
   const keys = wants3D(data) ? buildRoom3D(stage, data, setTriggerValue) : buildPicture(stage, data, setTriggerValue);
   if (data.ending) stage.append(endingCard(data, setTriggerValue));
@@ -564,6 +568,11 @@ function gameKeys(game, data, setTriggerValue, keys, event, down) {
     case "N":
       handled();
       return openNotebook(game, data.notebook, "items");
+    case "h":
+    case "H":
+      if (!data.countdown?.can_hint) return;
+      handled();
+      return game.querySelector(".hint-button")?.click();
     case "t":
     case "T":
       handled();
@@ -612,7 +621,8 @@ function askRestart(game, data, setTriggerValue) {
 function dialogueOverlay(dialogue, data) {
   const overlay = el("div", "dialogue");
   overlay.onclick = (event) => event.stopPropagation();
-  overlay.innerHTML = `<img class="bg" src="${dialogue.background}" alt="">`;
+  if (dialogue.background) overlay.innerHTML = `<img class="bg" src="${dialogue.background}" alt="">`;
+  else overlay.classList.add("over-room");
   const box = el("div", "dialogue-box");
   const who = el("div", "dialogue-who");
   const text = el("p", "dialogue-text");
@@ -675,7 +685,7 @@ function topBar(data, setTriggerValue) {
     restart.onclick = () => askRestart(bar.closest(".game"), data, setTriggerValue);
     buttons.append(restart);
   }
-  const clock = el("div", "clock", "⏱ 00:00");
+  const clock = el("div", data.countdown ? "clock countdown" : "clock", data.countdown ? "🕐 --:--:--" : "⏱ 00:00");
   clock.setAttribute("aria-live", "off");
   const textButton = el("button", "menu-button icon", "💬");
   textButton.title = data.ui.toggle_text;
@@ -692,9 +702,20 @@ function topBar(data, setTriggerValue) {
     toggleFullscreen();
   };
   const tools = el("div", "bar-tools");
-  tools.append(clock, textButton);
-  // A place with a 3D room: switch between the 3D room and the 2D picture (kept in this browser)
-  if (data.world) {
+  tools.append(clock);
+  // 💡 A hint (it costs a minute on the clock): only the one who acts
+  if (data.countdown?.can_hint) {
+    const hint = el("button", "menu-button hint-button", data.countdown.hint_label);
+    hint.title = `${data.countdown.hint_label} (H)`;
+    hint.onclick = () => {
+      Sound.click();
+      setTriggerValue("command", { name: "hint" });
+    };
+    tools.append(hint);
+  }
+  tools.append(textButton);
+  // A place with a 3D room and a 2D picture: switch between them (kept in this browser)
+  if (data.world && data.background) {
     const view = el("button", "menu-button icon view-button", loadSettings().view3d ? "2D" : "3D");
     view.title = data.ui.toggle_view;
     view.setAttribute("aria-label", data.ui.toggle_view);
@@ -812,8 +833,9 @@ function endingCard(data, setTriggerValue) {
   inner.append(el("div", "ending-kicker", ending.kicker), el("h2", "ending-title", ending.title));
   inner.append(el("p", "ending-text", ending.text));
   if (ending.journey.length) inner.append(el("p", "ending-journey", ending.journey.join(" · ")));
+  if (ending.clock) inner.append(el("p", "ending-clock", ending.clock));
   const run = Timer.current();
-  if (run) {
+  if (run && !ending.clock) {
     const best = Timer.best(data.timer.level);
     const time = el("p", "ending-time", `⏱ ${data.ui.your_time}: ${formatTime(run.ms)}`);
     if (best) time.append(el("span", "", ` · 🏆 ${data.ui.best_time}: ${formatTime(best)}`));
@@ -880,7 +902,9 @@ function updateChat(game, chat) {
 
 function buildPicture(stage, data, setTriggerValue) {
   const { background, character, walk, x: startX, spots, looks } = data;
-  stage.innerHTML = `<img class="bg" src="${background}" alt="">`;
+  // A place drawn only in 3D, shown in 2D (the browser cannot draw 3D): a plain background, labels shown
+  stage.innerHTML = background ? `<img class="bg" src="${background}" alt="">` : `<div class="bg no-art"></div>`;
+  if (!background) stage.classList.add("no-art");
 
   let x = startX;
   let busy = false;
@@ -1173,6 +1197,43 @@ function interactions(stage, data, setTriggerValue, hooks) {
   return { closeBubble, openBubble, choice, openTalk, openKeypad };
 }
 
+// --- The countdown (specs/entrega-2359.md): the real time, from 23:44 to 00:00 ------------------
+// Python sends how many seconds are left (penalties included) and decides what happens at 00:00;
+// the browser only shows the clock and, when it reaches 00:00, asks Python to end the game.
+
+function startCountdown(game, data, setTriggerValue) {
+  const { left, starts_at: startsAt, total, lost, time_up_action: timeUp, can_hint: canAct } = data.countdown;
+  const label = game.querySelector(".clock");
+  // The time is written in its own span, so the "−30 s" flash next to it stays
+  const text = el("span", "clock-text");
+  label.textContent = "";
+  label.append(text);
+  const deadline = performance.now() + left * 1000;
+  const two = (n) => String(n).padStart(2, "0");
+  let sent = false;
+  const show = () => {
+    if (!label.isConnected) return clearInterval(timer);
+    const remaining = Math.max(0, (deadline - performance.now()) / 1000);
+    const shown = Math.floor(startsAt + total - remaining) % 86400;
+    text.textContent = `🕐 ${two(Math.floor(shown / 3600))}:${two(Math.floor(shown / 60) % 60)}:${two(shown % 60)}`;
+    label.classList.toggle("late", remaining <= 180);
+    label.classList.toggle("last", remaining <= 60);
+    if (remaining <= 0 && !sent && canAct) {
+      sent = true;
+      setTriggerValue("action", { id: timeUp, x: 0 });
+    }
+  };
+  const timer = setInterval(show, 250);
+  show();
+  // A wrong answer or a hint: the clock jumps, and says by how much
+  if (lost > 0) {
+    const flash = el("span", "time-lost", `−${lost >= 60 ? `${Math.round(lost / 60)} min` : `${lost} s`}`);
+    label.append(flash);
+    label.classList.add("jumped");
+    setTimeout(() => label.classList.remove("jumped"), 900);
+  }
+}
+
 function rememberKeys() {
   const settings = loadSettings();
   if (!settings.usedKeys) {
@@ -1201,6 +1262,8 @@ function menuScreen(data, setTriggerValue) {
     backdrop.append(dot);
   }
   root.append(backdrop);
+  // The terrace of the library at night, in 3D, behind the menu (scene3d.js)
+  menuRoom3D(backdrop, menu.world);
 
   const panel = el("div", "menu-panel");
   root.append(panel);

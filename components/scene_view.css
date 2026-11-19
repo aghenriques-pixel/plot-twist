@@ -852,3 +852,47 @@ button.chip:hover { border-color: var(--warm); }
 .cctv-overlay .cam { right: 18px; }
 @keyframes rec-blink { 50% { opacity: 0.2; } }
 .view-button { font: bold 13px sans-serif; }
+
+/* --- Level 1 "Submission at 23:59" (specs/entrega-2359.md) ----------------------------- */
+/* The countdown: the real time, in a digital font; orange in the last 3 minutes, red in the last */
+.clock.countdown { position: relative; font-variant-numeric: tabular-nums; letter-spacing: 1px; min-width: 128px; text-align: center; }
+.clock.countdown.late { color: #ffb347; border-color: rgba(255, 179, 71, 0.6); }
+.clock.countdown.last { color: #ff5a5a; border-color: rgba(255, 90, 90, 0.8); animation: last-minute 1s steps(2) infinite; }
+@keyframes last-minute { 50% { background: rgba(200, 52, 58, 0.35); } }
+.clock.countdown.jumped { animation: clock-jump 0.9s ease-out; }
+@keyframes clock-jump { 0% { transform: scale(1.25); background: rgba(200, 52, 58, 0.6); } 100% { transform: scale(1); } }
+.time-lost {
+  position: absolute; left: 50%; top: 100%; transform: translateX(-50%); margin-top: 4px;
+  color: #ff6b6b; font: bold 14px sans-serif; white-space: nowrap; pointer-events: none;
+  animation: time-lost 2.4s ease-out forwards;
+}
+@keyframes time-lost { 0% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, 18px); } }
+.hint-button { white-space: nowrap; }
+.ending-clock { font: bold 18px sans-serif; color: #f2c14e; margin: 4px 0 10px; letter-spacing: 1px; }
+
+/* Actions with nothing in the room for them (texting Rita): buttons over the 3D view */
+.free3d {
+  position: absolute; left: 14px; top: 84px; z-index: 3; display: flex; flex-direction: column; gap: 6px;
+  padding: 8px 10px; border-radius: 12px; background: rgba(14, 12, 30, 0.82); border: 1px solid rgba(242, 193, 78, 0.4);
+}
+.free3d-title { color: #f2c14e; font: bold 12px sans-serif; letter-spacing: 1px; text-transform: uppercase; }
+.free3d .choice { margin: 0; }
+
+/* A conversation over the 3D room (no picture behind it) */
+.dialogue.over-room { background: linear-gradient(to top, rgba(6, 6, 14, 0.75), rgba(6, 6, 14, 0.15) 60%); }
+
+/* An ending shown in its room: warmer for a submission, colder and darker for a failure */
+.stage.mood-victory canvas.room3d { filter: saturate(1.15) brightness(1.05); }
+.stage.mood-defeat canvas.room3d { filter: saturate(0.45) brightness(0.75) hue-rotate(-12deg); }
+
+/* A place drawn only in 3D, shown in 2D: a plain background and every spot's label visible */
+.stage .bg.no-art { position: absolute; inset: 0; background: linear-gradient(160deg, #26304f, #11131f); }
+.stage.no-art .spot .label { opacity: 1; }
+
+/* On narrower screens the decisions stay in the notebook, so the top bar does not overflow */
+@media (max-width: 1180px) { .topbar .chip.decision, .topbar .items { display: none; } }
+
+/* The main menu over the 3D terrace at night */
+.menu-3d { position: absolute; inset: 0; width: auto !important; aspect-ratio: auto !important; border-radius: 0; box-shadow: none; pointer-events: none; }
+.menu-backdrop.has-3d .menu-art { opacity: 0; transition: opacity 1.2s; }
+.menu-backdrop.has-3d .menu-3d canvas.room3d { filter: brightness(0.85) saturate(1.1); }

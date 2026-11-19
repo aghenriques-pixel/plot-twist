@@ -1,6 +1,6 @@
 # AGENTS.md — The Forbidden Archive (team project)
 
-A browser mystery game (Nova SBE Intro to Programming): the player works at the Ministério da Verdade and discovers that history is being rewritten. Started as a Plot Twist solo project, now extended by a team of three.
+A 3D escape room in the browser (Nova SBE Intro to Programming): Level 1, "Submission at 23:59", a student has 15 minutes to submit the group project (specs/entrega-2359.md). Started as a Plot Twist solo project, now extended by a team of three. The story is in story.py, the rules in logic.py, the 3D rooms in world3d.py and components/scene3d.js.
 
 ## Commands
 

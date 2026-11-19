@@ -1,6 +1,8 @@
-"""Saving decisions and endings, in db.py and in the running app (A4, A6, PT05)."""
+"""Saving decisions and endings, in db.py and in the running app (A4, A6, PT05).
+Level 1 — "Submission at 23:59" (specs/entrega-2359.md)."""
 
 import sqlite3
+import time
 from pathlib import Path
 
 import pytest
@@ -11,16 +13,26 @@ from logic import apply_action, new_game
 
 APP_PATH = str(Path(__file__).parent.parent / "app.py")
 
-AT_APARTMENT_TRUSTED = {
-    "scene": "apartamento",
-    "inventory": ["cartao_acesso", "documento_proibido"],
-    "decisions": {"colega": "confiou"},
-}
-AT_STATION_HIDDEN = {
-    "scene": "vigilancia",
-    "inventory": ["cartao_acesso", "documento_proibido"],
-    "decisions": {"colega": "escondeu"},
-}
+
+def started_now():
+    # The level's clock started just now, so a resumed game still has time left
+    return {"_inicio": str(int(time.time()))}
+
+
+def in_study_room_after_tiago():
+    return {
+        "scene": "sala_estudo",
+        "inventory": ["casaco", "cartao_jogador"],
+        "decisions": {**started_now(), "tiago": "incluido"},
+    }
+
+
+def in_security_round():
+    return {
+        "scene": "corredor_ronda",
+        "inventory": ["casaco", "cartao_jogador", "cartao_rita"],
+        "decisions": {**started_now(), "tiago": "excluido", "conversa_rita": "cafetaria"},
+    }
 
 
 @pytest.fixture
@@ -49,18 +61,19 @@ def button_keys(at):
 
 # Done when 8 / A4: the decision survives a restart
 def test_decision_is_saved_and_loaded(db_path):
-    save_game(db_path, AT_APARTMENT_TRUSTED)
+    state = in_study_room_after_tiago()
+    save_game(db_path, state)
 
-    assert load_game(db_path) == AT_APARTMENT_TRUSTED
+    assert load_game(db_path) == state
 
 
 # Done when 9 / A6: a new game clears decisions
 def test_saving_a_new_game_clears_decisions(db_path):
-    save_game(db_path, AT_APARTMENT_TRUSTED)
+    save_game(db_path, in_study_room_after_tiago())
 
-    save_game(db_path, new_game())
+    save_game(db_path, new_game(now=1_000_000))
 
-    assert load_game(db_path) == {"scene": "ministerio", "inventory": [], "decisions": {}}
+    assert load_game(db_path) == {"scene": "sala_estudo", "inventory": [], "decisions": {"_inicio": "1000000"}}
 
 
 def test_save_from_before_decisions_existed_still_loads(db_path):
@@ -68,21 +81,21 @@ def test_save_from_before_decisions_existed_still_loads(db_path):
     with sqlite3.connect(db_path) as conn:
         conn.execute("CREATE TABLE game (id INTEGER PRIMARY KEY CHECK (id = 1), scene TEXT NOT NULL)")
         conn.execute("CREATE TABLE inventory (item TEXT PRIMARY KEY)")
-        conn.execute("INSERT INTO game (id, scene) VALUES (1, 'arquivo')")
-        conn.execute("INSERT INTO inventory (item) VALUES ('cartao_acesso')")
+        conn.execute("INSERT INTO game (id, scene) VALUES (1, 'corredor')")
+        conn.execute("INSERT INTO inventory (item) VALUES ('casaco')")
     conn.close()
 
-    assert load_game(db_path) == {"scene": "arquivo", "inventory": ["cartao_acesso"], "decisions": {}}
+    assert load_game(db_path) == {"scene": "corredor", "inventory": ["casaco"], "decisions": {}}
 
 
 def test_ending_is_saved_and_stays_finished(db_path):
-    _, state, _ = apply_action(AT_STATION_HIDDEN, "tentar_sozinho")
+    _, state, _ = apply_action(in_security_round(), "correr_sala")
     save_game(db_path, state)
 
     resumed = load_game(db_path)
 
-    assert resumed["scene"] == "final_descoberto"
-    accepted, after, _ = apply_action(resumed, "voltar_ministerio")
+    assert resumed["scene"] == "final_seguranca"
+    accepted, after, _ = apply_action(resumed, "voltar_sala")
     assert accepted is False
     assert after == resumed
 
@@ -92,55 +105,51 @@ def test_ending_is_saved_and_stays_finished(db_path):
 
 # Done when 8 / A4: resume restores the decision and the same routes
 def test_app_resume_keeps_decision_and_routes(db_path):
-    save_game(db_path, AT_APARTMENT_TRUSTED)
+    save_game(db_path, in_study_room_after_tiago())
     at = open_app()
 
     click(at, "continuar_jogo")
 
-    assert at.title[0].value == "Apartment"
-    assert "confiar_colega" not in button_keys(at)
-    assert "esconder_descoberta" not in button_keys(at)
-    assert "ir_vigilancia" in button_keys(at)
-
-    click(at, "ir_vigilancia")
-    # Trusting Tomás without the file leads to his trap (specs/tomas-twist.md)
-    assert "seguir_tomas" in button_keys(at)
-    assert "ir_tunel" not in button_keys(at)
-    assert "tentar_sozinho" not in button_keys(at)
+    assert at.title[0].value == "Study Room B"
+    assert "tiago_incluido" not in button_keys(at)
+    assert "tiago_excluido" not in button_keys(at)
+    assert "ir_corredor" in button_keys(at)
 
 
 def test_app_decision_is_saved_after_clicking(db_path):
-    save_game(db_path, {**AT_APARTMENT_TRUSTED, "decisions": {}})
+    state = in_study_room_after_tiago()
+    state["decisions"].pop("tiago")
+    save_game(db_path, state)
     at = open_app()
     click(at, "continuar_jogo")
 
-    click(at, "esconder_descoberta")
+    click(at, "tiago_excluido")
 
-    assert load_game(db_path)["decisions"] == {"colega": "escondeu"}
+    assert load_game(db_path)["decisions"]["tiago"] == "excluido"
 
 
 # Done when 7 + 10: the ending screen, before and after reopening the app
 def test_app_ending_screen_has_no_story_actions(db_path):
-    save_game(db_path, AT_STATION_HIDDEN)
+    save_game(db_path, in_security_round())
     at = open_app()
     click(at, "continuar_jogo")
 
-    click(at, "tentar_sozinho")
+    click(at, "correr_sala")
 
-    assert at.title[0].value.startswith("Ending 2")
+    assert at.title[0].value.startswith("Ending 5")
     assert "jogar_outra_vez" in button_keys(at)
-    assert "tentar_sozinho" not in button_keys(at)
-    assert load_game(db_path)["scene"] == "final_descoberto"
+    assert "correr_sala" not in button_keys(at)
+    assert load_game(db_path)["scene"] == "final_seguranca"
 
     reopened = open_app()
     click(reopened, "continuar_jogo")
-    assert reopened.title[0].value.startswith("Ending 2")
+    assert reopened.title[0].value.startswith("Ending 5")
     assert [key for key in button_keys(reopened) if key not in ("jogar_outra_vez", "voltar_menu")] == []
 
 
 # PT05 + A6: "Jogar outra vez" asks for confirmation, then resets everything
 def test_app_play_again_asks_then_resets(db_path):
-    _, finished, _ = apply_action(AT_STATION_HIDDEN, "tentar_sozinho")
+    _, finished, _ = apply_action(in_security_round(), "correr_sala")
     save_game(db_path, finished)
     at = open_app()
     click(at, "continuar_jogo")
@@ -148,9 +157,10 @@ def test_app_play_again_asks_then_resets(db_path):
     click(at, "jogar_outra_vez")
 
     assert "confirmar_novo_jogo" in button_keys(at)
-    assert load_game(db_path)["scene"] == "final_descoberto"
+    assert load_game(db_path)["scene"] == "final_seguranca"
 
     click(at, "confirmar_novo_jogo")
 
-    assert at.title[0].value == "Ministry of Truth"
-    assert load_game(db_path) == {"scene": "ministerio", "inventory": [], "decisions": {}}
+    assert at.title[0].value == "Study Room B"
+    saved = load_game(db_path)
+    assert (saved["scene"], saved["inventory"], list(saved["decisions"])) == ("sala_estudo", [], ["_inicio"])

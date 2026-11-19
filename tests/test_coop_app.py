@@ -63,42 +63,42 @@ def test_agent_waits_for_the_contact_and_sees_the_code(db):
 
     code = link_value(agent, "sala")
     assert code in all_text(agent)
-    assert "apanhar_cartao" not in button_keys(agent)
+    assert "apanhar_casaco" not in button_keys(agent)
 
 
 def test_both_players_see_the_same_scene_with_their_role(db):
     agent, contact, _ = start_room(db)
 
-    assert agent.title[0].value == "Ministry of Truth"
-    assert contact.title[0].value == "Ministry of Truth"
-    assert "apanhar_cartao" in button_keys(agent)
-    assert "apanhar_cartao" not in button_keys(contact)
+    assert agent.title[0].value == "Study Room B"
+    assert contact.title[0].value == "Study Room B"
+    assert "apanhar_casaco" in button_keys(agent)
+    assert "apanhar_casaco" not in button_keys(contact)
 
 
 def test_clues_are_only_on_the_contact_screen(db):
     agent, contact, _ = start_room(db)
 
-    assert "17 April" in all_text(contact)
-    assert "17 April" not in all_text(agent)
+    assert "y = x * 3 + 1" in all_text(contact)
+    assert "y = x * 3 + 1" not in all_text(agent)
 
 
 def test_the_contact_sees_what_the_agent_did(db):
     agent, contact, code = start_room(db)
 
-    agent.button(key="apanhar_cartao").click().run()
+    agent.button(key="apanhar_casaco").click().run()
     contact.run()
 
-    assert load_game(db, room_save_key(code))["inventory"] == ["cartao_acesso"]
-    assert "Access card" in all_text(contact)
+    assert load_game(db, room_save_key(code))["inventory"] == ["casaco", "cartao_jogador"]
+    assert "Coat" in all_text(contact)
 
 
 def test_chat_reaches_the_other_player(db):
     agent, contact, _ = start_room(db)
 
-    agent.chat_input(key="chat").set_value("Que dia está marcado no calendário?").run()
+    agent.chat_input(key="chat").set_value("O que diz o quadro?").run()
     contact.run()
 
-    assert "Que dia está marcado no calendário?" in all_text(contact)
+    assert "O que diz o quadro?" in all_text(contact)
 
 
 def test_wrong_room_code_shows_a_message(db):
@@ -112,10 +112,10 @@ def test_wrong_room_code_shows_a_message(db):
 
 def test_reopening_the_link_returns_to_the_room(db):
     agent, contact, code = start_room(db)
-    agent.button(key="apanhar_cartao").click().run()
+    agent.button(key="apanhar_casaco").click().run()
 
     reopened = open_app(ALICE, room=code)
 
-    assert reopened.title[0].value == "Ministry of Truth"
-    assert "apanhar_cartao" not in button_keys(reopened)
-    assert "ir_arquivo" in button_keys(reopened)
+    assert reopened.title[0].value == "Study Room B"
+    assert "apanhar_casaco" not in button_keys(reopened)
+    assert "ir_corredor" in button_keys(reopened)
