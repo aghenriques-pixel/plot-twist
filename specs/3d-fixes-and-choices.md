@@ -23,6 +23,16 @@ Branch `nova-historia`. Bugs found while playing Level 1 in 3D, and the choices 
   - In a danger scene the cards show the countdown.
   - Python still decides everything; the 2D picture keeps its bubble.
 
+## Second round (found by playing every room, with a walkable-map check)
+
+- **Study room:** the rows of desks went up to the right wall, so the aisles between them were dead ends. They now stop at `RIGHT_AISLE` (x = 5.0), leaving an aisle along the right wall. The character counts as 0.24 m wide each side (was 0.3), which is about half its shoulders.
+- **Your chair:** it used to vanish with the coat. A thing marked `stays_empty` stays once its action is gone, drawn `empty` (the chair without the coat). *Test changed:* `test_the_coat_and_the_card_disappear_once_taken` became `test_the_coat_goes_but_the_chair_stays`, because the requirement changed.
+- **Tiago:** he was tilted from the feet, lying on the floor. He now sits on his chair, bent from the waist, with his head on his arms on the desk.
+- **The terrace door:** it was a `glass_door`, a kind the browser cannot draw, so it was invisible. It is now a glass `door` with a keypad and an exit sign. A test checks that every kind used in a room has a drawing in `scene3d.js`.
+- **Corridor:** a beanbag closed off the front-left corner; it moved.
+- **Cafeteria:** the two shelves on the left were 40 cm apart and the atrium nearly touched the shelf on the right wall. The first shelf and the atrium moved to leave a way through.
+- **Ending screen:** the stage got the class `ending` (its camera) and so took the ending card's `position: absolute`, sitting at the top of the screen. The camera classes are now `camera-*`.
+
 ## Out of scope
 
 - New story content or rules.

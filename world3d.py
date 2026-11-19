@@ -22,6 +22,8 @@ NOVA = {"wall": "#ecebe6", "floor": "#4f3727", "trim": "#c8343a", "light": "#fff
 # The rows are arcs around one point behind the boards; an angle 0 points to the front of the room.
 ARC_CENTRE = (5.5, -8.5)
 ROW_RADII = (7.6, 9.8, 12.0)
+# The rows stop here, so there is an aisle between them and the right wall (x = 7)
+RIGHT_AISLE = 5.0
 
 
 def on_arc(radius, angle, out=0.0):
@@ -36,7 +38,7 @@ def desk_rows():
     rows = []
     for radius in ROW_RADII:
         first = -math.acos((-3.7 - cz) / radius)  # meets the back aisle (z = -3.7)
-        last = math.asin((5.8 - cx) / radius)  # meets the right aisle (x = 5.8)
+        last = math.asin((RIGHT_AISLE - cx) / radius)  # meets the right aisle
         rows.append({"kind": "desk_arc", "at": [cx, cz], "radius": radius, "from": round(first, 3), "to": round(last, 3)})
     # Your own chair is pulled out, with your coat on it (drawn by "chair_coat")
     rows[2]["skip"] = [-0.14]
@@ -73,7 +75,7 @@ ROOMS_3D = {
             at_desk(2, -0.33, "laptop", look="Laptop"),
             at_desk(2, -0.25, "phone", look="Phone"),
             {"kind": "chair_coat", "at": on_arc(12.0, -0.14, 0.75), "turn": -0.14, "stand": on_arc(12.0, -0.14, 1.5),
-             "action": "apanhar_casaco", "only_while_offered": True},
+             "action": "apanhar_casaco", "stays_empty": True},
             {"kind": "notice", "wall": "left", "at": [-7.0, 0.6], "stand": [-6.0, 0.6], "look": "Notice on the wall"},
             {"kind": "door", "wall": "left", "at": [-7.0, 2.6], "stand": [-6.1, 2.6], "action": "ir_corredor"},
             {"kind": "exit_sign", "wall": "left", "at": [-7.0, 2.6]},
@@ -107,7 +109,8 @@ ROOMS_3D = {
              "words": ["STATE", "YOUR", "MIND", "AND", "MIND", "YOUR", "STEP"]},
             {"kind": "column", "at": [2.75, -1.3], "dark": False, "colour": "#2a2a2c"},
             {"kind": "column", "at": [-4.2, 1.0]},
-            {"kind": "glass_door", "wall": "right", "at": [9.0, -4.4], "stand": [8.1, -4.4], "action": "abrir_terraco"},
+            {"kind": "door", "glass": True, "keypad": True, "wall": "right", "at": [9.0, -4.4], "stand": [8.1, -4.4], "action": "abrir_terraco"},
+            {"kind": "exit_sign", "wall": "right", "at": [9.0, -4.4]},
             {"kind": "window_wall", "wall": "right", "at": [9.0, 1.7], "width": 8.2, "posters": 3},
             {"kind": "sofa", "wall": "right", "at": [8.3, -1.2]},
             {"kind": "sofa", "wall": "right", "at": [8.3, 1.4]},
@@ -117,7 +120,7 @@ ROOMS_3D = {
             {"kind": "beanbag", "at": [-7.2, 1.4]},
             {"kind": "beanbag", "at": [-6.0, 0.6]},
             {"kind": "beanbag", "at": [-7.6, 3.8]},
-            {"kind": "beanbag", "at": [-6.2, 4.6]},
+            {"kind": "beanbag", "at": [-4.9, 5.0]},
             {"kind": "beanbag", "at": [-3.6, 4.2]},
             {"kind": "round_table", "at": [-6.4, 2.6], "small": True},
             {"kind": "round_table", "at": [-2.6, 3.2], "small": True},
@@ -145,7 +148,7 @@ ROOMS_3D = {
             {"kind": "counter", "at": [4.7, -4.6], "width": 4.6},
             {"kind": "coffee_machine", "at": [6.3, -4.65], "stand": [6.3, -3.5], "look": "Coffee machine"},
             {"kind": "menu_board", "wall": "back", "at": [3.9, -5.5], "stand": [3.9, -3.5], "look": "Menu board"},
-            {"kind": "bookshelf", "at": [-6.4, -2.6], "turn": 1.571, "double": True},
+            {"kind": "bookshelf", "at": [-6.4, -3.3], "turn": 1.571, "double": True},
             {"kind": "bookshelf", "at": [-6.4, 0.2], "turn": 1.571, "double": True},
             {"kind": "bookshelf", "wall": "right", "at": [8.0, 0.6]},
             {"kind": "column", "at": [-0.4, -0.6]},
@@ -155,7 +158,7 @@ ROOMS_3D = {
             {"kind": "long_table", "at": [-2.6, 1.6], "chairs_down": True},
             {"kind": "rita_card", "at": [-2.6, 1.6], "stand": [-2.6, 3.1], "action": "apanhar_cartao_rita",
              "only_while_offered": True},
-            {"kind": "atrium", "at": [4.4, 2.6], "width": 4.4, "depth": 2.4},
+            {"kind": "atrium", "at": [3.9, 2.8], "width": 4.0, "depth": 2.4},
         ],
     },
     # The terrace outside the library (photo 3), at night: the white building with its glass walls,
@@ -296,7 +299,14 @@ def world_view(state, role=None):
         # A thing that is only there for its action (the card, the coat) goes once the action is gone
         if thing.get("only_while_offered") and action not in offered:
             continue
-        view = {key: value for key, value in thing.items() if key not in ("look", "only_while_offered", "actions")}
+        # ...or stays without it (your chair, once the coat is taken)
+        empty = bool(thing.get("stays_empty")) and action not in offered
+        hidden = ("look", "only_while_offered", "stays_empty", "actions") + (("action", "stand") if empty else ())
+        view = {key: value for key, value in thing.items() if key not in hidden}
+        if thing.get("stays_empty"):
+            view["empty"] = empty
+        if empty:
+            action = None
         # The first of its actions that is offered right now (the laptop: log in, then the files...)
         names = thing.get("actions") or ([action] if action else []) + ([f"talk:{thing['talk']}"] if "talk" in thing else [])
         chosen = next((name for name in names if name in spot_index), None)
@@ -357,7 +367,7 @@ def laptop_view(state):
 def menu_world():
     """The terrace at night, with nobody on it: the main menu's background (nothing can be used)."""
     room = full_room("terraco")
-    hidden = ("look", "action", "actions", "talk", "only_while_offered", "stand")
+    hidden = ("look", "action", "actions", "talk", "only_while_offered", "stays_empty", "stand")
     return {
         "room": "menu",
         "size": room["size"],

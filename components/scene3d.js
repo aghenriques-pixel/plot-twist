@@ -14,7 +14,7 @@
 const THREE_URL = "app/static/three.module.min.js";
 const WALK_SPEED = 3.2; // metres per second
 const REACH = 1.6; // how close the character must be to use a thing
-const HERO_RADIUS = 0.3;
+const HERO_RADIUS = 0.24; // half the character's shoulders: room to walk between the rows of desks
 
 // Loaded once per page; every room after the first starts at once
 function loadThree() {
@@ -54,7 +54,9 @@ const moveKey = (key) => (key.length === 1 ? key.toLowerCase() : key);
 // cannot load, the 2D picture is drawn instead and the handles pass on to it.
 function buildRoom3D(stage, data, setTriggerValue) {
   let inner = null; // the handles of whatever is drawn: the 3D room, or the 2D picture as a fallback
-  stage.classList.add("three", data.world.camera);
+  // camera-ending, camera-cctv...: never the bare name, ".ending" is the ending card (the stage
+  // took its "position: absolute" and jumped to the top of the screen)
+  stage.classList.add("three", `camera-${data.world.camera}`);
   if (data.world.mood) stage.classList.add(`mood-${data.world.mood}`);
   const loading = el("div", "loading3d", "…");
   stage.append(loading);
@@ -1176,7 +1178,7 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
   // For the browser tests (Playwright): walk to a point of the room, as a click on the floor does
   if (hero) globalThis.__forbiddenArchiveWalkTo = (x, z) => walkTo(new THREE.Vector3(x, 0, z));
   // For the browser tests: can the character reach every thing it can use from where it stands?
-  globalThis.__forbiddenArchiveReach = () => {
+  globalThis.__forbiddenArchiveReach = (step = 2) => {
     const from = hero ? hero.group.position : new THREE.Vector3(...[world.start[0], 0, world.start[1]]);
     const seen = new Set();
     const index = (x, z) => Math.floor((z + D / 2) / CELL) * columns + Math.floor((x + W / 2) / CELL);
@@ -1203,10 +1205,10 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
         reachable: seen.has(index(u.stand.x, u.stand.z)),
       })),
       freeShare: +(seen.size / free.length).toFixed(2),
-      // A map, 50 cm a letter: # blocked, . reached, o free but cut off
-      map: Array.from({ length: Math.floor(rows / 2) }, (_, j) =>
-        Array.from({ length: Math.floor(columns / 2) }, (_, i) => {
-          const n = j * 2 * columns + i * 2;
+      // A map, step × 25 cm a letter: # blocked, . reached, o free but cut off
+      map: Array.from({ length: Math.floor(rows / step) }, (_, j) =>
+        Array.from({ length: Math.floor(columns / step) }, (_, i) => {
+          const n = j * step * columns + i * step;
           return seen.has(n) ? "." : free[n] ? "o" : "#";
         }).join("")
       ),
@@ -1504,13 +1506,35 @@ function makePerson(THREE, options = {}) {
   blob.position.y = 0.012;
   group.add(blob);
 
+  // Asleep at a desk: sitting on the chair, bent forward from the waist (not from the feet), the
+  // head resting on the arms on the desk. The desk top is 0.78 m high, the seat 0.47 m.
+  const SEAT = 0.48 / 0.9 - 0.84; // lowers the hips (0.84 m, before the 0.9 scale) onto the seat
+  let waist = null;
   if (options.sleeping) {
-    // Sitting, slumped over the desk, arms folded under the head
-    legParts.forEach((leg) => (leg.rotation.x = -1.45));
-    body.position.y = -0.38;
-    body.rotation.x = 0.95;
-    arms.forEach((arm) => (arm.rotation.x = -1.6));
-    head.rotation.x = 0.25;
+    waist = new THREE.Group();
+    waist.position.set(0, 0.84, 0);
+    for (const child of [...body.children]) {
+      if (legParts.includes(child)) continue;
+      child.position.y -= 0.84;
+      waist.add(child);
+    }
+    body.add(waist);
+    body.position.y = SEAT;
+    // Thighs flat on the seat, pointing under the desk
+    legParts.forEach((leg) => (leg.rotation.x = -Math.PI / 2));
+    // Bent forward so the head reaches the desk: the head is 1 m above the hips
+    const lean = 0.98;
+    waist.rotation.x = lean;
+    // The arms forward along the desk (level in the room), folded in under the head
+    arms.forEach((arm, i) => {
+      arm.rotation.x = -Math.PI / 2 - lean;
+      arm.rotation.z = 0;
+      arm.rotation.y = i === 0 ? -0.5 : 0.5;
+    });
+    // The cheek on the arms
+    head.rotation.set(0.35, 0, 0.45);
+    // No dark spot on the floor: the chair and the desk cast their own shadows
+    blob.visible = false;
   }
 
   group.scale.setScalar(0.9);
@@ -1518,8 +1542,8 @@ function makePerson(THREE, options = {}) {
   let swing = 0;
   function animate(dt, time, walking) {
     if (options.sleeping) {
-      // Breathing, very slowly
-      body.position.y = -0.38 + Math.sin(time * 1.4) * 0.012;
+      // Breathing, very slowly: the back rises and falls
+      waist.rotation.x = 0.98 + Math.sin(time * 1.4) * 0.015;
       return;
     }
     swing += ((walking ? 1 : 0) - swing) * Math.min(1, dt * 10);
@@ -2272,11 +2296,13 @@ const THINGS = {
     focusOn(group, [0, 0.8, 0.05], [0, 1, 0.12], 0.1, 0.16);
   },
 
-  chair_coat({ THREE, group, box }) {
-    // Your chair, pulled out, with your yellow raincoat over its back
+  chair_coat({ THREE, group, box, thing }) {
+    // Your chair, pulled out, with your yellow raincoat over its back (the chair stays once you
+    // have taken the coat)
     const seat = chair(THREE, box, "#1b1c20");
     seat.rotation.y = Math.PI;
     group.add(seat);
+    if (thing.empty) return;
     const coat = box(0.5, 0.75, 0.1, "#f2c230", { roughness: 0.35 });
     coat.position.set(0, 0.62, 0.24);
     coat.rotation.x = 0.1;
@@ -2305,7 +2331,8 @@ const THINGS = {
     const frame = box(1.3, 2.4, 0.12, "#3b3d42");
     frame.position.set(0, 1.2, 0.04);
     // The opening behind the leaf: dark, so an open door shows a way through
-    const way = box(1.1, 2.25, 0.01, "#0d0e12", { roughness: 1 });
+    // (a glass door to the outside: the night sky)
+    const way = box(1.1, 2.25, 0.01, thing.glass ? "#1b2747" : "#0d0e12", { roughness: 1 });
     way.position.set(0, 1.13, 0.105);
     const hinge = new THREE.Group();
     hinge.position.set(-0.55, 0, 0.09);
@@ -2321,11 +2348,21 @@ const THINGS = {
       const wanted = group.userData.open ? 1.35 : 0;
       hinge.rotation.y += (wanted - hinge.rotation.y) * Math.min(1, dt * 7);
     });
-    const reader = box(0.1, 0.16, 0.04, "#1c1c22");
-    reader.position.set(0.75, 1.2, 0.08);
-    const led = new THREE.Mesh(new THREE.SphereGeometry(0.015, 8, 6), new THREE.MeshBasicMaterial({ color: "#3bff6a" }));
-    led.position.set(0.75, 1.26, 0.1);
+    // A card reader, or (a door with a code) a keypad with its red light
+    const reader = box(0.1, thing.keypad ? 0.22 : 0.16, 0.04, thing.keypad ? "#c9ccd2" : "#1c1c22", thing.keypad ? { metalness: 0.5, roughness: 0.35 } : {});
+    reader.position.set(0.8, 1.2, 0.08);
+    const led = new THREE.Mesh(new THREE.SphereGeometry(0.015, 8, 6), new THREE.MeshBasicMaterial({ color: thing.keypad ? "#ff4a3d" : "#3bff6a" }));
+    led.position.set(0.8, thing.keypad ? 1.29 : 1.26, 0.1);
     group.add(frame, reader, led);
+    if (thing.keypad) {
+      for (let row = 0; row < 4; row++) {
+        for (let col = 0; col < 3; col++) {
+          const key = box(0.022, 0.022, 0.012, "#2b2d33");
+          key.position.set(0.77 + col * 0.03, 1.24 - row * 0.03, 0.1);
+          group.add(key);
+        }
+      }
+    }
   },
 
   exit_sign({ THREE, group }) {

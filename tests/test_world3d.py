@@ -2,11 +2,14 @@
 the right action or look."""
 
 import json
+import math
+import re
+from pathlib import Path
 
 import pytest
 
 from logic import SCENES, apply_action, is_finished, new_game, scene_hotspots, scene_looks
-from world3d import ROOMS_3D, full_room, room_of, world_view
+from world3d import ENDING_EXTRAS, ROOMS_3D, full_room, room_of, world_view
 
 T0 = 1_000_000
 
@@ -96,15 +99,42 @@ def test_every_look_has_its_thing():
         assert {look["label"] for look in SCENES[scene_id].get("looks", [])} <= labels, scene_id
 
 
-def test_the_coat_and_the_card_disappear_once_taken():
+def test_the_coat_goes_but_the_chair_stays():
+    # Changed in specs/3d-fixes-and-choices.md: the chair used to vanish with the coat
     state = new_game(now=T0)
-    assert any(t["kind"] == "chair_coat" for t in world_view(state)["things"])
+    chair = next(t for t in world_view(state)["things"] if t["kind"] == "chair_coat")
+    assert not chair["empty"] and chair["spot"] is not None
     assert not world_view(state)["hero"]["coat"]
 
     state = play(state, "apanhar_casaco")
 
-    assert not any(t["kind"] == "chair_coat" for t in world_view(state)["things"])
+    chair = next(t for t in world_view(state)["things"] if t["kind"] == "chair_coat")
+    assert chair["empty"] and chair["spot"] is None and "action" not in chair
     assert world_view(state)["hero"]["coat"]
+
+
+def test_every_kind_of_thing_can_be_drawn():
+    """A kind with no drawing in scene3d.js is invisible (the terrace door was)."""
+    script = (Path(__file__).parent.parent / "components" / "scene3d.js").read_text(encoding="utf-8")
+    drawn = set(re.findall(r"^  ([a-z_]+)\(\{", script.split("const THINGS = {", 1)[1], re.M))
+    used = {thing["kind"] for room_id in ROOMS_3D for thing in full_room(room_id)["things"]}
+    used |= {thing["kind"] for extra in ENDING_EXTRAS.values() for thing in extra.get("add", [])}
+
+    assert used <= drawn, used - drawn
+
+
+def test_the_terrace_door_is_a_door_in_the_corridor():
+    door = next(t for t in ROOMS_3D["corredor"]["things"] if t.get("action") == "abrir_terraco")
+
+    assert door["kind"] == "door" and door["glass"]
+
+
+def test_the_rows_of_desks_stop_before_the_right_wall():
+    width = ROOMS_3D["sala_estudo"]["size"][0]
+    for row in (t for t in full_room("sala_estudo")["things"] if t["kind"] == "desk_arc"):
+        # The far end of the row, chairs included (0.9 m behind the desk)
+        right = row["at"][0] + (row["radius"] + 0.9) * math.sin(row["to"])
+        assert width / 2 - right > 1.4, row
 
 
 def test_the_laptop_offers_one_step_at_a_time():
