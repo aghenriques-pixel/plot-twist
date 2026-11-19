@@ -44,6 +44,7 @@ from logic import (
     scene_hotspots,
     scene_image,
     scene_looks,
+    scene_shadows,
     scene_music,
     scene_text,
 )
@@ -631,6 +632,8 @@ def view_data(game, role, message, chat):
         "x": character_x(game),
         "spots": [] if finished or watching else [translated_spot(spot) for spot in scene_hotspots(game)],
         "looks": [translated_spot(look) for look in scene_looks(game, role)],
+        # Co-op: dark patches over the clues in the agent's picture (only the contacto reads them)
+        "shadows": scene_shadows(game, role),
         "hud": {
             "title": say(scene["title"]),
             "subtitle": subtitle,
@@ -739,6 +742,7 @@ def menu_levels():
                 "name": t("level_n", n=level["number"]),
                 "title": t(f"level_{level['number']}"),
                 "progress": t("endings_found", found=level["endings_found"], total=level["endings_total"]),
+                "locked": t("level_locked", level=level["number"] - 1),
             }
         )
     return levels
@@ -893,7 +897,7 @@ def show_menu_text_mode(saved, problem):
             label = f"{t('level_n', n=number)} — {t(f'level_{number}')}"
             st.button(label, key=f"nivel_{level['number']}", on_click=open_level, args=(level["number"],), disabled=not level["unlocked"])
             if not level["unlocked"]:
-                st.caption(t("level_locked"))
+                st.caption(t("level_locked", level=number - 1))
         with st.expander(t("how_to_play")):
             st.markdown("\n".join(f"- {rule}" for rule in UI_TEXT["how_to_play_rules"][LANG]))
         show_account_text_mode()

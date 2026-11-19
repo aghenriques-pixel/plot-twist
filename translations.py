@@ -1857,7 +1857,7 @@ UI_TEXT = {
     "level_1": {"en": "The Ministry", "pt": "O Ministério"},
     "level_2": {"en": "The Radio", "pt": "A Rádio"},
     "level_3": {"en": "The Ministry of Love", "pt": "O Ministério do Amor"},
-    "level_locked": {"en": "🔒 Reach Ending 1 of the previous level to open it.", "pt": "🔒 Chega ao Final 1 do nível anterior para o abrir."},
+    "level_locked": {"en": "🔒 Win Level {level} to open it.", "pt": "🔒 Vence o Nível {level} para o abrir."},
     "endings_found": {"en": "{found}/{total} endings found", "pt": "{found}/{total} finais descobertos"},
     "completed": {"en": "✓ Completed", "pt": "✓ Concluído"},
     "next_level": {"en": "Next level →", "pt": "Próximo nível →"},

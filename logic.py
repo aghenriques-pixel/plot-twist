@@ -1742,6 +1742,15 @@ def scene_looks(state, role=None):
     return list(looks)
 
 
+def scene_shadows(state, role):
+    """In cooperative mode the agente's picture is dark where the clues are (specs/design-polish.md):
+    one rectangle per clue look, so the agent cannot read what only the contacto should see."""
+    if role != "agente" or is_finished(state):
+        return []
+    looks = SCENES[state["scene"]].get("looks", [])
+    return [{"x": look["x"], "y": look["y"], "w": look["w"], "h": look["h"]} for look in looks if look.get("clue")]
+
+
 def can_act(role):
     """Solo players (role None) and the agente act; the contacto only watches and talks."""
     return role in (None, "agente")

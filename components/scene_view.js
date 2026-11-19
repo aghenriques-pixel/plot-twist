@@ -1056,6 +1056,17 @@ function buildPicture(stage, data, setTriggerValue) {
     stage.append(b);
   }
 
+  // Co-op: the agent's picture is dark where the clues are (Python decides where, specs/design-polish.md)
+  const FEATHER = 12; // picture units: the patch is a little bigger than the clue and fades out there
+  for (const shadow of data.shadows || []) {
+    const patch = el("div", "clue-shadow");
+    patch.style.left = pct(shadow.x - FEATHER, WIDTH);
+    patch.style.top = pct(shadow.y - FEATHER, HEIGHT);
+    patch.style.width = pct(shadow.w + 2 * FEATHER, WIDTH);
+    patch.style.height = pct(shadow.h + 2 * FEATHER, HEIGHT);
+    stage.append(patch);
+  }
+
   // Looks first, so action spots are on top if they ever touch
   for (const look of looks) addSpot(look, "spot look", () => openBubble(look.text, [], data.ui.close));
   for (const spot of spots) {
@@ -1243,6 +1254,8 @@ function menuScreen(data, setTriggerValue) {
       [48, 65],
       [85, 46],
     ];
+    // Narrow screens: the cards move to a row under the map, so they never run off it
+    const list = el("div", "level-list");
     menu.levels.forEach((level, i) => {
       const [left, top] = positions[i] || [50, 50];
       const state = level.completed ? "done" : level.unlocked ? "open" : "locked";
@@ -1251,20 +1264,26 @@ function menuScreen(data, setTriggerValue) {
       node.style.top = `${top}%`;
       node.disabled = !level.unlocked;
       node.append(el("span", "level-badge", level.completed ? "✓" : level.unlocked ? String(level.number) : "🔒"));
-      const card = el("span", "level-card");
-      card.append(el("strong", "", level.name), el("span", "", level.title));
-      card.append(el("small", "", level.unlocked ? level.progress : L.level_locked));
-      const best = Timer.best(level.number);
-      if (best) card.append(el("small", "level-best", `🏆 ${L.best_time}: ${formatTime(best)}`));
-      node.append(card);
-      node.setAttribute("aria-label", `${level.name} — ${level.title}${level.unlocked ? "" : " — " + L.level_locked}`);
+      const card = () => {
+        const c = el("span", `level-card ${state}`);
+        c.append(el("strong", "", level.name), el("span", "", level.title));
+        c.append(el("small", "", level.unlocked ? level.progress : level.locked));
+        const best = Timer.best(level.number);
+        if (best) c.append(el("small", "level-best", `🏆 ${L.best_time}: ${formatTime(best)}`));
+        return c;
+      };
+      node.append(card());
+      list.append(card());
+      node.setAttribute("aria-label", `${level.name} — ${level.title}${level.unlocked ? "" : " — " + level.locked}`);
       node.onclick = () => {
         Sound.click();
         startCommand("open_level", { level: level.number });
       };
       map.append(node);
     });
-    return map;
+    const wrap = el("div", "level-map-wrap");
+    wrap.append(map, list);
+    return wrap;
   }
 
   function coopBox() {
