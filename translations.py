@@ -1857,6 +1857,7 @@ UI_TEXT = {
     "level_1": {"en": "The Ministry", "pt": "O Ministério"},
     "level_2": {"en": "The Radio", "pt": "A Rádio"},
     "level_3": {"en": "The Ministry of Love", "pt": "O Ministério do Amor"},
+    "toggle_view": {"en": "Switch between the 3D room and the 2D picture", "pt": "Mudar entre a sala 3D e a imagem 2D"},
     "level_locked": {"en": "🔒 Win Level {level} to open it.", "pt": "🔒 Vence o Nível {level} para o abrir."},
     "endings_found": {"en": "{found}/{total} endings found", "pt": "{found}/{total} finais descobertos"},
     "completed": {"en": "✓ Completed", "pt": "✓ Concluído"},
@@ -1900,6 +1901,10 @@ UI_TEXT = {
     "invite_link": {
         "en": "Or send this link: opening it joins the room as the contact.",
         "pt": "Ou envia este link: quem o abrir entra na sala como contacto.",
+    },
+    "key_hint_3d": {
+        "en": "WASD / arrows walk · E use · click to walk or use · N notebook · R restart · F full screen",
+        "pt": "WASD / setas andar · E usar · clique para andar ou usar · N caderno · R reiniciar · F ecrã inteiro",
     },
     "key_hint": {
         "en": "← → walk · E use · N notebook · R restart · F full screen",

@@ -811,3 +811,44 @@ button.chip:hover { border-color: var(--warm); }
 /* An empty code: the field shakes */
 .keypad input.shake { animation: shake 0.35s; border-color: #ff6b81 !important; }
 @keyframes shake { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+
+/* --- 3D rooms (scene3d.js, specs/scene-3d.md) ------------------------------------------- */
+.stage.three { cursor: default; background: #0c0b1f; }
+.stage canvas.room3d { position: absolute; inset: 0; width: 100%; height: 100%; display: block; outline: none; }
+.loading3d {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  color: rgba(243, 234, 214, 0.6); font: 28px Georgia, serif; letter-spacing: 6px;
+}
+/* The label over the nearest thing ("E · Calendar") */
+.prompt3d {
+  position: absolute; z-index: 3; pointer-events: none; transform: translate(-50%, -100%);
+  display: flex; align-items: center; gap: 8px; padding: 5px 12px 5px 6px; border-radius: 999px;
+  background: rgba(14, 12, 30, 0.88); border: 1px solid rgba(242, 193, 78, 0.55);
+  color: #f3ead6; font: 14px/1.2 sans-serif; white-space: nowrap;
+  opacity: 0; transition: opacity 0.18s;
+}
+.prompt3d.show { opacity: 1; }
+.prompt3d kbd {
+  display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 6px;
+  background: #f2c14e; color: #1a1205; font: bold 13px sans-serif;
+}
+/* What the character says, over its head */
+.say3d {
+  position: absolute; z-index: 3; pointer-events: none; transform: translate(-50%, -100%);
+  max-width: 280px; width: max-content; padding: 7px 11px; border-radius: 12px;
+  background: #fff8e6; color: #2a1a05; font: 15px/1.35 Georgia, serif;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4); opacity: 0; transition: opacity 0.2s;
+}
+.say3d.show { opacity: 1; }
+/* The contacto watches through a security camera: grainy, greenish, with REC */
+.stage.cctv canvas.room3d { filter: saturate(0.35) sepia(0.25) hue-rotate(55deg) contrast(1.15) brightness(1.1); }
+.cctv-overlay {
+  position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.16) 0 2px, transparent 2px 4px);
+  box-shadow: inset 0 0 120px rgba(0, 0, 0, 0.75);
+}
+.cctv-overlay span { position: absolute; top: 14px; font: bold 15px monospace; letter-spacing: 2px; color: #e8f4e0; }
+.cctv-overlay .rec { left: 18px; color: #ff4a4a; animation: rec-blink 1.2s steps(2) infinite; }
+.cctv-overlay .cam { right: 18px; }
+@keyframes rec-blink { 50% { opacity: 0.2; } }
+.view-button { font: bold 13px sans-serif; }

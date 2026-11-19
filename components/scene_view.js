@@ -34,7 +34,7 @@ function el(tag, className, text) {
 // --- Settings kept in this browser --------------------------------------------------------
 
 const SETTINGS_KEY = "forbiddenArchive.settings";
-const DEFAULT_SETTINGS = { music: true, volume: 0.5, sfx: true, fullscreen: true, voices: true, showText: true, usedKeys: false };
+const DEFAULT_SETTINGS = { music: true, volume: 0.5, sfx: true, fullscreen: true, voices: true, showText: true, usedKeys: false, view3d: true };
 
 function loadSettings() {
   try {
@@ -389,7 +389,7 @@ function createTimer() {
   };
 }
 
-export default function ({ data, parentElement, setTriggerValue }) {
+export default function render({ data, parentElement, setTriggerValue }) {
   const existing = parentElement.querySelector(".game");
   if (existing && existing.dataset.sceneKey === data.scene_key) {
     updateChat(existing, data.chat);
@@ -397,6 +397,15 @@ export default function ({ data, parentElement, setTriggerValue }) {
   }
   existing?.remove();
   stopSpeaking();
+  // Which place (and which run of it) was on the screen before this one: a 3D room uses it to
+  // keep the character where it was after an action in the same room
+  globalThis.__forbiddenArchiveCameFrom = globalThis.__forbiddenArchiveShowing;
+  globalThis.__forbiddenArchiveShowing = data.mode === "game" ? `${data.place}:${data.timer.run}` : null;
+  // The 2D/3D button draws the same screen again, here in the browser (no message to Python)
+  globalThis.__forbiddenArchiveRedraw = () => {
+    parentElement.querySelector(".game")?.remove();
+    render({ data, parentElement, setTriggerValue });
+  };
   globalThis.__forbiddenArchiveKeys = null;
 
   if (data.mode === "menu") {
@@ -428,7 +437,8 @@ export default function ({ data, parentElement, setTriggerValue }) {
   parentElement.appendChild(game);
 
   Timer.attach(data.timer, game.querySelector(".clock"));
-  const keys = buildPicture(stage, data, setTriggerValue);
+  // A place with a 3D room is drawn in 3D (scene3d.js); everything else is the 2D picture
+  const keys = wants3D(data) ? buildRoom3D(stage, data, setTriggerValue) : buildPicture(stage, data, setTriggerValue);
   if (data.ending) stage.append(endingCard(data, setTriggerValue));
   if (data.dialogue) {
     const overlay = dialogueOverlay(data.dialogue, data);
@@ -527,6 +537,8 @@ function gameKeys(game, data, setTriggerValue, keys, event, down) {
     }
     if (key === "Enter" && bubble.contains(bubble.getRootNode().activeElement)) return;
   }
+  // In a 3D room the arrows and WASD walk in every direction
+  if (keys.move3d?.(key)) return handled();
   if (event.repeat && !["ArrowLeft", "ArrowRight", "a", "A", "d", "D"].includes(key)) return;
   switch (key) {
     case "ArrowLeft":
@@ -680,7 +692,22 @@ function topBar(data, setTriggerValue) {
     toggleFullscreen();
   };
   const tools = el("div", "bar-tools");
-  tools.append(clock, textButton, full);
+  tools.append(clock, textButton);
+  // A place with a 3D room: switch between the 3D room and the 2D picture (kept in this browser)
+  if (data.world) {
+    const view = el("button", "menu-button icon view-button", loadSettings().view3d ? "2D" : "3D");
+    view.title = data.ui.toggle_view;
+    view.setAttribute("aria-label", data.ui.toggle_view);
+    view.onclick = () => {
+      Sound.click();
+      const settings = loadSettings();
+      settings.view3d = !settings.view3d;
+      saveSettings(settings);
+      globalThis.__forbiddenArchiveRedraw?.();
+    };
+    tools.append(view);
+  }
+  tools.append(full);
   bar.append(buttons, titles, items, tools);
   return bar;
 }
@@ -761,7 +788,7 @@ function narration(data) {
   if (data.narration) box.append(el("p", "scene-text", data.narration));
   if (data.hint) box.append(el("p", "hint", data.hint));
   // Until the player has used the keyboard once, a reminder of the keys (computers only)
-  if (!loadSettings().usedKeys && globalThis.matchMedia?.("(hover: hover)").matches) box.append(el("p", "key-hint", data.ui.key_hint));
+  if (!loadSettings().usedKeys && globalThis.matchMedia?.("(hover: hover)").matches) box.append(el("p", "key-hint", wants3D(data) ? data.ui.key_hint_3d : data.ui.key_hint));
   if (data.clues) {
     const clues = el("div", "clues");
     clues.append(el("div", "clues-title", data.clues.title));
@@ -951,8 +978,6 @@ function buildPicture(stage, data, setTriggerValue) {
     if (near && !busy) near.click();
   }
 
-  const closeBubble = () => stage.querySelector(".bubble")?.remove();
-
   // The character says something: a small bubble over the head, and the voice
   function heroSays(text) {
     if (!hero || !text) return;
@@ -963,77 +988,10 @@ function buildPicture(stage, data, setTriggerValue) {
     setTimeout(() => bubble.remove(), Math.min(9000, 2500 + text.length * 60));
   }
 
-  // A bubble with a text and buttons; clicks inside it never make the character walk
-  function openBubble(text, buttons, leaveText) {
-    closeBubble();
-    const bubble = el("div", "bubble");
-    bubble.onclick = (event) => event.stopPropagation();
-    bubble.append(el("p", "line", text), ...buttons);
-    const leave = el("button", "choice leave", leaveText);
-    leave.onclick = closeBubble;
-    bubble.append(leave);
-    // Choices can be picked with 1-9 on a keyboard (the number shows next to each)
-    bubble.querySelectorAll(":scope > button.choice:not(.leave)").forEach((b, i) => (b.dataset.key = String(i + 1)));
-    stage.append(bubble);
-    return bubble;
-  }
-
-  function choice(text, onClick) {
-    const b = el("button", "choice", text);
-    b.onclick = (event) => {
-      Sound.click();
-      if (onClick) onClick(event);
-    };
-    return b;
-  }
-
-  function openTalk(spot) {
-    const options = spot.options.map((option) =>
-      choice(option.say, () => {
-        closeBubble();
-        stage.dispatchEvent(new Event("choice-sent"));
-        if (option.x === undefined || !hero) {
-          setTriggerValue("action", { id: option.action, x: spot.stand });
-          return;
-        }
-        // A place to go (a tunnel, a box): say it, walk there, then Python decides
-        heroSays(option.say);
-        walkTo(option.x, () =>
-          setTimeout(() => setTriggerValue("action", { id: option.action, x: spot.stand, from: option.x }), 350)
-        );
-      })
-    );
-    openBubble(spot.line, options, data.ui.talk_leave);
-    // A person answers aloud; objects (a shelf, a fork in the tunnel) are read by the hero
-    speak(spot.line, spot.speaker || "you", data.voice_lang);
-  }
-
-  function openKeypad(spot) {
-    const form = el("form", "keypad");
-    const input = el("input");
-    // Number locks open a numeric keyboard on phones; letter locks a normal one
-    input.inputMode = spot.code_kind === "text" ? "text" : "numeric";
-    input.autocomplete = "off";
-    input.maxLength = 12;
-    input.placeholder = spot.code_kind === "text" ? "······" : "····";
-    const submit = choice(data.ui.keypad_try, null);
-    submit.type = "submit";
-    form.append(input, submit);
-    form.onsubmit = (event) => {
-      event.preventDefault();
-      // Nothing typed: shake instead of sending (Python also refuses an empty code)
-      if (!input.value.trim()) {
-        input.classList.remove("shake");
-        void input.offsetWidth;
-        input.classList.add("shake");
-        input.focus();
-        return;
-      }
-      setTriggerValue("action", { id: spot.action, x: spot.stand, code: input.value });
-    };
-    openBubble(spot.code_prompt, [form], data.ui.cancel);
-    input.focus();
-  }
+  const { closeBubble, openBubble, openTalk, openKeypad } = interactions(stage, data, setTriggerValue, {
+    heroSays,
+    walkTo: hero ? walkTo : null,
+  });
 
   function addSpot(spot, className, onArrive) {
     const b = el("button", className);
@@ -1131,6 +1089,88 @@ function buildPicture(stage, data, setTriggerValue) {
     markNearest();
   }
   return { startWalking, stopWalking, useNearest };
+}
+
+// --- Bubbles: a look's text, a talk's choices, a keypad. Shared by the 2D picture and the 3D room ---
+// hooks.heroSays(text) makes the character say something; hooks.walkTo(x, done) walks in the 2D
+// picture (null in 3D: there a place to go is sent to Python straight away).
+
+function interactions(stage, data, setTriggerValue, hooks) {
+  const closeBubble = () => stage.querySelector(".bubble")?.remove();
+
+  // A bubble with a text and buttons; clicks inside it never make the character walk
+  function openBubble(text, buttons, leaveText) {
+    closeBubble();
+    const bubble = el("div", "bubble");
+    bubble.onclick = (event) => event.stopPropagation();
+    bubble.append(el("p", "line", text), ...buttons);
+    const leave = el("button", "choice leave", leaveText);
+    leave.onclick = closeBubble;
+    bubble.append(leave);
+    // Choices can be picked with 1-9 on a keyboard (the number shows next to each)
+    bubble.querySelectorAll(":scope > button.choice:not(.leave)").forEach((b, i) => (b.dataset.key = String(i + 1)));
+    stage.append(bubble);
+    return bubble;
+  }
+
+  function choice(text, onClick) {
+    const b = el("button", "choice", text);
+    b.onclick = (event) => {
+      Sound.click();
+      if (onClick) onClick(event);
+    };
+    return b;
+  }
+
+  function openTalk(spot) {
+    const options = spot.options.map((option) =>
+      choice(option.say, () => {
+        closeBubble();
+        stage.dispatchEvent(new Event("choice-sent"));
+        if (option.x === undefined || !hooks.walkTo) {
+          setTriggerValue("action", { id: option.action, x: spot.stand });
+          return;
+        }
+        // A place to go (a tunnel, a box): say it, walk there, then Python decides
+        hooks.heroSays(option.say);
+        hooks.walkTo(option.x, () =>
+          setTimeout(() => setTriggerValue("action", { id: option.action, x: spot.stand, from: option.x }), 350)
+        );
+      })
+    );
+    openBubble(spot.line, options, data.ui.talk_leave);
+    // A person answers aloud; objects (a shelf, a fork in the tunnel) are read by the hero
+    speak(spot.line, spot.speaker || "you", data.voice_lang);
+  }
+
+  function openKeypad(spot) {
+    const form = el("form", "keypad");
+    const input = el("input");
+    // Number locks open a numeric keyboard on phones; letter locks a normal one
+    input.inputMode = spot.code_kind === "text" ? "text" : "numeric";
+    input.autocomplete = "off";
+    input.maxLength = 12;
+    input.placeholder = spot.code_kind === "text" ? "······" : "····";
+    const submit = choice(data.ui.keypad_try, null);
+    submit.type = "submit";
+    form.append(input, submit);
+    form.onsubmit = (event) => {
+      event.preventDefault();
+      // Nothing typed: shake instead of sending (Python also refuses an empty code)
+      if (!input.value.trim()) {
+        input.classList.remove("shake");
+        void input.offsetWidth;
+        input.classList.add("shake");
+        input.focus();
+        return;
+      }
+      setTriggerValue("action", { id: spot.action, x: spot.stand, code: input.value });
+    };
+    openBubble(spot.code_prompt, [form], data.ui.cancel);
+    input.focus();
+  }
+
+  return { closeBubble, openBubble, choice, openTalk, openKeypad };
 }
 
 function rememberKeys() {
