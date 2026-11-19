@@ -11,121 +11,191 @@ z goes from the back wall (-) to the front (+). "wall" hangs a thing on a wall, 
 the character stands to use it. The rooms are inspired by photos of Nova SBE (Carcavelos).
 """
 
+import math
+
 from logic import DEFEATS, SCENES, is_finished, scene_hotspots, scene_looks
 
 # Looks shared by several rooms: Nova SBE is white walls, dark wooden floors and lines of LED light
-NOVA = {"wall": "#ecebe6", "floor": "#5e3f2b", "trim": "#c8343a", "light": "#fff4e2"}
+NOVA = {"wall": "#ecebe6", "floor": "#4f3727", "trim": "#c8343a", "light": "#fff4e2"}
+
+# Study Room B is an amphitheatre (photo 4): curved rows of white desks around the whiteboards.
+# The rows are arcs around one point behind the boards; an angle 0 points to the front of the room.
+ARC_CENTRE = (5.5, -8.5)
+ROW_RADII = (7.6, 9.8, 12.0)
+
+
+def on_arc(radius, angle, out=0.0):
+    """A point on a row of desks (out: metres further out, towards the chairs and the aisle)."""
+    r = radius + out
+    return [round(ARC_CENTRE[0] + r * math.sin(angle), 2), round(ARC_CENTRE[1] + r * math.cos(angle), 2)]
+
+
+def desk_rows():
+    """The three rows of desks, each cut where it meets the right aisle and the back aisle."""
+    cx, cz = ARC_CENTRE
+    rows = []
+    for radius in ROW_RADII:
+        first = -math.acos((-3.7 - cz) / radius)  # meets the back aisle (z = -3.7)
+        last = math.asin((5.8 - cx) / radius)  # meets the right aisle (x = 5.8)
+        rows.append({"kind": "desk_arc", "at": [cx, cz], "radius": radius, "from": round(first, 3), "to": round(last, 3)})
+    # Your own chair is pulled out, with your coat on it (drawn by "chair_coat")
+    rows[2]["skip"] = [-0.14]
+    return rows
+
+
+def at_desk(row, angle, kind, **more):
+    """A thing on a desk of a row (Tiago, the laptop, the phone), turned to face the chair side."""
+    radius = ROW_RADII[row]
+    return {"kind": kind, "at": on_arc(radius, angle), "turn": round(angle, 3), "stand": on_arc(radius, angle, 1.45), **more}
+
 
 ROOMS_3D = {
-    # Study Room B, like the amphitheatre classrooms: curved white desks, a wooden wall, spotlights
+    # Study Room B, like the amphitheatre classroom (photo 4): curved white rows with black chairs,
+    # a wall of oak panels with a dark acoustic panel, two whiteboards, a perforated white ceiling
+    # with curved lines of spotlights
     "sala_estudo": {
-        "size": [14, 10],
-        "height": 4.0,
-        "start": [0.0, 3.4],
-        "style": {"floor": "carpet", "ceiling": "spots", "palette": {**NOVA, "floor": "#8f877b"}},
+        "size": [14, 11],
+        "height": 4.2,
+        "start": [-4.6, 3.6],
+        "style": {"floor": "lino", "ceiling": "perforated", "palette": {**NOVA, "floor": "#a8a39b"}},
         "things": [
-            {"kind": "wood_wall", "wall": "back", "at": [-3.2, -5.0], "width": 7.4},
-            {"kind": "wall_clock", "wall": "back", "at": [-3.2, -5.0], "time": "23:44"},
-            {"kind": "desk_row", "at": [0.0, -1.6], "width": 9.5},
-            {"kind": "desk_row", "at": [0.0, 0.9], "width": 10.0},
-            {"kind": "whiteboard", "wall": "back", "at": [3.2, -5.0], "stand": [3.2, -3.7], "look": "Whiteboard",
-             "writing": "x = 4\ny = x * 3 + 1\nprint(y)"},
-            {"kind": "tiago_sleeping", "at": [-1.8, 0.9], "stand": [-1.8, 2.5], "talk": "tiago"},
-            {"kind": "laptop", "at": [1.2, 0.9], "stand": [1.2, 2.5], "look": "Laptop"},
-            {"kind": "phone", "at": [2.2, 0.9], "stand": [2.3, 2.5], "look": "Phone"},
-            {"kind": "chair_coat", "at": [3.4, 1.6], "stand": [3.4, 2.7], "action": "apanhar_casaco",
-             "only_while_offered": True},
-            {"kind": "notice", "wall": "left", "at": [-7.0, 1.6], "stand": [-6.0, 1.6], "look": "Notice on the wall"},
-            {"kind": "door", "wall": "left", "at": [-7.0, 3.5], "stand": [-6.1, 3.5], "action": "ir_corredor"},
+            {"kind": "oak_wall", "wall": "back", "at": [-2.7, -5.5], "width": 8.6},
+            {"kind": "dark_panel", "wall": "back", "at": [-4.6, -5.5]},
+            {"kind": "wall_clock", "wall": "back", "at": [-1.2, -5.5], "time": "23:44"},
+            {"kind": "spot_arcs", "at": [ARC_CENTRE[0], ARC_CENTRE[1]], "radii": [6.5, 8.7, 10.9, 13.1]},
+            *desk_rows(),
+            {"kind": "whiteboard", "wall": "back", "at": [2.9, -5.5], "stand": [2.9, -4.4], "look": "Whiteboard"},
+            {"kind": "whiteboard", "wall": "back", "at": [5.2, -5.5], "plain": True},
+            {"kind": "lectern", "at": [5.7, -4.5]},
+            at_desk(2, -0.62, "tiago_sleeping", talk="tiago"),
+            at_desk(2, -0.33, "laptop", look="Laptop"),
+            at_desk(2, -0.25, "phone", look="Phone"),
+            {"kind": "chair_coat", "at": on_arc(12.0, -0.14, 0.75), "turn": -0.14, "stand": on_arc(12.0, -0.14, 1.5),
+             "action": "apanhar_casaco", "only_while_offered": True},
+            {"kind": "notice", "wall": "left", "at": [-7.0, 0.6], "stand": [-6.0, 0.6], "look": "Notice on the wall"},
+            {"kind": "door", "wall": "left", "at": [-7.0, 2.6], "stand": [-6.1, 2.6], "action": "ir_corredor"},
+            {"kind": "exit_sign", "wall": "left", "at": [-7.0, 2.6]},
         ],
     },
-    # The locker corridor, like floor 0 of the library: the staircase, the lockers, the terrace door
+    # The locker corridor, like floor 0 of the library (photo 2): the big staircase with
+    # "STATE YOUR MIND AND MIND YOUR STEP" going up through the ceiling, glass balustrade, black
+    # leather beanbags, dark sofas, round white tables, posters in front of the tall windows
     "corredor": {
-        "size": [18, 9],
-        "height": 4.6,
-        "start": [-7.0, 1.6],
-        "style": {"floor": "wood", "ceiling": "lines", "palette": NOVA},
+        "size": [18, 12],
+        "height": 4.8,
+        "start": [-7.4, -1.6],
+        "style": {"floor": "wood", "ceiling": "perforated", "lights": "lines", "palette": NOVA,
+                  "opening": [-0.9, 2.1, -4.6, -0.3]},
         "things": [
-            {"kind": "door", "wall": "left", "at": [-9.0, 1.6], "stand": [-8.1, 1.6], "action": "voltar_sala"},
-            {"kind": "lockers", "wall": "back", "at": [-4.6, -4.5], "width": 6.8},
-            {"kind": "rita_locker", "wall": "back", "at": [-3.6, -4.5], "stand": [-3.6, -3.3], "action": "abrir_cacifo"},
-            {"kind": "floor_note", "at": [-2.4, -2.9], "stand": [-2.2, -2.0], "look": "Note on the floor"},
-            {"kind": "emergency_plan", "wall": "back", "at": [0.2, -4.5], "stand": [0.2, -3.3], "look": "Emergency plan",
-             "writing": "3.14"},
-            {"kind": "snack_machine", "wall": "back", "at": [1.9, -4.5], "stand": [1.9, -2.9], "look": "Snack machine"},
-            {"kind": "staircase", "at": [5.0, -2.2], "stand": [5.0, 0.8], "action": "ir_cafetaria",
+            {"kind": "door", "wall": "left", "at": [-9.0, -1.6], "stand": [-8.1, -1.6], "action": "voltar_sala"},
+            {"kind": "exit_sign", "wall": "left", "at": [-9.0, -1.6]},
+            {"kind": "lockers", "wall": "back", "at": [-6.3, -6.0], "width": 4.6},
+            {"kind": "rita_locker", "wall": "back", "at": [-5.35, -6.0], "stand": [-5.35, -4.7], "action": "abrir_cacifo"},
+            {"kind": "floor_note", "at": [-4.3, -4.9], "stand": [-4.3, -4.0], "look": "Note on the floor"},
+            {"kind": "emergency_plan", "wall": "back", "at": [-3.1, -6.0], "stand": [-3.1, -4.8], "look": "Emergency plan"},
+            {"kind": "snack_machine", "wall": "back", "at": [-1.75, -6.0], "stand": [-1.75, -4.2], "look": "Snack machine"},
+            {"kind": "staircase", "at": [0.6, 1.0], "stand": [0.6, 2.3], "action": "ir_cafetaria",
              "words": ["STATE", "YOUR", "MIND", "AND", "MIND", "YOUR", "STEP"]},
-            {"kind": "glass_door", "wall": "right", "at": [9.0, 2.2], "stand": [8.1, 2.2], "action": "abrir_terraco"},
-            {"kind": "bookshelf", "wall": "right", "at": [9.0, -1.2]},
-            {"kind": "beanbag", "at": [-1.6, 3.0]},
-            {"kind": "beanbag", "at": [-0.4, 3.6]},
-            {"kind": "round_table", "at": [-1.0, 2.4]},
-            {"kind": "poster", "wall": "left", "at": [-9.0, -1.6]},
+            {"kind": "column", "at": [2.75, -1.3], "dark": False, "colour": "#2a2a2c"},
+            {"kind": "column", "at": [-4.2, 1.0]},
+            {"kind": "glass_door", "wall": "right", "at": [9.0, -4.4], "stand": [8.1, -4.4], "action": "abrir_terraco"},
+            {"kind": "window_wall", "wall": "right", "at": [9.0, 1.7], "width": 8.2, "posters": 3},
+            {"kind": "sofa", "wall": "right", "at": [8.3, -1.2]},
+            {"kind": "sofa", "wall": "right", "at": [8.3, 1.4]},
+            {"kind": "sofa", "wall": "right", "at": [8.3, 4.0]},
+            {"kind": "round_table", "at": [5.6, 0.2], "chairs": 3},
+            {"kind": "round_table", "at": [5.2, 3.6], "chairs": 3},
+            {"kind": "beanbag", "at": [-7.2, 1.4]},
+            {"kind": "beanbag", "at": [-6.0, 0.6]},
+            {"kind": "beanbag", "at": [-7.6, 3.8]},
+            {"kind": "beanbag", "at": [-6.2, 4.6]},
+            {"kind": "beanbag", "at": [-3.6, 4.2]},
+            {"kind": "round_table", "at": [-6.4, 2.6], "small": True},
+            {"kind": "round_table", "at": [-2.6, 3.2], "small": True},
         ],
     },
     "corredor_ronda": {
         "base": "corredor",
         "dim": True,
-        "add": [{"kind": "guard", "at": [5.0, -3.2], "talk": "seguranca", "stand": [3.6, 0.6], "walking": True}],
+        # He comes down the staircase (its first step is at z = 1.0) towards you
+        "add": [{"kind": "guard", "at": [0.6, -3.2], "talk": "seguranca", "stand": [-0.4, 3.4], "walking": True,
+                 "stairs_from": 1.0}],
     },
-    # The cafeteria, closed: round white tables with the chairs on top, the coffee machine, the menu
+    # The cafeteria, closed, on floor 1 of the library (photo 1): white bookshelves, long white tables
+    # with the grey chairs upside down on them, the glass wall at the back, and the atrium with its
+    # white parapet and chairs round it
     "cafetaria": {
-        "size": [14, 9],
-        "height": 4.2,
-        "start": [-5.6, 2.2],
-        "style": {"floor": "wood", "ceiling": "lines", "palette": NOVA, "windows": "back"},
+        "size": [16, 11],
+        "height": 4.0,
+        "start": [-7.0, 3.0],
+        "style": {"floor": "wood", "ceiling": "perforated", "lights": "lines", "palette": NOVA, "windows": [-8.0, 1.8]},
         "things": [
-            {"kind": "door", "wall": "left", "at": [-7.0, 2.2], "stand": [-6.1, 2.2],
+            {"kind": "door", "wall": "left", "at": [-8.0, 3.0], "stand": [-7.1, 3.0],
              "actions": ["voltar_corredor_ronda", "voltar_corredor"]},
-            {"kind": "counter", "at": [3.6, -3.7], "width": 5.4},
-            {"kind": "coffee_machine", "at": [5.2, -3.8], "stand": [5.2, -2.6], "look": "Coffee machine"},
-            {"kind": "menu_board", "wall": "back", "at": [2.4, -4.5], "stand": [2.4, -2.6], "look": "Menu board",
-             "writing": "Bica 0,70 · Meia de leite 1,10 · Galão 1,20"},
-            {"kind": "cafe_table", "at": [-3.2, -1.2]},
-            {"kind": "cafe_table", "at": [0.2, 0.4]},
-            {"kind": "cafe_table", "at": [3.6, 1.6]},
-            {"kind": "cafe_table", "at": [-2.4, 1.6], "chairs_down": True},
-            {"kind": "rita_card", "at": [-2.4, 1.6], "stand": [-2.4, 2.9], "action": "apanhar_cartao_rita",
+            {"kind": "exit_sign", "wall": "left", "at": [-8.0, 3.0]},
+            {"kind": "counter", "at": [4.7, -4.6], "width": 4.6},
+            {"kind": "coffee_machine", "at": [6.3, -4.65], "stand": [6.3, -3.5], "look": "Coffee machine"},
+            {"kind": "menu_board", "wall": "back", "at": [3.9, -5.5], "stand": [3.9, -3.5], "look": "Menu board"},
+            {"kind": "bookshelf", "at": [-6.4, -2.6], "turn": 1.571, "double": True},
+            {"kind": "bookshelf", "at": [-6.4, 0.2], "turn": 1.571, "double": True},
+            {"kind": "bookshelf", "wall": "right", "at": [8.0, 0.6]},
+            {"kind": "column", "at": [-0.4, -0.6]},
+            {"kind": "column", "at": [2.6, -2.8]},
+            {"kind": "long_table", "at": [-2.8, -2.6]},
+            {"kind": "long_table", "at": [1.0, -1.0], "turn": 1.571},
+            {"kind": "long_table", "at": [-2.6, 1.6], "chairs_down": True},
+            {"kind": "rita_card", "at": [-2.6, 1.6], "stand": [-2.6, 2.95], "action": "apanhar_cartao_rita",
              "only_while_offered": True},
-            {"kind": "beanbag", "at": [5.6, 2.8]},
+            {"kind": "atrium", "at": [4.4, 2.6], "width": 4.4, "depth": 2.4},
         ],
     },
-    # The terrace outside the library, at night, over Carcavelos beach
+    # The terrace outside the library (photo 3), at night: the white building with its glass walls,
+    # the walkway on white columns, picnic tables, aluminium tables and chairs, an olive tree, and the
+    # sea of Carcavelos beyond the railing
     "terraco": {
-        "size": [18, 12],
+        "size": [20, 14],
         "height": 4.4,
-        "start": [-7.4, 2.4],
-        "style": {"outdoor": True, "floor": "concrete", "palette": {**NOVA, "floor": "#9c8a6c"}},
+        "start": [-6.0, -5.4],
+        "style": {"outdoor": True, "floor": "tiles", "palette": {**NOVA, "floor": "#b49a72"}},
         "things": [
-            {"kind": "facade", "wall": "left", "at": [-9.0, 0.0]},
-            {"kind": "door", "wall": "left", "at": [-9.0, 2.4], "stand": [-8.0, 2.4], "action": "voltar_dentro", "glass": True},
-            {"kind": "sign_post", "at": [-7.9, 0.6], "stand": [-7.0, 0.9], "look": "Sign by the door"},
-            {"kind": "walkway", "at": [-6.0, 0.0]},
-            {"kind": "picnic_table", "at": [0.0, 2.2]},
-            {"kind": "picnic_table", "at": [4.6, 0.6]},
-            {"kind": "picnic_table", "at": [-1.6, -1.6]},
-            {"kind": "picnic_table", "at": [2.4, -3.4]},
-            {"kind": "socket_post", "at": [4.0, -3.8], "stand": [2.4, -2.2], "action": "ligar_portatil"},
-            {"kind": "sprinkler", "at": [1.0, -0.4]},
-            {"kind": "sprinkler", "at": [5.6, -2.0]},
-            {"kind": "sprinkler", "at": [3.4, -5.2]},
-            {"kind": "bistro_table", "at": [6.8, 3.4]},
-            {"kind": "bistro_table", "at": [7.4, -4.4]},
-            {"kind": "street_lamp", "at": [-4.6, 4.6]},
-            {"kind": "street_lamp", "at": [7.8, 1.2]},
+            {"kind": "facade", "wall": "back", "at": [0.0, -7.0], "door": -6.0},
+            {"kind": "door", "wall": "back", "at": [-6.0, -7.0], "stand": [-6.0, -6.0], "action": "voltar_dentro", "glass": True},
+            {"kind": "sign_post", "at": [-4.7, -6.3], "stand": [-4.7, -5.3], "look": "Sign by the door"},
+            {"kind": "walkway", "at": [6.6, -2.4], "width": 4.6, "length": 9.2},
+            {"kind": "column", "at": [4.6, -3.4], "round": True, "height": 4.2},
+            {"kind": "column", "at": [4.6, 0.8], "round": True, "height": 4.2},
+            {"kind": "column", "at": [8.6, -3.4], "round": True, "height": 4.2},
+            {"kind": "column", "at": [8.6, 0.8], "round": True, "height": 4.2},
+            {"kind": "picnic_table", "at": [6.6, -1.3]},
+            {"kind": "picnic_table", "at": [6.4, 2.6], "turn": 0.35},
+            {"kind": "picnic_table", "at": [2.4, -4.0]},
+            {"kind": "picnic_table", "at": [0.6, 0.4], "turn": -0.3},
+            {"kind": "picnic_table", "at": [-3.2, -2.0], "turn": 0.2},
+            {"kind": "socket_post", "at": [3.75, -4.8], "stand": [2.4, -2.8], "action": "ligar_portatil"},
+            {"kind": "sprinkler", "at": [0.8, -2.6]},
+            {"kind": "sprinkler", "at": [4.2, -2.2]},
+            {"kind": "sprinkler", "at": [2.0, -6.0]},
+            {"kind": "bistro_set", "at": [-6.6, 2.6]},
+            {"kind": "bistro_set", "at": [-3.2, 4.6]},
+            {"kind": "bistro_set", "at": [3.2, 4.8]},
+            {"kind": "bistro_set", "at": [8.4, 5.0]},
+            {"kind": "olive_tree", "at": [0.4, -5.9]},
+            {"kind": "bin", "at": [-2.6, -6.4]},
+            {"kind": "street_lamp", "at": [-8.8, 3.8]},
+            {"kind": "street_lamp", "at": [9.2, 4.6]},
         ],
     },
     "terraco_rega": {
         "base": "terraco",
         "spray": True,
-        "add": [{"kind": "laptop_open", "at": [2.4, -3.4], "talk": "rega", "stand": [2.4, -2.2]}],
+        "add": [{"kind": "laptop_open", "at": [2.4, -4.0], "talk": "rega", "stand": [2.4, -2.8]}],
     },
     "portatil": {
         "base": "terraco",
-        "start": [2.4, -2.2],
+        "start": [2.4, -2.8],
         "camera": "close",
         "add": [
-            {"kind": "laptop_open", "at": [2.4, -3.4], "stand": [2.4, -2.2], "screen": True,
+            {"kind": "laptop_open", "at": [2.4, -4.0], "stand": [2.4, -2.8], "screen": True,
              "actions": ["entrar_portatil", "talk:pen", "ligar_wifi", "talk:terminal"]},
         ],
     },
@@ -134,9 +204,9 @@ ROOMS_3D = {
 # Endings shown in a room with something added: the guard who caught you, the sprinklers...
 ENDING_EXTRAS = {
     "final_seguranca": {"add": [{"kind": "guard", "at": [0.0, 0.0], "facing_hero": True}]},
-    "final_afogado": {"spray": True, "add": [{"kind": "laptop_open", "at": [2.4, -3.4]}]},
-    "final_entregue": {"add": [{"kind": "laptop_open", "at": [2.4, -3.4], "screen": True, "done": True}]},
-    "final_tiago": {"add": [{"kind": "laptop_open", "at": [2.4, -3.4], "screen": True, "done": True}]},
+    "final_afogado": {"spray": True, "add": [{"kind": "laptop_open", "at": [2.4, -4.0]}]},
+    "final_entregue": {"add": [{"kind": "laptop_open", "at": [2.4, -4.0], "screen": True, "done": True}]},
+    "final_tiago": {"add": [{"kind": "laptop_open", "at": [2.4, -4.0], "screen": True, "done": True}]},
     "final_meia_noite": {"dim": True},
 }
 
@@ -204,7 +274,7 @@ def world_view(state, role=None):
         # A thing that is only there for its action (the card, the coat) goes once the action is gone
         if thing.get("only_while_offered") and action not in offered:
             continue
-        view = {key: value for key, value in thing.items() if key not in ("look", "only_while_offered", "writing", "actions")}
+        view = {key: value for key, value in thing.items() if key not in ("look", "only_while_offered", "actions")}
         # The first of its actions that is offered right now (the laptop: log in, then the files...)
         names = thing.get("actions") or ([action] if action else []) + ([f"talk:{thing['talk']}"] if "talk" in thing else [])
         chosen = next((name for name in names if name in spot_index), None)
@@ -215,10 +285,8 @@ def world_view(state, role=None):
         view["look"] = look_index.get(label) if label else None
         if label:
             view["look_label"] = label
-        # Co-op: a clue the agent may not read is drawn dark, and its writing is never sent
+        # Co-op: a clue the agent may not read is drawn dark (and its look, with its words, is not sent)
         view["dark"] = role == "agente" and label in clue_labels
-        if "writing" in thing and not view["dark"]:
-            view["writing"] = thing["writing"]
         # Rita's locker hangs open once the pen drive is out
         if thing["kind"] == "rita_locker":
             view["open"] = "pen_drive" in state["inventory"]
@@ -241,6 +309,19 @@ def world_view(state, role=None):
         "things": things,
         # Actions with nothing in the room for them (texting Rita): buttons over the 3D view
         "free": [i for i in range(len(spots)) if i not in linked],
+        # At the laptop: what is already done, so its screen shows it (the files, the Wi-Fi, git)
+        "laptop": laptop_view(state) if state["scene"] == "portatil" else None,
+    }
+
+
+def laptop_view(state):
+    """The laptop's screen: logged in, the file chosen, the Wi-Fi, the git commands that worked."""
+    decided = state["decisions"]
+    return {
+        "unlocked": "_portatil" in decided,
+        "file": "_ficheiro" in decided,
+        "wifi": "_wifi" in decided,
+        "git": [step for step in ("_git_add", "_git_commit") if step in decided],
     }
 
 

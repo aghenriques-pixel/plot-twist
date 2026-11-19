@@ -31,6 +31,7 @@ from levels import COMING_SOON, level_for_chapter, level_status, next_chapter
 from logic import (
     ACTIONS,
     TIME_UP_ACTION,
+    ITEM_FACES,
     ITEM_ICONS,
     ITEMS,
     SCENES,
@@ -313,6 +314,8 @@ def choose(action_id, code=None, code_key=None, came_from=None):
             # The other character answers over the picture as it was
             st.session_state.dialogue = {
                 "background": picture(before),
+                # Text messages are shown on the phone itself
+                "phone": action.get("conversation_title"),
                 "lines": [{"who": "you", "text": action["say"]}] + [{"who": who, "text": line} for who, line in action["reply"]],
             }
         if is_finished(game):
@@ -342,6 +345,8 @@ def ask_hint():
         st.session_state.db_error = True
         return
     st.session_state.time_lost = time_lost(game, hinted, now)
+    # The last conversation is over: the hint is the next thing on the screen
+    st.session_state.dialogue = None
     st.session_state.game = hinted
     st.session_state.turn += 1
     if is_finished(hinted):
@@ -574,7 +579,8 @@ def current_message():
         return {"ok": False, "text": problem}
     if st.session_state.message:
         accepted, text = st.session_state.message
-        return {"ok": accepted, "text": say(text)}
+        # A hint is something the character thinks (a thought bubble in 3D), not a result
+        return {"ok": accepted, "text": say(text), "hint": text.startswith("💡 ")}
     return None
 
 
@@ -639,11 +645,23 @@ def ending_data(game):
     }
 
 
+def translated_face(face):
+    """The words on a real thing in the chosen language; "_" keys (names, numbers) stay as they are."""
+    def words(key, value):
+        if key == "kind" or key.startswith("_"):
+            return value
+        return say(value) if isinstance(value, str) else [say(v) for v in value]
+
+    return {key: words(key, value) for key, value in face.items()}
+
+
 def translated_spot(spot):
     spot = dict(spot)
-    for field in ("label", "line", "code_prompt", "text"):
+    for field in ("label", "line", "code_prompt", "text", "remark"):
         if field in spot:
             spot[field] = say(spot[field])
+    if "face" in spot:
+        spot["face"] = translated_face(spot["face"])
     if "options" in spot:
         spot["options"] = [{**option, "say": say(option["say"])} for option in spot["options"]]
     return spot
@@ -664,7 +682,11 @@ def notebook_data(game):
     return {
         "title": t("notebook"),
         "labels": {key: t(key) for key in ("nb_items", "nb_conversations", "nb_decisions", "nb_empty", "close")},
-        "items": [{"icon": item["icon"], "name": say(item["name"]), "text": say(item["text"])} for item in book["items"]],
+        "items": [
+            {"id": item["id"], "icon": item["icon"], "name": say(item["name"]), "text": say(item["text"]),
+             "face": translated_face(item["face"])}
+            for item in book["items"]
+        ],
         "conversations": [
             {
                 "title": say(talk["title"]),
@@ -690,6 +712,17 @@ def notebook_markdown(game):
     parts.append(f"\n**{book['labels']['nb_decisions']}**")
     parts += [f"- {label}" for label in book["decisions"]] or [f"- {book['labels']['nb_empty']}"]
     return "\n".join(parts)
+
+
+def laptop_notes(game):
+    """The two post-its by the laptop, with their words in the chosen language (None elsewhere)."""
+    if game["scene"] != "portatil":
+        return None
+    tiago = next(look["face"] for look in SCENES["sala_estudo"]["looks"] if look["face"]["kind"] == "laptop")
+    notes = {"tiago": translated_face(tiago)}
+    if "post_it_rita" in game["inventory"]:
+        notes["rita"] = translated_face(ITEM_FACES["post_it_rita"])
+    return notes
 
 
 def view_data(game, role, message, chat):
@@ -735,7 +768,9 @@ def view_data(game, role, message, chat):
             for key in (
                 "talk_leave", "keypad_try", "cancel", "close", "dialogue_continue", "danger_hurry", "restart_level",
                 "restart_confirm", "yes", "no", "your_time", "best_time", "toggle_text", "toggle_fullscreen", "key_hint",
-                "hint_button", "free_actions",
+                "hint_button", "free_actions", "inspect_back", "lock_open", "lap_user", "lap_login", "lap_usb",
+                "lap_open_hint", "lap_tests", "lap_wifi", "lap_connect", "lap_secured", "lap_no_signal",
+                "lap_connected", "lap_offline", "lap_type", "lap_not_found", "clues_zoom",
                 "toggle_view", "key_hint_3d",
             )
         },
@@ -758,11 +793,14 @@ def view_data(game, role, message, chat):
         "speech": message["text"] if message and not message["ok"] and not watching else None,
         "walk_back_from": None if watching else st.session_state.walk_back_from,
         "dialogue": None,
+        # At the laptop (3D): Tiago's post-it on its screen and Rita's next to the keyboard
+        "laptop_notes": laptop_notes(game),
     }
     dialogue = st.session_state.dialogue
     if dialogue and not watching:
         data["dialogue"] = {
             "background": dialogue["background"],
+            "phone": say(dialogue["phone"]) if dialogue.get("phone") else None,
             "lines": [
                 {"who": speaker_name(line["who"]), "speaker": line["who"], "text": say(line["text"])}
                 for line in dialogue["lines"]

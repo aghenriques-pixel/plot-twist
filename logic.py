@@ -17,6 +17,7 @@ from story import (  # noqa: F401  (re-exported for the rest of the app)
     HINT_COST,
     HINTS,
     ITEM_DETAILS,
+    ITEM_FACES,
     ITEM_ICONS,
     ITEMS,
     LEVEL_MUSIC,
@@ -205,6 +206,8 @@ def scene_hotspots(state):
                 # Only the prompt goes to the browser, never the code itself
                 spot["code_prompt"] = action["code_prompt"]
                 spot["code_kind"] = action.get("code_kind", "text" if re.search("[A-Za-z]", action["code"]) else "number")
+                if "lock" in action:
+                    spot["lock"] = action["lock"]
             spots.append(spot)
         if "talk" in action:
             name = action["talk"]
@@ -227,6 +230,15 @@ def scene_looks(state, role=None):
     if role == "agente":
         return [look for look in looks if not look.get("clue")]
     return list(looks)
+
+
+def face_texts(face):
+    """The words on a real thing (a look's or an item's "face") that change with the language:
+    every string, or list of strings, under a key that does not start with "_"."""
+    for key, value in face.items():
+        if key == "kind" or key.startswith("_"):
+            continue
+        yield from ([value] if isinstance(value, str) else value)
 
 
 def scene_shadows(state, role):
@@ -266,7 +278,7 @@ def notebook(state):
     """What the player can re-read anywhere: items with their full text, the conversations held in
     this game (the player's line first), and the decisions. Built only from the saved state."""
     items = [
-        {"id": item, "name": ITEMS[item], "icon": ITEM_ICONS[item], "text": ITEM_DETAILS[item]}
+        {"id": item, "name": ITEMS[item], "icon": ITEM_ICONS[item], "text": ITEM_DETAILS[item], "face": ITEM_FACES[item]}
         for item in state["inventory"]
     ]
     conversations = []

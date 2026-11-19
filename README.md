@@ -2,7 +2,9 @@
 
 A 3D escape room in the browser, at Nova SBE. **Level 1 — "Submission at 23:59":** it is 23:44 in Study Room B, the group project is due on GitHub at 23:59, the code is on Rita's pen drive locked in her locker, your laptop is at 3% and Tiago changed its password as a joke. Get out of the room, find Rita's card in the cafeteria, open her locker, hide from the security round, find a working socket on the terrace, survive the sprinklers, and `git push` before midnight. Your answer to Tiago decides one of the five endings.
 
-**All in 3D, third person:** the rooms are inspired by Nova SBE (the amphitheatre classrooms, floor 0 of the library with the "STATE YOUR MIND AND MIND YOUR STEP" staircase, the cafeteria, the terrace over Carcavelos beach). Walk with WASD or the arrows, or click; E uses the nearest thing.
+**All in 3D, third person:** the rooms are drawn from photos of Nova SBE (the amphitheatre classroom, floor 0 of the library with the "STATE YOUR MIND AND MIND YOUR STEP" staircase, floor 1 of the library for the cafeteria, the library seen from the terrace). Walk with WASD or the arrows, or click; E uses the nearest thing.
+
+**Every clue is the real thing** (specs/real-things.md): looking at something brings the camera close to it and you read it there — the message on the phone's lock screen, the exercise on the whiteboard, Mum's crumpled note, the chalk menu. Rita's padlock has five wheels, the terrace door has a keypad, and the laptop's screen is a real login screen, file explorer, Wi-Fi menu and terminal. Items appear as themselves (Rita's student card with its number, the post-it in handwriting), texts arrive on the phone, and a hint is the character thinking aloud.
 
 **Against the clock:** the clock shows the real time, from 23:44 to 00:00. A wrong code, file or git command costs 30 seconds; a 💡 hint costs a minute. Two danger moments give you 10 seconds to decide.
 

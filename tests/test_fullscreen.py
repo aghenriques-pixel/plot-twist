@@ -7,7 +7,7 @@ import pytest
 from streamlit.testing.v1 import AppTest
 
 import rooms
-from logic import ACTIONS, DECISION_LABELS, ITEM_DETAILS, ITEMS, SCENES
+from logic import ACTIONS, DECISION_LABELS, ITEM_DETAILS, ITEM_FACES, ITEMS, SCENES, face_texts
 
 APP_PATH = str(Path(__file__).parent.parent / "app.py")
 # Words and letters that only appear in Portuguese (names like Tomás and Júlia are fine)
@@ -25,6 +25,9 @@ def visible_texts():
         for look in scene.get("looks", []):
             yield look["label"]
             yield look["text"]
+            yield from face_texts(look.get("face", {}))
+            if look.get("remark"):
+                yield look["remark"]
         for talk in scene.get("talks", {}).values():
             yield talk["label"]
             yield talk["line"]
@@ -38,6 +41,8 @@ def visible_texts():
             yield action["conversation_title"]
     yield from ITEMS.values()
     yield from ITEM_DETAILS.values()
+    for face in ITEM_FACES.values():
+        yield from face_texts(face)
     yield from DECISION_LABELS.values()
     yield from re.findall(r'RoomError\(f?"([^"]+)"', Path(rooms.__file__).read_text(encoding="utf-8"))
 

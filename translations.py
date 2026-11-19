@@ -194,6 +194,47 @@ STORY_PT.update(
     }
 )
 
+# What is written on the real things, shown close up in 3D (story.py "face", ITEM_FACES)
+STORY_PT.update(
+    {
+        'now': 'agora',
+        'Went home 😴 Left the pen drive with the final code in my locker, corridor B. Deadline 23:59!!': 'Fui para casa 😴 Deixei o pen drive com o código final no meu cacifo, no corredor B. Entrega às 23:59!!',
+        'Low battery': 'Bateria fraca',
+        "Changed your password 😜 It's the answer to the exercise on the board.": 'Mudei-te a password 😜 É o resultado do exercício do quadro.',
+        '— Tiago': '— Tiago',
+        'Exercise': 'Exercício',
+        'NOTICE': 'AVISO',
+        "To save energy, the building's sockets switch off at 23:30.": 'Por poupança de energia, as tomadas do edifício desligam às 23:30.',
+        'Outdoor socket: terrace.': 'Tomada exterior: esplanada.',
+        'Nova SBE — Facilities': 'Nova SBE — Serviços Técnicos',
+        'Rita, your locker PIN is your student card number backwards.': 'Rita, o PIN do cacifo é o número do teu cartão de estudante ao contrário.',
+        "DON'T LOSE THE CARD!": 'NÃO PERCAS O CARTÃO!',
+        '— Mum ♥': '— Mãe ♥',
+        'EMERGENCY PLAN': 'PLANTA DE EMERGÊNCIA',
+        'You are here': 'Está aqui',
+        'Exit to the terrace': 'Saída para o terraço',
+        'Door 3.14': 'Porta 3.14',
+        'Stairs': 'Escadas',
+        'Lockers': 'Cacifos',
+        'SOLD OUT': 'ESGOTADO',
+        'MENU': 'MENU',
+        '€0.70': '0,70 €',
+        '€1.10': '1,10 €',
+        '€1.20': '1,20 €',
+        'Terrace Wi-Fi': 'Wi-Fi Esplanada',
+        'password: the cheapest coffee + its price, no comma': 'password: o café mais barato + o preço, sem vírgula',
+        'Out of order after 22:00': 'Fora de serviço depois das 22:00',
+        'Of course.': 'Claro.',
+        'Automatic sprinklers': 'Rega automática',
+        'every day at 23:55': 'todos os dias às 23:55',
+        'Student': 'Estudante',
+        '4 files': '4 ficheiros',
+        'Same as yours.': 'Igual ao teu.',
+        'The good version is the one that passes the tests.': 'A versão boa é a que passa nos testes.',
+        'Love, Rita ♥': 'Bjs, Rita ♥',
+    }
+)
+
 LANGUAGES = ("en", "pt")
 
 # Screens, menu and help: key -> {"en": ..., "pt": ...}. Texts may have {placeholders}.
@@ -320,6 +361,23 @@ UI_TEXT = {
     "coming_soon_title": {"en": "Coming soon", "pt": "Em breve"},
     "hint_button": {"en": "💡 Hint (−1 min)", "pt": "💡 Dica (−1 min)"},
     "free_actions": {"en": "📱 On your phone", "pt": "📱 No telemóvel"},
+    # The real things in 3D: looking close up, the locks, the laptop's screen
+    "inspect_back": {"en": "Back (Esc)", "pt": "Voltar (Esc)"},
+    "lock_open": {"en": "Open", "pt": "Abrir"},
+    "lap_user": {"en": "Student", "pt": "Estudante"},
+    "lap_login": {"en": "Log in", "pt": "Entrar"},
+    "lap_usb": {"en": "RITA (E:) — pen drive", "pt": "RITA (E:) — pen drive"},
+    "lap_open_hint": {"en": "Click a file to run its tests", "pt": "Clica num ficheiro para correr os testes"},
+    "lap_tests": {"en": "Running the tests…", "pt": "A correr os testes…"},
+    "lap_wifi": {"en": "Wi-Fi networks", "pt": "Redes Wi-Fi"},
+    "lap_connect": {"en": "Connect", "pt": "Ligar"},
+    "lap_secured": {"en": "Secured", "pt": "Protegida"},
+    "lap_no_signal": {"en": "No signal", "pt": "Sem sinal"},
+    "lap_connected": {"en": "Connected", "pt": "Ligado"},
+    "lap_offline": {"en": "No internet", "pt": "Sem internet"},
+    "lap_type": {"en": "Type a command and press Enter", "pt": "Escreve um comando e carrega em Enter"},
+    "lap_not_found": {"en": "command not found", "pt": "comando não encontrado"},
+    "clues_zoom": {"en": "Click a thing to zoom the camera in", "pt": "Clica numa coisa para aproximar a câmara"},
     "ended_at": {"en": "🕐 The clock said {time}", "pt": "🕐 O relógio marcava {time}"},
     "deadline": {"en": "deadline 23:59", "pt": "entrega às 23:59"},
     "toggle_view": {"en": "Switch between the 3D room and the 2D picture", "pt": "Mudar entre a sala 3D e a imagem 2D"},

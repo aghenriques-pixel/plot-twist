@@ -17,6 +17,9 @@ How an action works (logic.apply_action):
   penalty               a refusal that costs time on the clock
   goes_to / goes_to_if  where it leads (goes_to_if: {(decision, value): scene} wins when it matches)
   hotspot               where it is in the 2D picture (800x400), used when 3D cannot be drawn
+  lock                  how a code is typed in 3D: "padlock", "keypad", "login" or "wifi"
+A look ("looks") has a "text" (the 2D picture and the text mode), a "face" (what is written on the
+real thing, shown close up in 3D) and maybe a "remark" (what the character says while looking).
 Names of decisions that start with "_" are progress the player never sees as a decision.
 """
 
@@ -45,6 +48,18 @@ ITEM_DETAILS = {
     "pen_drive": "Four files with very similar names…",
     "carregador": "USB-C. Same as yours.",
     "post_it_rita": "The good version is the one that passes the tests. To submit: 1) git add 2) git commit 3) git push. Love, Rita.",
+}
+
+# What each item looks like when it is shown (picked up, or in the backpack): its real text on it.
+# Keys starting with "_" are the same in every language (names, numbers, commands).
+ITEM_FACES = {
+    "cartao_jogador": {"kind": "card", "name": "Student", "_number": "52731", "note": "Opens the doors after 11 p.m."},
+    "casaco": {"kind": "coat", "tag": "Waterproof. Bought in the sales."},
+    "cartao_rita": {"kind": "card", "_name": "Rita Almeida", "_number": "48213", "note": "Opens the doors after 11 p.m."},
+    "pen_drive": {"kind": "usb", "_label": "RITA", "tag": "4 files"},
+    "carregador": {"kind": "charger", "_label": "USB-C", "tag": "Same as yours."},
+    "post_it_rita": {"kind": "postit", "text": "The good version is the one that passes the tests.",
+                     "_steps": ["1) git add", "2) git commit", "3) git push"], "sign": "Love, Rita ♥"},
 }
 
 ITEM_ICONS = {
@@ -84,19 +99,29 @@ SCENES = {
                 "label": "Phone", "x": 120, "y": 250, "w": 70, "h": 50, "stand": 150,
                 "text": "A message from Rita: “Went home 😴 Left the pen drive with the final code in my locker, "
                 "corridor B. Deadline 23:59!!”",
+                # In 3D the phone itself is shown, close up, with the message on its lock screen
+                "face": {"kind": "phone", "_time": "23:44", "sender": "Rita", "when": "now",
+                         "message": "Went home 😴 Left the pen drive with the final code in my locker, corridor B. "
+                         "Deadline 23:59!!"},
             },
             {
                 "label": "Laptop", "x": 210, "y": 240, "w": 100, "h": 60, "stand": 260,
                 "text": "3%. A login screen, with a post-it stuck on it: “Changed your password 😜 It's the "
                 "answer to the exercise on the board. — Tiago”",
+                "face": {"kind": "laptop", "_battery": "3%", "login": "Password", "low": "Low battery",
+                         "postit": "Changed your password 😜 It's the answer to the exercise on the board.",
+                         "sign": "— Tiago"},
             },
             {
                 "label": "Whiteboard", "clue": True, "x": 560, "y": 70, "w": 200, "h": 110, "stand": 650,
                 "text": "Someone left a Python exercise on the board:  x = 4  ·  y = x * 3 + 1  ·  print(y)",
+                "face": {"kind": "whiteboard", "title": "Exercise", "_lines": ["x = 4", "y = x * 3 + 1", "print(y)"]},
             },
             {
                 "label": "Notice on the wall", "x": 360, "y": 90, "w": 80, "h": 80, "stand": 400,
                 "text": "“To save energy, the building's sockets switch off at 23:30. Outdoor socket: terrace.”",
+                "face": {"kind": "notice", "title": "NOTICE", "text": "To save energy, the building's sockets switch off at 23:30.",
+                         "extra": "Outdoor socket: terrace.", "from": "Nova SBE — Facilities"},
             },
         ],
         "talks": {
@@ -125,14 +150,21 @@ SCENES = {
                 "label": "Note on the floor", "clue": True, "x": 250, "y": 320, "w": 70, "h": 40, "stand": 285,
                 "text": "A crumpled note: “Rita, your locker PIN is your student card number backwards. "
                 "DON'T LOSE THE CARD! — Mum”",
+                "face": {"kind": "note", "text": "Rita, your locker PIN is your student card number backwards.",
+                         "shout": "DON'T LOSE THE CARD!", "sign": "— Mum ♥"},
             },
             {
                 "label": "Emergency plan", "clue": True, "x": 470, "y": 90, "w": 80, "h": 90, "stand": 510,
                 "text": "“You are here ●. Exit to the terrace: Door 3.14.”",
+                "face": {"kind": "plan", "title": "EMERGENCY PLAN", "here": "You are here", "exit": "Exit to the terrace",
+                         "door": "Door 3.14", "stairs": "Stairs", "lockers": "Lockers"},
             },
             {
                 "label": "Snack machine", "x": 600, "y": 120, "w": 80, "h": 200, "stand": 640,
                 "text": "Sold out of everything except one sad bag of crisps. Big enough to hide behind.",
+                "face": {"kind": "snacks", "sold": "SOLD OUT"},
+                # What the character thinks aloud while looking at it
+                "remark": "Sold out of everything except one sad bag of crisps. Big enough to hide behind.",
             },
         ],
     },
@@ -165,10 +197,15 @@ SCENES = {
                 "label": "Menu board", "clue": True, "x": 300, "y": 70, "w": 180, "h": 100, "stand": 390,
                 "text": "“Bica €0.70 · Meia de leite €1.10 · Galão €1.20 — Terrace Wi-Fi password: the cheapest "
                 "coffee + its price, no comma.”",
+                "face": {"kind": "menu", "title": "MENU", "_coffees": ["Bica", "Meia de leite", "Galão"],
+                         "prices": ["€0.70", "€1.10", "€1.20"], "wifi": "Terrace Wi-Fi",
+                         "rule": "password: the cheapest coffee + its price, no comma"},
             },
             {
                 "label": "Coffee machine", "x": 560, "y": 150, "w": 90, "h": 150, "stand": 600,
                 "text": "“Out of order after 22:00.” Of course.",
+                "face": {"kind": "sticker", "text": "Out of order after 22:00"},
+                "remark": "Of course.",
             },
         ],
     },
@@ -180,6 +217,7 @@ SCENES = {
             {
                 "label": "Sign by the door", "x": 80, "y": 150, "w": 70, "h": 90, "stand": 120,
                 "text": "“Automatic sprinklers: every day at 23:55.”",
+                "face": {"kind": "sign", "title": "Automatic sprinklers", "text": "every day at 23:55"},
             },
         ],
     },
@@ -296,6 +334,7 @@ ACTIONS = {
         "label": "Open Rita's locker",
         "code": "31284",
         "code_prompt": "Rita's padlock: 5 digits",
+        "lock": "padlock",  # in 3D: a padlock with 5 wheels
         "wrong_code_message": "The padlock doesn't even move.",
         "gives": ("pen_drive", "carregador", "post_it_rita"),
         "message": "Click! Inside: the pen drive, a charger and a post-it from Rita.",
@@ -313,6 +352,7 @@ ACTIONS = {
         "label": "Open the terrace door",
         "code": "314",
         "code_prompt": "Terrace door keypad",
+        "lock": "keypad",  # in 3D: the door's keypad
         "wrong_code_message": "Beep beep. Red light.",
         "goes_to": "terraco",
         "message": "Green light. Cold air and the sound of the sea.",
@@ -420,6 +460,7 @@ ACTIONS = {
         "label": "Log in",
         "code": "13",
         "code_prompt": "Password",
+        "lock": "login",  # in 3D: the laptop's login screen
         "wrong_code_message": "Wrong password. Tiago is going to pay for this.",
         "decides": ("_portatil", "desbloqueado"),
         "message": "Welcome.",
@@ -467,6 +508,7 @@ ACTIONS = {
         "only_if": ("_ficheiro", "v3"),
         "code": "bica070",
         "code_prompt": "Wi-Fi “Esplanada”: password",
+        "lock": "wifi",  # in 3D: the laptop's Wi-Fi window
         "wrong_code_message": "Wrong password. No internet.",
         "decides": ("_wifi", "ligado"),
         "message": "Connected to “Esplanada”.",

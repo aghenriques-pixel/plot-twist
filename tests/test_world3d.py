@@ -146,16 +146,18 @@ def test_an_ending_is_shown_where_it_happened():
     assert all(t.get("spot") is None and t.get("look") is None for t in view["things"])
 
 
-def test_clues_are_dark_for_the_agent_and_their_writing_is_never_sent():
+def test_clues_are_dark_for_the_agent_and_their_words_are_never_sent():
     state = new_game(now=T0)
 
     agent = world_view(state, "agente")
     solo = world_view(state)
 
-    board = next(t for t in solo["things"] if t["kind"] == "whiteboard")
-    assert board["writing"] == "x = 4\ny = x * 3 + 1\nprint(y)"
-    dark_board = next(t for t in agent["things"] if t["kind"] == "whiteboard")
-    assert dark_board["dark"] and "writing" not in dark_board and dark_board["look"] is None
+    # The words on the board come with its look (its "face"), which the agent never gets
+    board = next(t for t in solo["things"] if t["kind"] == "whiteboard" and not t.get("plain"))
+    assert scene_looks(state)[board["look"]]["face"]["_lines"] == ["x = 4", "y = x * 3 + 1", "print(y)"]
+    dark_board = next(t for t in agent["things"] if t["kind"] == "whiteboard" and not t.get("plain"))
+    assert dark_board["dark"] and dark_board["look"] is None
+    assert "x = 4" not in json.dumps(agent) and "x = 4" not in json.dumps(scene_looks(state, "agente"))
     assert not any(t["dark"] for t in solo["things"])
 
 
@@ -181,3 +183,34 @@ def test_world_is_plain_json_and_does_not_change_the_state():
         view = world_view(state, "agente")
         assert json.loads(json.dumps(view)) == view
         assert json.dumps(state, sort_keys=True) == before
+
+
+def test_every_look_has_the_words_of_the_real_thing():
+    """In 3D a look is the thing itself, close up: each has a "face" with what is written on it."""
+    for scene in SCENES.values():
+        for look in scene.get("looks", []):
+            assert look["face"]["kind"], look["label"]
+
+
+def test_the_rows_of_desks_leave_the_aisles_free():
+    room = full_room("sala_estudo")
+    rows = [t for t in room["things"] if t["kind"] == "desk_arc"]
+    assert len(rows) == 3
+    for row in rows:
+        assert row["from"] < row["to"]
+    # Everything used in the room is reachable: its place to stand is inside the room
+    width, depth = room["size"]
+    for thing in room["things"]:
+        if "stand" in thing:
+            x, z = thing["stand"]
+            assert abs(x) < width / 2 - 0.4 and abs(z) < depth / 2 - 0.2, thing
+
+
+def test_the_laptop_screen_knows_what_is_done():
+    state = play(new_game(now=T0), *START, *CARD, *TERRACE, *LAPTOP)
+    assert world_view(state)["laptop"] == {"unlocked": False, "file": False, "wifi": False, "git": []}
+
+    state = play(state, ("entrar_portatil", "13"), "ficheiro_v3", ("ligar_wifi", "bica070"), "git_add")
+
+    assert world_view(state)["laptop"] == {"unlocked": True, "file": True, "wifi": True, "git": ["_git_add"]}
+    assert world_view(play(new_game(now=T0), *START))["laptop"] is None

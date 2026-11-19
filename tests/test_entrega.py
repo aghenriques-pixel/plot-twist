@@ -377,3 +377,38 @@ def test_codes_never_reach_the_browser():
     for spot in scene_hotspots(state):
         assert "code" not in spot
         assert "31284" not in str(spot)
+
+
+# --- The real things in 3D: the words on them, the locks -----------------------------------------
+
+
+def test_every_look_and_item_has_its_words_in_portuguese():
+    from logic import ITEM_FACES, face_texts
+    from translations import STORY_PT
+
+    faces = [look["face"] for scene in SCENES.values() for look in scene.get("looks", [])] + list(ITEM_FACES.values())
+    for face in faces:
+        for text in face_texts(face):
+            assert text in STORY_PT, text
+
+
+def test_the_codes_are_written_on_the_real_things():
+    from logic import ITEM_FACES
+    from translations import tr
+
+    looks = {look["label"]: look for scene in SCENES.values() for look in scene.get("looks", [])}
+    assert looks["Whiteboard"]["face"]["_lines"] == ["x = 4", "y = x * 3 + 1", "print(y)"]
+    assert "3.14" in tr(looks["Emergency plan"]["face"]["door"], "pt")
+    assert ITEM_FACES["cartao_rita"]["_number"] == "48213"
+    menu = looks["Menu board"]["face"]
+    assert menu["_coffees"][0] == "Bica" and tr(menu["prices"][0], "pt") == "0,70 €"
+
+
+def test_each_code_says_how_it_is_typed_in_3d():
+    state = new_game(now=T0)
+    state["scene"] = "corredor"
+    state["inventory"] = ["casaco", "cartao_jogador"]
+    locks = {spot["action"]: spot.get("lock") for spot in scene_hotspots(state) if spot.get("code_prompt")}
+
+    assert locks == {"abrir_cacifo": "padlock", "abrir_terraco": "keypad"}
+    assert ACTIONS["entrar_portatil"]["lock"] == "login" and ACTIONS["ligar_wifi"]["lock"] == "wifi"
