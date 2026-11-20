@@ -239,7 +239,7 @@ LANGUAGES = ("en", "pt")
 
 # Screens, menu and help: key -> {"en": ..., "pt": ...}. Texts may have {placeholders}.
 UI_TEXT = {
-    "game_title": {"en": "The Forbidden Archive", "pt": "O Arquivo Proibido"},
+    "game_title": {"en": "Midnight at Nova", "pt": "Meia-Noite na Nova"},
     "tagline": {
         "en": "23:44 at Nova SBE. The group project is due at 23:59, and the code is locked in Rita's locker.",
         "pt": "23:44 na Nova SBE. O trabalho de grupo é para entregar às 23:59, e o código está trancado no cacifo da Rita.",
