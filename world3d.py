@@ -14,7 +14,7 @@ the character stands to use it. The rooms are inspired by photos of Nova SBE (Ca
 import math
 
 from looks import DEFAULT_LOOK
-from logic import DEFEATS, SCENES, is_finished, scene_hotspots, scene_looks
+from logic import DEFEATS, SCENES, clue_reader, is_finished, scene_hotspots, scene_looks
 
 # Looks shared by several rooms: Nova SBE is white walls, dark wooden floors and lines of LED light
 NOVA = {"wall": "#ecebe6", "floor": "#4f3727", "trim": "#c8343a", "light": "#fff4e2"}
@@ -282,16 +282,18 @@ def world_view(state, role=None, look=None):
         room["things"] = [t for t in room["things"] if t["kind"] not in kinds] + list(extra.get("add", []))
         room.update({key: value for key, value in extra.items() if key != "add"})
 
-    watching = role == "contacto"
     # The same lists, in the same order, as the screen's "spots" and "looks"
-    spots = [] if (watching or finished) else scene_hotspots(state)
+    spots = [] if finished else scene_hotspots(state)
     looks = [] if finished else scene_looks(state, role)
     spot_index = {}
     for i, spot in enumerate(spots):
         spot_index[spot["action"] if spot.get("action") else f"talk:{spot['talk']}"] = i
     look_index = {look["label"]: i for i, look in enumerate(looks)}
-    clue_labels = {look["label"] for look in SCENES[state["scene"]].get("looks", []) if look.get("clue")}
-    # Actions offered right now (the contacto cannot use them, but sees the same room)
+    # Co-op: the clues the other player reads (this player sees them dark)
+    others_clues = {
+        look["label"] for look in SCENES[state["scene"]].get("looks", []) if role and clue_reader(look) not in (None, role)
+    }
+    # Actions offered right now
     offered = {spot["action"] for spot in scene_hotspots(state) if spot.get("action")}
 
     things = []
@@ -319,8 +321,8 @@ def world_view(state, role=None, look=None):
         view["look"] = look_index.get(label) if label else None
         if label:
             view["look_label"] = label
-        # Co-op: a clue the agent may not read is drawn dark (and its look, with its words, is not sent)
-        view["dark"] = role == "agente" and label in clue_labels
+        # Co-op: a clue the other player reads is drawn dark (and its look, with its words, is not sent)
+        view["dark"] = label in others_clues
         # Rita's locker hangs open once the pen drive is out
         if thing["kind"] == "rita_locker":
             view["open"] = "pen_drive" in state["inventory"]
@@ -340,9 +342,8 @@ def world_view(state, role=None, look=None):
             option["action"]: CHOICES.get(option["action"], {"icon": "💬", "at": None})
             for spot in spots if spot.get("talk") for option in spot["options"]
         },
-        # The contacto has no character: they watch through a security camera in a corner.
-        # At an ending, the camera circles the character.
-        "camera": "ending" if finished else "cctv" if watching else room.get("camera", "follow"),
+        # At an ending, the camera circles the character
+        "camera": "ending" if finished else room.get("camera", "follow"),
         "mood": ("defeat" if state["scene"] in DEFEATS else "victory") if finished else None,
         # The player's student; the yellow raincoat goes over their clothes with the coat
         "hero": {"coat": "casaco" in state["inventory"], "look": look or DEFAULT_LOOK},

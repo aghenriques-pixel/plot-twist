@@ -68,7 +68,7 @@ def join_room(target, code, player):
             db.run("INSERT INTO room_members (room, role, player) VALUES (?, 'contacto', ?)", (code, player))
     except ConflictError:
         # Someone else is already the contacto: the first one saved wins
-        raise RoomError("Room full: it already has an agent and a contact.") from None
+        raise RoomError("Room full: it already has two players.") from None
     # The game (and its clock) starts when both players are in the room
     save_game(target, new_game(), room_save_key(code))
     return "contacto"

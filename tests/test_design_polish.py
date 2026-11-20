@@ -4,11 +4,13 @@ from logic import SCENES, apply_action, new_game, scene_shadows
 from translations import UI_TEXT, ui
 
 
-def clue_rects(scene_id):
+def clue_rects(scene_id, role="agente"):
+    """The clues this player may not read: in co-op each clue has one reader
+    (changed for specs/coop-two-students.md: before, every clue was the contact's)."""
     return [
         {"x": look["x"], "y": look["y"], "w": look["w"], "h": look["h"]}
         for look in SCENES[scene_id].get("looks", [])
-        if look.get("clue")
+        if look.get("clue") and look.get("reader", "contacto") != role
     ]
 
 

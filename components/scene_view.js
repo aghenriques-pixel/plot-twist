@@ -394,9 +394,12 @@ function createTimer() {
 export default function render({ data, parentElement, setTriggerValue }) {
   const existing = parentElement.querySelector(".game");
   if (existing && existing.dataset.sceneKey === data.scene_key) {
+    // A co-op refresh: the same screen, with new chat messages and the friend's new position
     updateChat(existing, data.chat);
+    globalThis.__gitOutPartnerAt = data.partner?.at || null;
     return;
   }
+  globalThis.__gitOutPartnerAt = data.partner?.at || null;
   existing?.remove();
   stopSpeaking();
   // Which place (and which run of it) was on the screen before this one: a 3D room uses it to
@@ -1169,7 +1172,8 @@ function buildPicture(stage, data, setTriggerValue) {
       if (left <= 0) {
         stop();
         closeBubble();
-        setTriggerValue("action", { id: timeout, x });
+        // Co-op: only Player 1's browser sends it, so it is sent once
+        if (data.sends_timeout !== false) setTriggerValue("action", { id: timeout, x });
       }
     }, 1000);
     if (spot) setTimeout(() => !done && openTalk(spot), 600);
@@ -1920,10 +1924,6 @@ function menuScreen(data, setTriggerValue) {
   function coopBox() {
     const coop = el("div", "coop-box");
     coop.append(el("div", "coop-title", L.coop));
-    if (!menu.online) {
-      coop.append(el("p", "coop-text", L.coop_offline));
-      return coop;
-    }
     coop.append(el("p", "coop-text", L.coop_text));
     coop.append(button(L.create_room, () => startCommand("create_room"), "menu-item small"));
     const form = el("form", "join-form");

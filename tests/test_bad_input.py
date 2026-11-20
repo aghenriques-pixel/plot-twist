@@ -180,7 +180,7 @@ def test_an_invite_link_joins_the_room_as_contact(online):
     at = open_app(BRUNO, sala=code)
 
     assert at.title[0].value == "Study Room B"
-    assert "agent" in texts(at).lower() or "contact" in texts(at).lower()
+    assert "player 2" in texts(at).lower()
     assert join_room(online, code, BRUNO) == "contacto"
 
 

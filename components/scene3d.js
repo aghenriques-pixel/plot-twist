@@ -492,11 +492,13 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
     const cameFrom = before && before.endsWith(`:${data.timer.run}`) ? before.slice(0, before.lastIndexOf(":")) : null;
     const arrival = world.arrive?.[cameFrom];
     here = arrival
-      ? { visit, x: arrival.at[0], z: arrival.at[1], turn: arrival.turn }
-      : { visit, x: world.start[0], z: world.start[1], turn: Math.PI };
+      ? { visit, x: arrival.at[0], z: arrival.at[1], turn: arrival.turn, fresh: true }
+      : { visit, x: world.start[0], z: world.start[1], turn: Math.PI, fresh: true };
     globalThis.__forbiddenArchiveHere = here;
   }
-  const hero = watching || menuView ? null : makeStudent(THREE, world.hero.look, { coat: world.hero.coat });
+  // The room has one raincoat: in co-op Player 1 wears it, so both screens show the same
+  const coatOnMe = world.hero.coat && data.role !== "contacto";
+  const hero = watching || menuView ? null : makeStudent(THREE, world.hero.look, { coat: coatOnMe });
   if (hero) {
     hero.group.position.set(here.x, 0, here.z);
     hero.group.rotation.y = here.turn;
@@ -507,6 +509,62 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
       group.position.set(here.x + Math.sin(angle) * 1.4, 0, here.z + Math.cos(angle) * 1.4);
       group.rotation.y = angle + Math.PI;
     }
+  }
+
+  // --- Co-op: your friend's student (specs/coop-two-students.md) ---
+  // Python sends where they stand (data.partner.at, refreshed every second without rebuilding the
+  // room: scene_view.js puts it in __gitOutPartnerAt); their student glides there. Before they have
+  // moved here, they stand beside you.
+  let partner = null;
+  if (data.partner && hero && !ending) {
+    partner = makeStudent(THREE, data.partner.look, { coat: world.hero.coat && data.role === "contacto" });
+    const at = data.partner.at;
+    partner.group.position.set(at ? at.x : here.x + 1.1, 0, at ? at.z : here.z + 0.5);
+    partner.group.rotation.y = at ? at.turn : here.turn;
+    scene.add(shadowy(partner.group));
+    partner.tag = el("div", "partner-name", data.partner.name);
+    stage.append(partner.tag);
+  }
+  const partnerTarget = new THREE.Vector3();
+  function placePartner(dt, time) {
+    if (!partner) return;
+    const at = globalThis.__gitOutPartnerAt;
+    const p = partner.group.position;
+    let walking = false;
+    if (at) {
+      partnerTarget.set(at.x, 0, at.z);
+      const dx = partnerTarget.x - p.x;
+      const dz = partnerTarget.z - p.z;
+      const distance = Math.hypot(dx, dz);
+      if (distance > 6) {
+        p.copy(partnerTarget); // far away (a refresh was missed): appear there
+      } else if (distance > 0.05) {
+        // A little faster than walking, so they catch up between refreshes
+        const step = Math.min(distance, WALK_SPEED * 1.15 * dt);
+        p.x += (dx / distance) * step;
+        p.z += (dz / distance) * step;
+        walking = true;
+      }
+      const wanted = walking ? Math.atan2(dx, dz) : at.turn;
+      const diff = Math.atan2(Math.sin(wanted - partner.group.rotation.y), Math.cos(wanted - partner.group.rotation.y));
+      partner.group.rotation.y += diff * Math.min(1, dt * 8);
+    }
+    partner.animate(dt, time, walking);
+    placeOver(partner.tag, projected.set(p.x, 2.15, p.z));
+  }
+  // Where you stand, sent to Python while you walk (about twice a second) and once on arrival
+  let sentClock = 0;
+  let sent = null;
+  function sendMove(dt) {
+    if (!partner) return;
+    sentClock -= dt;
+    const p = hero.group.position;
+    const turn = hero.group.rotation.y;
+    const moved = !sent || Math.hypot(p.x - sent.x, p.z - sent.z) > 0.05 || Math.abs(turn - sent.turn) > 0.2;
+    if (sentClock > 0 || !moved) return;
+    sentClock = 0.5;
+    sent = { place: data.place, x: +p.x.toFixed(2), z: +p.z.toFixed(2), turn: +turn.toFixed(2) };
+    setTriggerValue("move", sent);
   }
 
   // The main menu: the player's student stands on the terrace, beside the menu (or close up while
@@ -572,6 +630,18 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
   const collides = (x, z) =>
     x < -W / 2 + edge || x > W / 2 - edge || z < -D / 2 + edge + 0.1 || z > D / 2 - 0.2 ||
     obstacles.some((touches) => touches(x, z, HERO_RADIUS));
+
+  // Co-op: Player 2 arrives a step beside Player 1, not inside them
+  if (hero && here.fresh && data.role === "contacto") {
+    for (const [ox, oz] of [[0.9, 0.5], [-0.9, 0.5], [0, 1.0], [0.9, -0.5], [-0.9, -0.5]]) {
+      if (collides(here.x + ox, here.z + oz)) continue;
+      here.x += ox;
+      here.z += oz;
+      hero.group.position.set(here.x, 0, here.z);
+      break;
+    }
+  }
+  here.fresh = false;
 
   function moveBy(dx, dz) {
     // Each axis on its own, so the character slides along a desk instead of stopping
@@ -977,7 +1047,8 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
       if (left <= 0) {
         done = true;
         ui.closeBubble();
-        setTriggerValue("action", { id: timeout, x: 0 });
+        // Co-op: only Player 1's browser sends it, so it is sent once
+        if (data.sends_timeout !== false) setTriggerValue("action", { id: timeout, x: 0 });
       }
     }, 1000);
     stage.addEventListener("choice-sent", () => (done = true));
@@ -1113,6 +1184,8 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
 
     seeThrough(dt, p);
     placeChoices(time);
+    placePartner(dt, time);
+    sendMove(dt);
 
     // The nearest thing: its ring glows and its label floats over it
     nearest = findNearest();

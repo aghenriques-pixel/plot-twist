@@ -20,6 +20,8 @@ How an action works (logic.apply_action):
   lock                  how a code is typed in 3D: "padlock", "keypad", "login" or "wifi"
 A look ("looks") has a "text" (the 2D picture and the text mode), a "face" (what is written on the
 real thing, shown close up in 3D) and maybe a "remark" (what the character says while looking).
+A clue ("clue": True) is read by one player in co-op: its "reader", "agente" (Player 1) or
+"contacto" (Player 2); the other sees it dark.
 Names of decisions that start with "_" are progress the player never sees as a decision.
 """
 
@@ -113,7 +115,7 @@ SCENES = {
                          "sign": "— Tiago"},
             },
             {
-                "label": "Whiteboard", "clue": True, "x": 560, "y": 70, "w": 200, "h": 110, "stand": 650,
+                "label": "Whiteboard", "clue": True, "reader": "contacto", "x": 560, "y": 70, "w": 200, "h": 110, "stand": 650,
                 "text": "Someone left a Python exercise on the board:  x = 4  ·  y = x * 3 + 1  ·  print(y)",
                 "face": {"kind": "whiteboard", "title": "Exercise", "_lines": ["x = 4", "y = x * 3 + 1", "print(y)"]},
             },
@@ -147,14 +149,14 @@ SCENES = {
         },
         "looks": [
             {
-                "label": "Note on the floor", "clue": True, "x": 250, "y": 320, "w": 70, "h": 40, "stand": 285,
+                "label": "Note on the floor", "clue": True, "reader": "agente", "x": 250, "y": 320, "w": 70, "h": 40, "stand": 285,
                 "text": "A crumpled note: “Rita, your locker PIN is your student card number backwards. "
                 "DON'T LOSE THE CARD! — Mum”",
                 "face": {"kind": "note", "text": "Rita, your locker PIN is your student card number backwards.",
                          "shout": "DON'T LOSE THE CARD!", "sign": "— Mum ♥"},
             },
             {
-                "label": "Emergency plan", "clue": True, "x": 470, "y": 90, "w": 80, "h": 90, "stand": 510,
+                "label": "Emergency plan", "clue": True, "reader": "contacto", "x": 470, "y": 90, "w": 80, "h": 90, "stand": 510,
                 "text": "“You are here ●. Exit to the terrace: Door 3.14.”",
                 "face": {"kind": "plan", "title": "EMERGENCY PLAN", "here": "You are here", "exit": "Exit to the terrace",
                          "door": "Door 3.14", "stairs": "Stairs", "lockers": "Lockers"},
@@ -194,7 +196,7 @@ SCENES = {
         },
         "looks": [
             {
-                "label": "Menu board", "clue": True, "x": 300, "y": 70, "w": 180, "h": 100, "stand": 390,
+                "label": "Menu board", "clue": True, "reader": "agente", "x": 300, "y": 70, "w": 180, "h": 100, "stand": 390,
                 "text": "“Bica €0.70 · Meia de leite €1.10 · Galão €1.20 — Terrace Wi-Fi password: the cheapest "
                 "coffee + its price, no comma.”",
                 "face": {"kind": "menu", "title": "MENU", "_coffees": ["Bica", "Meia de leite", "Galão"],

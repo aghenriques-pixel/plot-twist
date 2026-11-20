@@ -221,15 +221,22 @@ def scene_hotspots(state):
     return spots
 
 
+def clue_reader(look):
+    """Who reads a clue in co-op: "agente" or "contacto" (the contact, when the clue does not say).
+    None for a look that is not a clue (everyone reads it)."""
+    if not look.get("clue"):
+        return None
+    return look.get("reader", "contacto")
+
+
 def scene_looks(state, role=None):
     """Things the player can observe in the current scene. Observing never changes the state.
-    In cooperative mode the clues ("clue": True) are only for the contacto, never the agente."""
+    In cooperative mode each clue ("clue": True) is read by one player only (clue_reader); alone
+    (role None) you read them all."""
     if is_finished(state):
         return []
     looks = SCENES[state["scene"]].get("looks", [])
-    if role == "agente":
-        return [look for look in looks if not look.get("clue")]
-    return list(looks)
+    return [look for look in looks if role is None or clue_reader(look) in (None, role)]
 
 
 def face_texts(face):
@@ -242,17 +249,22 @@ def face_texts(face):
 
 
 def scene_shadows(state, role):
-    """In cooperative mode the agente's picture is dark where the clues are (specs/design-polish.md):
-    one rectangle per clue look, so the agent cannot read what only the contacto should see."""
-    if role != "agente" or is_finished(state):
+    """In cooperative mode the 2D picture is dark where the other player's clues are
+    (specs/design-polish.md, specs/coop-two-students.md): one rectangle per clue this player may not read."""
+    if role is None or is_finished(state):
         return []
     looks = SCENES[state["scene"]].get("looks", [])
-    return [{"x": look["x"], "y": look["y"], "w": look["w"], "h": look["h"]} for look in looks if look.get("clue")]
+    return [
+        {"x": look["x"], "y": look["y"], "w": look["w"], "h": look["h"]}
+        for look in looks
+        if clue_reader(look) not in (None, role)
+    ]
 
 
 def can_act(role):
-    """Solo players (role None) and the agente act; the contacto only watches and talks."""
-    return role in (None, "agente")
+    """Who may act: a solo player (role None) and, in co-op, both students (specs/coop-two-students.md).
+    Checked in app.choose(), where the action happens."""
+    return role in (None, "agente", "contacto")
 
 
 def is_hidden_decision(name):
