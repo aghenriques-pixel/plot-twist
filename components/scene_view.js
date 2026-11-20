@@ -131,6 +131,12 @@ const THEMES = {
     bass: "x...x...x...x...", arp: "x.x.x.x.x.x.x.x.", perc: { k: "x.......x.......", s: "....x.......x..." } },
   defeat: { bpm: 58, pad: "sine", scale: "minor", lead: 0.1, chords: [[45, "min"], [50, "min"], [52, "maj"], [45, "min"]],
     bass: "x...............", arp: "", perc: {} },
+  // Carcavelos beach: slow waves of brushed noise under open chords (specs/levels-2-and-3.md)
+  beach: { bpm: 64, pad: "sine", scale: "major", lead: 0.16, chords: [[50, "maj7"], [55, "maj7"], [47, "min7"], [52, "sus"]],
+    bass: "x.......o.......", arp: "x...x.....x.....", perc: { s: "x.......x.......", d: "......x........." } },
+  // The morning of Level 3: bright and in a hurry
+  morning: { bpm: 112, pad: "triangle", scale: "major", lead: 0.2, chords: [[55, "maj"], [52, "min"], [48, "maj"], [50, "maj"]],
+    bass: "x...x.o.x...x.o.", arp: "x.xxx.x.x.xxx.x.", perc: { k: "x.......x.......", h: "..x...x...x...x.", s: "....x.......x..." } },
 };
 const freqOf = (midi) => 440 * 2 ** ((midi - 69) / 12);
 
@@ -1602,6 +1608,19 @@ function realThing(face, extra = "") {
     thing.append(el("div", "usb-plug"), tape, el("div", "usb-tag", face.tag));
   } else if (face.kind === "charger") {
     thing.append(el("div", "charger-brick", face._label), el("div", "charger-cable"), el("div", "charger-note", face.tag));
+  } else if (face.kind === "notebook") {
+    // Rita's notebook, open on its first draft
+    thing.append(el("div", "notebook-title", `${face.title} — ${face._date}`));
+    for (const line of face._code) thing.append(el("code", "notebook-code", line));
+    thing.append(el("div", "notebook-sign", face.sign));
+  } else if (face.kind === "print") {
+    // The printed browser history from PC 7
+    thing.append(el("div", "print-title", face.title));
+    for (const line of face._lines) thing.append(el("code", "print-line", line));
+  } else if (face.kind === "key") {
+    thing.append(el("div", "key-ring"), el("div", "key-blade"), el("div", "key-tag", face.tag));
+  } else if (face.kind === "laptop_item") {
+    thing.append(el("div", "laptop-lid", "🐈"), el("div", "laptop-base"), el("div", "laptop-tag", face.tag));
   }
   return thing;
 }

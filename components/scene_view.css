@@ -1239,3 +1239,21 @@ button.chip:hover { border-color: var(--warm); }
   background: rgba(16, 10, 40, 0.78); border: 1px solid rgba(126, 226, 168, 0.6);
   color: #b9f6ca; font: bold 12px/1.3 sans-serif; letter-spacing: 0.03em;
 }
+
+/* --- Levels 2 and 3: the new items as the real things (specs/levels-2-and-3.md) --------- */
+.real.notebook { width: 230px; padding: 16px 18px; border-radius: 6px 14px 14px 6px; background: repeating-linear-gradient(#fbf7ea 0 26px, #c9d8ef 26px 27px); border-left: 14px solid #2f7d5b; color: #1d2a44; box-shadow: 0 14px 30px rgba(0,0,0,.45); text-align: left; }
+.notebook-title { font: italic bold 17px/1.4 'Segoe Print', 'Bradley Hand', cursive; color: #c8343a; margin-bottom: 6px; }
+.notebook-code { display: block; font: 13px/27px 'Courier New', monospace; white-space: pre; }
+.notebook-sign { margin-top: 6px; text-align: right; font: italic 16px/1.4 'Segoe Print', 'Bradley Hand', cursive; }
+.real.print { width: 270px; padding: 16px 16px 22px; background: #ffffff; color: #111827; border-radius: 3px; box-shadow: 0 14px 30px rgba(0,0,0,.45); text-align: left; transform: rotate(-2deg); }
+.print-title { font: bold 14px/1.4 sans-serif; border-bottom: 1px solid #d1d5db; padding-bottom: 6px; margin-bottom: 8px; }
+.print-line { display: block; font: 12px/1.7 'Courier New', monospace; white-space: pre; }
+.print-line:nth-child(3), .print-line:nth-child(4) { background: rgba(255, 214, 90, .5); }
+.real.key { position: relative; width: 190px; height: 120px; }
+.key-ring { position: absolute; left: 10px; top: 30px; width: 54px; height: 54px; border-radius: 50%; border: 12px solid #d7b24a; box-sizing: border-box; }
+.key-blade { position: absolute; left: 60px; top: 51px; width: 110px; height: 12px; background: linear-gradient(90deg, #d7b24a, #b8902e); clip-path: polygon(0 0, 100% 0, 100% 100%, 85% 100%, 85% 160%, 72% 100%, 60% 100%, 60% 170%, 48% 100%, 0 100%); }
+.key-tag { position: absolute; left: 0; top: 92px; padding: 3px 8px; background: #c8343a; color: #fff; font: bold 12px/1.3 sans-serif; border-radius: 4px; transform: rotate(-6deg); }
+.real.laptop_item { position: relative; width: 220px; height: 150px; }
+.laptop-lid { height: 110px; border-radius: 8px 8px 0 0; background: linear-gradient(135deg, #1d3c8f, #c8343a); border: 6px solid #9aa0a8; display: grid; place-items: center; font-size: 46px; }
+.laptop-base { height: 12px; margin: 0 -14px; background: #9aa0a8; border-radius: 0 0 10px 10px; }
+.laptop-tag { margin-top: 8px; font: 12px/1.3 sans-serif; color: #fff4dc; }

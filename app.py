@@ -41,6 +41,7 @@ from logic import (
     apply_action,
     available_actions,
     can_act,
+    carried,
     chapter_of,
     clock_label,
     countdown,
@@ -48,6 +49,7 @@ from logic import (
     is_finished,
     is_valid_state,
     journey,
+    memory_of,
     new_game,
     notebook,
     scene_hotspots,
@@ -234,8 +236,13 @@ def load_saved():
     return saved if saved is not None and is_valid_state(saved) else None
 
 
-def start_new_game(chapter=None):
-    game = new_game(chapter or st.session_state.pending_chapter)
+def start_new_game(chapter=None, memory=None):
+    """A fresh game of a level. memory: what it remembers from the levels before (logic.carried);
+    without it, what this player's endings tell (specs/levels-2-and-3.md)."""
+    chapter = chapter or st.session_state.pending_chapter
+    if memory is None:
+        memory = carried(chapter, endings=player_endings())
+    game = new_game(chapter, carried=memory)
     try:
         save_game(DB_PATH, game, SAVE_KEY)
     except StorageError:
@@ -436,7 +443,8 @@ def restart_level():
     """Start the current level again (only the agente in a room). Nothing to restart at an ending."""
     game = st.session_state.game
     if game and not is_finished(game) and can_act(ROLE):
-        start_new_game(chapter_of(game))
+        # The same level again, with what it brought from the levels before
+        start_new_game(chapter_of(game), memory=memory_of(game))
 
 
 def following_chapter(game):
@@ -448,9 +456,11 @@ def following_chapter(game):
 
 def continue_to_next_level():
     """At an ending that completes a level the story goes on (the finished game is replaced)."""
-    chapter = following_chapter(st.session_state.game)
+    game = st.session_state.game
+    chapter = following_chapter(game)
     if chapter and can_act(ROLE):
-        start_new_game(chapter)
+        # Tiago's answers and what is still in your pocket go on to the next level
+        start_new_game(chapter, memory=carried(chapter, previous=game, endings=player_endings()))
 
 
 def set_language(lang):

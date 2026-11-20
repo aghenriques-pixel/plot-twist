@@ -25,7 +25,10 @@ from story import (  # noqa: F401  (re-exported for the rest of the app)
     SCENE_MUSIC,
     SCENES,
     START_SCENE,
+    CARRIED,
+    CARRIED_DEFAULTS,
     TIME_UP_ENDING,
+    TIME_UP_ENDINGS,
     WRONG_ANSWER_COST,
 )
 
@@ -50,13 +53,45 @@ def scene_music(state):
     return SCENE_MUSIC.get(scene_id, LEVEL_MUSIC[scene.get("chapter", 1)])
 
 
-def new_game(chapter=1, now=None):
+def new_game(chapter=1, now=None, carried=None):
     """Progress for a fresh game of a chapter: its first scene, empty inventory, no decisions.
-    A level with a clock also remembers when it started (now: seconds, time.time() by default)."""
-    decisions = {}
+    A level with a clock also remembers when it started (now: seconds, time.time() by default).
+    carried: what this level remembers from the levels before (see carried()); without it, the
+    level's defaults (Tiago left out), so every level can be played on its own."""
+    memory = carried if carried is not None else {"decisions": dict(CARRIED_DEFAULTS.get(chapter, {})), "inventory": []}
+    decisions = dict(memory["decisions"])
     if chapter in COUNTDOWN:
         decisions[START] = str(int(time.time() if now is None else now))
-    return {"scene": CHAPTER_STARTS[chapter], "inventory": [], "decisions": decisions}
+    return {"scene": CHAPTER_STARTS[chapter], "inventory": list(memory["inventory"]), "decisions": decisions}
+
+
+def carried(chapter, previous=None, endings=frozenset()):
+    """What a level remembers from the ones before (specs/levels-2-and-3.md): Tiago's answers and
+    what is still in your pocket. previous: the game that just ended in the level before ("Next
+    level"); without it (a level opened from the map), the endings this player has reached tell."""
+    rules = CARRIED.get(chapter)
+    if rules is None:
+        return {"decisions": {}, "inventory": []}
+    decisions = dict(CARRIED_DEFAULTS.get(chapter, {}))
+    if previous is not None and chapter_of(previous) == chapter - 1:
+        decisions.update({name: previous["decisions"][name] for name in rules["decisions"] if name in previous["decisions"]})
+        inventory = [item for item in rules["items"] if item in previous["inventory"]]
+    else:
+        if "final_tiago" in endings:
+            decisions["tiago"] = "incluido"
+        inventory = ["impressao"] if chapter == 3 and "final_l2_praia" in endings else []
+    return {"decisions": decisions, "inventory": inventory}
+
+
+def memory_of(state):
+    """What a game brought with it from the levels before (to restart the same level with it)."""
+    rules = CARRIED.get(chapter_of(state))
+    if rules is None:
+        return {"decisions": {}, "inventory": []}
+    return {
+        "decisions": {name: state["decisions"][name] for name in rules["decisions"] if name in state["decisions"]},
+        "inventory": [item for item in rules["items"] if item in state["inventory"]],
+    }
 
 
 def chapter_of(state):
@@ -131,6 +166,14 @@ def penalise(state, seconds):
     return new_state
 
 
+def time_up(state, now):
+    """(new_state, message) when a level's clock has run out: its own ending (TIME_UP_ENDINGS),
+    and the time it ended at as the message ("00:00.", "00:20.", "09:00.")."""
+    clock = countdown(state)
+    end = (clock["starts_at"] + clock["seconds"]) % (24 * 3600)
+    return end_in(state, TIME_UP_ENDINGS[chapter_of(state)], now), f"{end // 3600:02d}:{end // 60 % 60:02d}."
+
+
 def time_is_up(state, now):
     left = seconds_left(state, now) if now is not None else None
     return left is not None and left <= 0
@@ -163,7 +206,7 @@ def take_hint(state, now=None):
     if is_finished(state):
         return copy_state(state), "The game is over. You can play again."
     if time_is_up(state, now):
-        return end_in(state, TIME_UP_ENDING, now), "00:00."
+        return time_up(state, now)
     return penalise(state, HINT_COST), hint_for(state)
 
 
@@ -370,7 +413,7 @@ def apply_action(state, action_id, code=None, roll=None, now=None):
         return False, copy_state(state), "The game is over. You can play again."
     # The clock first: at 00:00 nothing else can happen
     if time_is_up(state, now):
-        return True, end_in(state, TIME_UP_ENDING, now), "00:00."
+        return (True, *time_up(state, now))
     if action_id == TIME_UP_ACTION:
         return False, copy_state(state), "There is still time!"
     if action_id not in ACTIONS:

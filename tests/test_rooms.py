@@ -30,6 +30,8 @@ BRUNO = "bruno_bbbbbbbbbbbbbbbbbbbbbb"
 CARLA = "carla_cccccccccccccccccccccc"
 # Level 1 "Submission at 23:59": the clues only the contact can read
 CLUES = {"Whiteboard", "Note on the floor", "Emergency plan", "Menu board"}
+# Levels 2 and 3 (specs/levels-2-and-3.md)
+CLUES |= {"Plaque under the letters", "Notice board", "IT whiteboard"}
 # Chapter 2 adds four clue looks (specs/chapter-2.md)
 # Added (specs/level-3.md): the clues of level 3
 

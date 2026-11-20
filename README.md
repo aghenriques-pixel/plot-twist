@@ -8,7 +8,9 @@ A 3D escape room in the browser, at Nova SBE. **Level 1 — "Submission at 23:59
 
 **Against the clock:** the clock shows the real time, from 23:44 to 00:00. A wrong code, file or git command costs 30 seconds; a 💡 hint costs a minute. Two danger moments give you 10 seconds to decide.
 
-**Levels 2 and 3** are on the map as "Coming soon".
+**Level 2 — "Locked in at Nova"** (00:01 → 00:20): an email says your project is 94% identical to Group 7's, and the building locks for the night. Hide from the guard behind the big NOVA letters in the atrium, find out who logged in on PC 7 in the computer lab, print the proof, and get out through the tunnel under the Marginal to Carcavelos beach before the alarm. Tiago is on the beach — and what he says depends on your answer in Level 1.
+
+**Level 3 — "Presentation at 9:00"** (08:42 → 09:00): you wake up on the beach. Get your card back from a seagull, your laptop back from last night's guard, and prove to Prof. Marques in Auditorium B that the code is yours: with the printed log, with `git log`, or with Tiago's word (specs/levels-2-and-3.md). Each level remembers what happened in the ones before.
 
 **Your student:** in the menu, dress your own student — skin, hair, face, clothes, colours, a hat, glasses, a backpack. Some endings win prizes to wear (a graduation cap, Tiago's sleep mask, golden headphones). The look is saved per player (`looks.py`, specs/student-and-menu.md).
 
@@ -55,7 +57,7 @@ The same tests run on GitHub Actions for every pull request and every push to `m
 
 | Part | File | What it does |
 |---|---|---|
-| Story | `story.py` | Level 1 — "Submission at 23:59" (specs/entrega-2359.md): scenes, items, actions, puzzles, hints, endings. Only data. |
+| Story | `story.py`, `story2.py`, `story3.py` | The three levels (specs/entrega-2359.md, specs/levels-2-and-3.md): scenes, items, actions, puzzles, hints, endings. Only data; `story.py` adds levels 2 and 3 to its dicts. |
 | Rules | `logic.py` | `apply_action(state, action_id, code, now=...)` decides what is allowed, including the clock (23:44 → 00:00), the penalties and the hints. Pure Python. |
 | Players | `players.py` | Online, each player is identified by a secret code in their link (`?jogador=...`). |
 | Accounts | `accounts.py` | A username and password that own a player code. Passwords are stored only as salted PBKDF2-SHA256 hashes. |

@@ -1,6 +1,6 @@
 # AGENTS.md — Git Out (team project)
 
-A 3D escape room in the browser (Nova SBE Intro to Programming): Level 1, "Submission at 23:59", a student has 16 minutes to submit the group project (specs/entrega-2359.md). Started as a Plot Twist solo project, now extended by a team of three. The story is in story.py, the rules in logic.py, the 3D rooms in world3d.py and components/scene3d.js.
+A 3D escape room in the browser (Nova SBE Intro to Programming), three levels of one night at Nova SBE: "Submission at 23:59" (specs/entrega-2359.md), "Locked in at Nova" and "Presentation at 9:00" (specs/levels-2-and-3.md). Started as a Plot Twist solo project, now extended by a team of three. The story is in story.py, the rules in logic.py, the 3D rooms in world3d.py and components/scene3d.js.
 
 ## Commands
 
@@ -11,7 +11,7 @@ A 3D escape room in the browser (Nova SBE Intro to Programming): Level 1, "Submi
 ## Structure
 
 - `app.py` — Streamlit screens only. Calls `logic` for rules, `db` for saving, `players` for who is playing.
-- `story.py` — story content only (scenes, items, actions, puzzles, hints, endings, music names). Plain data.
+- `story.py` — story content only (scenes, items, actions, puzzles, hints, endings, music names). Plain data. Levels 2 and 3 are in `story2.py` / `story3.py`, added to `story.py`'s dicts; `CARRIED` says what a level remembers from the ones before (`logic.carried`).
 - `logic.py` — the game rules (`apply_action`, the clock, hints); it re-exports `story.py` so other modules import from `logic`. Pure Python: no Streamlit, no database.
 - `world3d.py` — each 3D room as data (size, colours, things and which action or look each thing is); `world_view(state, role)` is what the browser draws.
 - `players.py` — player identity: a secret code in the link (`?jogador=...`) online, `"local"` offline.

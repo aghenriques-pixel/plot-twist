@@ -19,12 +19,12 @@ def db(tmp_path):
 # --- Levels -------------------------------------------------------------------------------
 
 
-# Changed (specs/entrega-2359.md): one level for now; levels 2 and 3 are "coming soon"
+# Changed (specs/levels-2-and-3.md): levels 2 and 3 exist now, locked until the level before is done
 def test_a_new_player_has_level_1_open():
     status = level_status(set())
 
-    assert [(s["number"], s["unlocked"], s["completed"]) for s in status] == [(1, True, False)]
-    assert COMING_SOON == [2, 3]
+    assert [(s["number"], s["unlocked"], s["completed"]) for s in status] == [(1, True, False), (2, False, False), (3, False, False)]
+    assert COMING_SOON == []
 
 
 @pytest.mark.parametrize("ending", ["final_entregue", "final_tiago"])
@@ -41,7 +41,7 @@ def test_failing_endings_do_not_complete_the_level():
 
 
 def test_levels_match_chapters():
-    assert [level["chapter"] for level in LEVELS] == [1]
+    assert [level["chapter"] for level in LEVELS] == [1, 2, 3]  # changed: specs/levels-2-and-3.md
     assert level_for_chapter(1)["number"] == 1
 
 

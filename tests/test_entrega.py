@@ -4,6 +4,7 @@ import pytest
 
 from logic import (
     ACTIONS,
+    TIME_UP_ENDINGS,
     HINT_COST,
     SCENES,
     WRONG_ANSWER_COST,
@@ -238,7 +239,7 @@ def test_every_ending_can_be_reached():
     endings = {scene_id for scene_id, scene in SCENES.items() if scene.get("ending")}
     reached = {action.get("goes_to") for action in ACTIONS.values()}
     reached |= {target for action in ACTIONS.values() for target in action.get("goes_to_if", {}).values()}
-    reached.add("final_meia_noite")  # the clock
+    reached |= set(TIME_UP_ENDINGS.values())  # the clock (each level has its own: specs/levels-2-and-3.md)
 
     assert endings <= reached
 

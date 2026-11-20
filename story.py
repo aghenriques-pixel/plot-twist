@@ -586,3 +586,34 @@ SCENE_MUSIC = {
 LEVEL_MUSIC = {1: "archive"}
 # Endings where the submission fails
 DEFEATS = {"final_meia_noite", "final_afogado", "final_seguranca"}
+
+# --- Levels 2 and 3 (specs/levels-2-and-3.md): each in its own file, added to the dicts above ----
+
+import story2  # noqa: E402
+import story3  # noqa: E402
+
+for _level in (story2, story3):
+    CHAPTER_STARTS[_level.CHAPTER] = _level.START
+    COUNTDOWN[_level.CHAPTER] = _level.COUNTDOWN
+    ITEMS.update(_level.ITEMS)
+    ITEM_DETAILS.update(_level.ITEM_DETAILS)
+    ITEM_FACES.update(_level.ITEM_FACES)
+    ITEM_ICONS.update(_level.ITEM_ICONS)
+    DECISION_LABELS.update(_level.DECISION_LABELS)
+    SCENES.update(_level.SCENES)
+    ACTIONS.update(_level.ACTIONS)
+    HINTS.extend(_level.HINTS)
+    SCENE_MUSIC.update(_level.SCENE_MUSIC)
+    LEVEL_MUSIC[_level.CHAPTER] = _level.LEVEL_MUSIC
+    DEFEATS |= _level.DEFEATS
+
+# The ending when a level's clock runs out
+TIME_UP_ENDINGS = {1: TIME_UP_ENDING, story2.CHAPTER: story2.TIME_UP_ENDING, story3.CHAPTER: story3.TIME_UP_ENDING}
+
+# What a level remembers from the levels before it (logic.carried): Tiago's answers, and what is
+# still in your pocket. A level opened without that memory starts with Tiago left out.
+CARRIED = {
+    2: {"decisions": ("tiago",), "items": ()},
+    3: {"decisions": ("tiago", "tiago9"), "items": ("impressao", "caderno_rita")},
+}
+CARRIED_DEFAULTS = {2: {"tiago": "excluido"}, 3: {"tiago": "excluido"}}
