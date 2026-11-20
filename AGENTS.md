@@ -1,4 +1,4 @@
-# AGENTS.md — Midnight at Nova (team project)
+# AGENTS.md — Git Out (team project)
 
 A 3D escape room in the browser (Nova SBE Intro to Programming): Level 1, "Submission at 23:59", a student has 16 minutes to submit the group project (specs/entrega-2359.md). Started as a Plot Twist solo project, now extended by a team of three. The story is in story.py, the rules in logic.py, the 3D rooms in world3d.py and components/scene3d.js.
 
@@ -16,6 +16,7 @@ A 3D escape room in the browser (Nova SBE Intro to Programming): Level 1, "Submi
 - `world3d.py` — each 3D room as data (size, colours, things and which action or look each thing is); `world_view(state, role)` is what the browser draws.
 - `players.py` — player identity: a secret code in the link (`?jogador=...`) online, `"local"` offline.
 - `accounts.py` — username + password (salted PBKDF2 hash only) that own a player code; logging in puts that code in the link. The name shown comes from the database (`account_name`), never from the link; one account per player code; 5 wrong logins in 10 minutes lock that username (in memory).
+- `looks.py` — the student's look: parts, choices, prizes; `clean_look` checks what the browser sends. Saved per player in `db.looks`.
 - `browser_input.py` — checks what the browser sends (`clean_action`) before Python uses it.
 - `levels.py` — levels = chapters; a level opens when an ending in the previous level's `completes_with` was reached. Endings are recorded per player in `db.level_progress`.
 - `db.py` — saves and loads each player's progress. Every query filters by player.

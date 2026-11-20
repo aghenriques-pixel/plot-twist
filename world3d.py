@@ -13,6 +13,7 @@ the character stands to use it. The rooms are inspired by photos of Nova SBE (Ca
 
 import math
 
+from looks import DEFAULT_LOOK
 from logic import DEFEATS, SCENES, is_finished, scene_hotspots, scene_looks
 
 # Looks shared by several rooms: Nova SBE is white walls, dark wooden floors and lines of LED light
@@ -264,9 +265,10 @@ def full_room(scene_id):
     return merged
 
 
-def world_view(state, role=None):
+def world_view(state, role=None, look=None):
     """What the browser draws for the current scene in 3D, or None (a scene without a 3D room).
-    role: None (solo), "agente" or "contacto", as in cooperative mode.
+    role: None (solo), "agente" or "contacto", as in cooperative mode. look: the player's student
+    (looks.py; the default student without one).
     At an ending, the room where it happened is drawn, nothing can be used, and the camera circles."""
     finished = is_finished(state)
     scene_id = ending_room(state) if finished else state["scene"]
@@ -342,8 +344,8 @@ def world_view(state, role=None):
         # At an ending, the camera circles the character.
         "camera": "ending" if finished else "cctv" if watching else room.get("camera", "follow"),
         "mood": ("defeat" if state["scene"] in DEFEATS else "victory") if finished else None,
-        # The character puts the yellow raincoat on with the coat
-        "hero": {"coat": "casaco" in state["inventory"]},
+        # The player's student; the yellow raincoat goes over their clothes with the coat
+        "hero": {"coat": "casaco" in state["inventory"], "look": look or DEFAULT_LOOK},
         "things": things,
         # Actions with nothing in the room for them (texting Rita): buttons over the 3D view
         "free": [i for i in range(len(spots)) if i not in linked],
@@ -364,8 +366,9 @@ def laptop_view(state):
 
 
 
-def menu_world():
-    """The terrace at night, with nobody on it: the main menu's background (nothing can be used)."""
+def menu_world(look=None):
+    """The terrace at night: the main menu's background (nothing can be used), with the player's
+    student standing on it (look: looks.py; the default student without one)."""
     room = full_room("terraco")
     hidden = ("look", "action", "actions", "talk", "only_while_offered", "stays_empty", "stand")
     return {
@@ -378,7 +381,7 @@ def menu_world():
         "spray": False,
         "camera": "menu",
         "mood": None,
-        "hero": {"coat": False},
+        "hero": {"coat": False, "look": look or DEFAULT_LOOK},
         "things": [
             {**{key: value for key, value in thing.items() if key not in hidden}, "spot": None, "look": None, "dark": False}
             for thing in room["things"]

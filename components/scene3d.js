@@ -496,7 +496,7 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
       : { visit, x: world.start[0], z: world.start[1], turn: Math.PI };
     globalThis.__forbiddenArchiveHere = here;
   }
-  const hero = watching || menuView ? null : makePerson(THREE, { coat: world.hero.coat });
+  const hero = watching || menuView ? null : makeStudent(THREE, world.hero.look, { coat: world.hero.coat });
   if (hero) {
     hero.group.position.set(here.x, 0, here.z);
     hero.group.rotation.y = here.turn;
@@ -507,6 +507,35 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
       group.position.set(here.x + Math.sin(angle) * 1.4, 0, here.z + Math.cos(angle) * 1.4);
       group.rotation.y = angle + Math.PI;
     }
+  }
+
+  // The main menu: the player's student stands on the terrace, beside the menu (or close up while
+  // the menu dresses them: scene_view.js calls __gitOutShowcase.look() and .mode())
+  const SHOW = new THREE.Vector3(1.6, 0, 2.6);
+  let showcase = null;
+  let showcaseMode = "main";
+  if (menuView) {
+    const dress = (look) => {
+      if (showcase) {
+        scene.remove(showcase.group);
+        showcase.group.traverse((o) => {
+          o.geometry?.dispose();
+          o.material?.dispose?.();
+        });
+      }
+      const turn = showcase ? showcase.group.rotation.y : -0.35;
+      showcase = makeStudent(THREE, look, {});
+      showcase.group.position.copy(SHOW);
+      showcase.group.rotation.y = turn;
+      scene.add(shadowy(showcase.group));
+    };
+    dress(world.hero.look);
+    // A warm lamp on the student, so they can be seen at night
+    const lamp = new THREE.SpotLight("#ffe2b0", 26, 9, 0.6, 0.6, 1.4);
+    lamp.position.set(SHOW.x + 1.2, 3.6, SHOW.z + 2.2);
+    lamp.target.position.copy(SHOW);
+    scene.add(lamp, lamp.target);
+    globalThis.__gitOutShowcase = { look: dress, mode: (mode) => (showcaseMode = mode) };
   }
 
   // Screen-space elements over the canvas: the label of the nearest thing and what the hero says
@@ -999,10 +1028,32 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
     if (dustCount) positions.needsUpdate = true;
 
     if (menuView) {
-      const angle = time * 0.05;
-      camera.position.set(Math.sin(angle) * 9, 3.2, Math.cos(angle) * 9 + 1);
-      look.set(0, 1.2, -2);
+      // Beside the menu (the panel on the left, the student on the right), or close up; on a tall
+      // screen (a phone) the student stands above the panel
+      const close = showcaseMode === "look";
+      const tallScreen = camera.aspect < 1;
+      const distance = close ? (tallScreen ? 6.6 : 2.9) : tallScreen ? 7.5 : 5.2;
+      const side = tallScreen ? 0 : close ? -0.8 : -1.9;
+      // On a phone, dressing: the student in the top third, above the panel
+      const height = tallScreen ? (close ? -0.7 : 0.2) : close ? 1.05 : 1.25;
+      const sway = Math.sin(time * 0.12) * (close ? 0.15 : 0.6);
+      wantedLook.set(SHOW.x + side, height, SHOW.z);
+      wantedCamera.set(SHOW.x + side + 0.7 + sway, close ? 1.55 : 1.9, SHOW.z + distance);
+      const ease = 1 - Math.exp(-dt * 2.5);
+      camera.position.lerp(wantedCamera, ease);
+      look.lerp(wantedLook, ease);
       camera.lookAt(look);
+      if (showcase) {
+        showcase.animate(dt, time, false);
+        // Dressing: the student turns slowly, so every side can be seen
+        if (close) showcase.group.rotation.y += dt * 0.45;
+        else {
+          // Back to facing the camera (the short way round, however far the student had turned)
+          const wanted = Math.atan2(camera.position.x - SHOW.x, camera.position.z - SHOW.z) - 0.25;
+          const diff = Math.atan2(Math.sin(wanted - showcase.group.rotation.y), Math.cos(wanted - showcase.group.rotation.y));
+          showcase.group.rotation.y += diff * Math.min(1, dt * 1.5);
+        }
+      }
       return;
     }
     if (inspecting) {
@@ -1408,17 +1459,26 @@ function addSpray(THREE, scene, sprinklers, animated) {
 
 // --- People: the player, Tiago and the security guard, made of simple shapes --------------------
 //
-// options.coat: the yellow raincoat over the hoodie (the player once they take the coat)
+// options.look: the player's student (looks.py): skin, hair, face, clothes, hat, glasses, bag
+// options.coat: the yellow raincoat over the clothes (the player once they take the coat)
 // options.guard: a dark uniform, a cap and a torch with a beam of light
 // options.sleeping: sitting, slumped over a desk (Tiago)
 
+// The player's student (or a friend's, in co-op), built from their look
+function makeStudent(THREE, look, options = {}) {
+  return makePerson(THREE, { ...options, look: look || {} });
+}
+
 function makePerson(THREE, options = {}) {
   const material = (color, roughness = 0.75) => new THREE.MeshStandardMaterial({ color, roughness });
-  const top = options.guard ? "#1d2333" : options.coat ? "#f2c230" : options.hoodie || "#2c4a8a";
-  const topDark = options.guard ? "#141826" : options.coat ? "#c99a12" : shade(options.hoodie || "#2c4a8a", -0.3);
-  const legs = options.guard ? "#151a26" : "#3b5478";
-  const skin = material(options.skin || "#e9b996", 0.6);
-  const hair = material(options.hair || "#2a1a10", 0.9);
+  const look = options.look || {};
+  const shirt = look.top_colour || options.hoodie || "#2c4a8a";
+  const top = options.guard ? "#1d2333" : options.coat ? "#f2c230" : shirt;
+  const topDark = options.guard ? "#141826" : options.coat ? "#c99a12" : shade(shirt, -0.3);
+  const legs = options.guard ? "#151a26" : look.legs || "#3b5478";
+  const skin = material(look.skin || options.skin || "#e9b996", 0.6);
+  const hair = material(look.hair_colour || options.hair || "#2a1a10", 0.9);
+  const dark = material("#1a1020", 0.3);
   const mesh = (geometry, mat, x, y, z) => {
     const m = new THREE.Mesh(geometry, mat);
     m.position.set(x, y, z);
@@ -1443,11 +1503,7 @@ function makePerson(THREE, options = {}) {
   const long = options.coat ? 0.95 : 0.7;
   body.add(mesh(new THREE.CylinderGeometry(0.27, options.coat ? 0.38 : 0.3, long, 16), material(top, options.coat ? 0.35 : 0.8), 0, 1.6 - long / 2, 0));
   body.add(mesh(new THREE.CylinderGeometry(0.18, 0.27, 0.14, 16), material(topDark), 0, 1.66, 0));
-  if (!options.coat && !options.guard) {
-    // The hoodie's hood, resting on the back, and its pocket
-    body.add(mesh(new THREE.SphereGeometry(0.19, 14, 10, 0, Math.PI * 2, 0, Math.PI / 2), material(topDark), 0, 1.62, -0.14));
-    body.add(mesh(new THREE.BoxGeometry(0.3, 0.14, 0.02), material(topDark), 0, 1.08, 0.29));
-  }
+  if (!options.coat && !options.guard) dressTop(THREE, body, look.top || "hoodie", shirt, topDark, mesh, material);
   if (options.guard) body.add(mesh(new THREE.BoxGeometry(0.12, 0.08, 0.02), material("#d8b45a", 0.3), 0.12, 1.45, 0.27));
   body.add(mesh(new THREE.CylinderGeometry(0.07, 0.08, 0.1, 10), skin, 0, 1.76, 0));
 
@@ -1466,16 +1522,23 @@ function makePerson(THREE, options = {}) {
   const head = new THREE.Group();
   head.position.set(0, 1.95, 0);
   head.add(mesh(new THREE.SphereGeometry(0.18, 20, 16), skin, 0, 0, 0));
-  for (const x of [-0.065, 0.065]) head.add(mesh(new THREE.SphereGeometry(0.02, 8, 6), material("#1a1020", 0.3), x, 0.02, 0.165));
+  drawFace(THREE, head, options.guard || options.sleeping ? "calm" : look.face || "smile", mesh, dark, hair);
   if (options.guard) {
     head.add(mesh(new THREE.CylinderGeometry(0.19, 0.19, 0.12, 20), material("#141826"), 0, 0.12, 0));
     head.add(mesh(new THREE.BoxGeometry(0.26, 0.02, 0.14), material("#0b0d14"), 0, 0.07, 0.18));
   } else {
-    const cap = mesh(new THREE.SphereGeometry(0.19, 20, 16, 0, Math.PI * 2, 0, Math.PI * 0.55), hair, 0, 0.02, -0.02);
-    cap.rotation.x = -0.35;
-    head.add(cap);
+    styleHair(THREE, head, look.hair || "short", hair, mesh);
+    if (look.hat && look.hat !== "none") wearHat(THREE, head, look.hat, shirt, mesh, material);
+    if (look.glasses && look.glasses !== "none") wearGlasses(THREE, head, look.glasses, mesh, material);
   }
   body.add(head);
+  if (look.bag === "backpack" && !options.guard) {
+    // A backpack on the back, its straps over the shoulders
+    const bag = material(shade(legs, -0.25), 0.8);
+    body.add(mesh(new THREE.BoxGeometry(0.36, 0.42, 0.16), bag, 0, 1.26, -0.36));
+    body.add(mesh(new THREE.BoxGeometry(0.26, 0.16, 0.06), bag, 0, 1.12, -0.46));
+    for (const x of [-0.14, 0.14]) body.add(mesh(new THREE.BoxGeometry(0.05, 0.5, 0.03), bag, x, 1.32, 0.27));
+  }
 
   // The guard's torch, and its beam
   let beam = null;
@@ -1558,6 +1621,177 @@ function makePerson(THREE, options = {}) {
     head.rotation.y = Math.sin(time * 0.6) * 0.15 * (1 - swing);
   }
   return { group, animate, beam };
+}
+
+// --- The parts of a student (makePerson) ---------------------------------------------------------
+// Coordinates are the person's own, before its 0.9 scale: the head is a ball of 0.18 m, its front
+// towards +z; the body (the clothes) is a cylinder from 0.9 to 1.6 m.
+
+function dressTop(THREE, body, kind, colour, colourDark, mesh, material) {
+  const light = material(shade(colour, 0.35));
+  if (kind === "hoodie" || kind === "nova") {
+    // The hood, resting on the back, and the front pocket
+    body.add(mesh(new THREE.SphereGeometry(0.19, 14, 10, 0, Math.PI * 2, 0, Math.PI / 2), material(colourDark), 0, 1.62, -0.14));
+    body.add(mesh(new THREE.BoxGeometry(0.3, 0.14, 0.02), material(colourDark), 0, 1.08, 0.29));
+    for (const x of [-0.06, 0.06]) body.add(mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.16, 6), light, x, 1.5, 0.27));
+  }
+  if (kind === "nova") {
+    // NOVA in white letters on the chest
+    const letters = canvasTexture(THREE, 256, 72, (g, w, h) => {
+      g.fillStyle = "#ffffff";
+      g.font = "bold 58px 'Helvetica Neue', Arial, sans-serif";
+      g.textAlign = "center";
+      g.textBaseline = "middle";
+      g.fillText("NOVA", w / 2, h / 2 + 3);
+    });
+    const plate = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.085), new THREE.MeshBasicMaterial({ map: letters, transparent: true }));
+    plate.position.set(0, 1.36, 0.293);
+    body.add(plate);
+  }
+  if (kind === "jacket") {
+    // An open denim jacket: the white T-shirt shows down the front, a collar folds over
+    body.add(mesh(new THREE.BoxGeometry(0.15, 0.62, 0.02), material("#f2f0ea"), 0, 1.27, 0.282));
+    for (const x of [-0.11, 0.11]) {
+      const collar = mesh(new THREE.BoxGeometry(0.12, 0.14, 0.03), material(colourDark), x, 1.55, 0.22);
+      collar.rotation.z = x < 0 ? 0.5 : -0.5;
+      body.add(collar);
+    }
+    for (const x of [-0.14, 0.14]) body.add(mesh(new THREE.BoxGeometry(0.09, 0.07, 0.015), material(colourDark), x, 1.38, 0.278));
+  }
+  if (kind === "shirt") {
+    // A collar and a line of buttons
+    for (const x of [-0.07, 0.07]) {
+      const collar = mesh(new THREE.BoxGeometry(0.11, 0.06, 0.02), light, x, 1.6, 0.17);
+      collar.rotation.z = x < 0 ? -0.4 : 0.4;
+      collar.rotation.x = -0.5;
+      body.add(collar);
+    }
+    for (const y of [1.48, 1.34, 1.2, 1.06]) body.add(mesh(new THREE.SphereGeometry(0.013, 6, 4), light, 0, y, 0.287));
+  }
+  if (kind === "sweater") {
+    // A ribbed band at the bottom and a pattern across the chest
+    body.add(mesh(new THREE.CylinderGeometry(0.305, 0.305, 0.07, 16), material(colourDark), 0, 0.94, 0));
+    body.add(mesh(new THREE.CylinderGeometry(0.287, 0.293, 0.05, 16), light, 0, 1.4, 0));
+  }
+}
+
+function drawFace(THREE, head, face, mesh, dark, hair) {
+  const z = 0.166;
+  // Eyes: open dots, or closed lines (sleepy)
+  for (const x of [-0.065, 0.065]) {
+    if (face === "sleepy") head.add(mesh(new THREE.BoxGeometry(0.045, 0.009, 0.01), dark, x, 0.015, z));
+    else head.add(mesh(new THREE.SphereGeometry(0.02, 8, 6), dark, x, 0.02, z - 0.001));
+    // Eyebrows, slanted when determined
+    const brow = mesh(new THREE.BoxGeometry(0.05, 0.011, 0.012), hair, x, 0.072, z - 0.012);
+    if (face === "determined") brow.rotation.z = x < 0 ? -0.35 : 0.35;
+    head.add(brow);
+  }
+  // The mouth
+  if (face === "smile") {
+    const mouth = mesh(new THREE.TorusGeometry(0.045, 0.01, 6, 14, Math.PI), dark, 0, -0.05, z - 0.008);
+    mouth.rotation.z = Math.PI;
+    head.add(mouth);
+  } else if (face === "grin") {
+    const mouth = mesh(new THREE.CircleGeometry(0.055, 18, Math.PI, Math.PI), new THREE.MeshStandardMaterial({ color: "#6b1d26", roughness: 0.6 }), 0, -0.045, z + 0.004);
+    head.add(mouth);
+    head.add(mesh(new THREE.BoxGeometry(0.08, 0.014, 0.004), new THREE.MeshStandardMaterial({ color: "#ffffff" }), 0, -0.052, z + 0.008));
+  } else if (face === "sleepy") {
+    head.add(mesh(new THREE.TorusGeometry(0.016, 0.007, 6, 12), dark, 0, -0.08, z - 0.012));
+  } else {
+    head.add(mesh(new THREE.BoxGeometry(face === "determined" ? 0.07 : 0.055, 0.011, 0.01), dark, 0, -0.07, z - 0.01));
+  }
+}
+
+function styleHair(THREE, head, style, hair, mesh) {
+  const cap = (radius, cover, tilt) => {
+    const c = mesh(new THREE.SphereGeometry(radius, 20, 16, 0, Math.PI * 2, 0, Math.PI * cover), hair, 0, 0.02, -0.02);
+    c.rotation.x = tilt;
+    head.add(c);
+  };
+  if (style === "afro") {
+    head.add(mesh(new THREE.SphereGeometry(0.26, 20, 16), hair, 0, 0.14, -0.1));
+    return;
+  }
+  cap(style === "buzz" ? 0.184 : 0.19, style === "buzz" ? 0.5 : 0.55, style === "buzz" ? -0.25 : -0.35);
+  if (style === "long") {
+    head.add(mesh(new THREE.BoxGeometry(0.34, 0.42, 0.09), hair, 0, -0.17, -0.12));
+    for (const x of [-0.165, 0.165]) head.add(mesh(new THREE.BoxGeometry(0.05, 0.32, 0.16), hair, x, -0.1, -0.02));
+  } else if (style === "curly") {
+    for (let i = 0; i < 16; i++) {
+      const a = (i / 16) * Math.PI * 2;
+      const up = i % 2 ? 0.55 : 0.2;
+      const x = Math.cos(a) * 0.17 * Math.cos(up);
+      const z = Math.sin(a) * 0.17 * Math.cos(up) - 0.03;
+      if (z > 0.1 && Math.abs(x) < 0.12) continue; // keep the face free
+      head.add(mesh(new THREE.SphereGeometry(0.065, 10, 8), hair, x, 0.04 + Math.sin(up) * 0.17, z));
+    }
+  } else if (style === "bun") {
+    head.add(mesh(new THREE.SphereGeometry(0.085, 14, 10), hair, 0, 0.17, -0.12));
+  } else if (style === "ponytail") {
+    const tail = mesh(new THREE.CylinderGeometry(0.045, 0.02, 0.32, 10), hair, 0, -0.1, -0.22);
+    tail.rotation.x = 0.35;
+    head.add(tail);
+    head.add(mesh(new THREE.SphereGeometry(0.035, 8, 6), hair, 0, 0.04, -0.19));
+  }
+}
+
+function wearHat(THREE, head, hat, shirt, mesh, material) {
+  if (hat === "cap") {
+    const colour = material("#c8343a", 0.7);
+    const crown = mesh(new THREE.SphereGeometry(0.198, 20, 12, 0, Math.PI * 2, 0, Math.PI * 0.45), colour, 0, 0.03, 0);
+    head.add(crown);
+    head.add(mesh(new THREE.BoxGeometry(0.2, 0.015, 0.15), colour, 0, 0.075, 0.2));
+  } else if (hat === "beanie") {
+    const wool = material(shade(shirt, 0.15), 0.95);
+    head.add(mesh(new THREE.SphereGeometry(0.2, 20, 12, 0, Math.PI * 2, 0, Math.PI * 0.5), wool, 0, 0.03, -0.01));
+    head.add(mesh(new THREE.CylinderGeometry(0.202, 0.202, 0.06, 20), material(shade(shirt, -0.2), 0.95), 0, 0.05, -0.01));
+    head.add(mesh(new THREE.SphereGeometry(0.05, 10, 8), material("#f4f3ef", 1), 0, 0.24, -0.01));
+  } else if (hat === "headphones" || hat === "gold_headphones") {
+    const gold = hat === "gold_headphones";
+    const metal = new THREE.MeshStandardMaterial({ color: gold ? "#e2b23a" : "#26262b", roughness: gold ? 0.25 : 0.5, metalness: gold ? 0.85 : 0.2 });
+    head.add(mesh(new THREE.TorusGeometry(0.205, 0.018, 8, 24, Math.PI), metal, 0, 0.02, -0.01));
+    for (const x of [-0.195, 0.195]) {
+      const cup = mesh(new THREE.CylinderGeometry(0.065, 0.065, 0.06, 16), metal, x, 0.0, -0.01);
+      cup.rotation.z = Math.PI / 2;
+      head.add(cup);
+    }
+  } else if (hat === "grad_cap") {
+    const black = material("#15151a", 0.6);
+    head.add(mesh(new THREE.CylinderGeometry(0.17, 0.18, 0.09, 20), black, 0, 0.14, 0));
+    const board = mesh(new THREE.BoxGeometry(0.4, 0.022, 0.4), black, 0, 0.2, 0);
+    board.rotation.y = Math.PI / 4;
+    head.add(board);
+    const gold = new THREE.MeshStandardMaterial({ color: "#e2b23a", metalness: 0.6, roughness: 0.4 });
+    head.add(mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.16, 6), gold, 0.19, 0.13, 0.0));
+    head.add(mesh(new THREE.SphereGeometry(0.02, 8, 6), gold, 0, 0.215, 0));
+  } else if (hat === "sleep_mask") {
+    // Tiago's sleep mask, pushed up on the forehead
+    const pink = material("#f29bc0", 0.8);
+    const band = mesh(new THREE.TorusGeometry(0.188, 0.012, 6, 28), pink, 0, 0.1, 0);
+    band.rotation.x = Math.PI / 2 - 0.25;
+    head.add(band);
+    const mask = mesh(new THREE.BoxGeometry(0.22, 0.075, 0.04), pink, 0, 0.12, 0.15);
+    mask.rotation.x = -0.45;
+    head.add(mask);
+  }
+}
+
+function wearGlasses(THREE, head, kind, mesh, material) {
+  const frame = material(kind === "sun" ? "#0d0d10" : "#2b2b30", 0.4);
+  const z = 0.178;
+  for (const x of [-0.065, 0.065]) {
+    if (kind === "round") {
+      head.add(mesh(new THREE.TorusGeometry(0.038, 0.007, 6, 18), frame, x, 0.02, z));
+    } else {
+      head.add(mesh(new THREE.BoxGeometry(0.078, 0.056, 0.008), frame, x, 0.02, z - 0.002));
+      if (kind === "square") {
+        // The lens: lighter, inside the frame
+        head.add(mesh(new THREE.BoxGeometry(0.06, 0.04, 0.004), new THREE.MeshStandardMaterial({ color: "#cfe6f2", roughness: 0.1 }), x, 0.02, z + 0.003));
+      }
+    }
+  }
+  head.add(mesh(new THREE.BoxGeometry(0.05, 0.008, 0.008), frame, 0, 0.03, z));
+  for (const x of [-0.11, 0.11]) head.add(mesh(new THREE.BoxGeometry(0.008, 0.008, 0.12), frame, x, 0.03, z - 0.06));
 }
 
 // --- What is written on the real things (story.py "face"), drawn on canvases ---------------------

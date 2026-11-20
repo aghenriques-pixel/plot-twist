@@ -1,7 +1,7 @@
 [project]
 name = "plot-twist"
 version = "0.1.0"
-description = "Meia-Noite na Nova — a 3D escape room at Nova SBE"
+description = "Git Out — a 3D escape room at Nova SBE"
 requires-python = ">=3.12"
 dependencies = [
     "psycopg[binary]>=3.3.8",

@@ -1,4 +1,4 @@
-"""Screens for Midnight at Nova. Rules are in logic.py, storage in db.py, rooms in rooms.py,
+"""Screens for Git Out. Rules are in logic.py, storage in db.py, rooms in rooms.py,
 texts in two languages in translations.py.
 
 The game itself — main menu included — is drawn fullscreen by the scene_view component
@@ -24,10 +24,13 @@ from db import (
     StorageError,
     endings_reached,
     load_game,
+    load_look,
     record_ending,
     save_game,
+    save_look,
 )
 from levels import COMING_SOON, level_for_chapter, level_status, next_chapter
+from looks import DEFAULT_LOOK, PARTS, PRIZES, clean_look
 from logic import (
     ACTIONS,
     TIME_UP_ACTION,
@@ -167,6 +170,8 @@ if "game" not in st.session_state:
     st.session_state.run_token = None
     # Seconds the last move cost on the countdown (the browser shows "−30 s")
     st.session_state.time_lost = 0
+    # The menu says "Saved!" once after the student's look was saved
+    st.session_state.look_saved = False
 
 # Older links carried the account name; it is no longer trusted or needed
 if "conta" in st.query_params:
@@ -252,12 +257,17 @@ def open_level(number):
         ask_new_game(level["chapter"])
 
 
-def player_levels():
+def player_endings():
+    """The endings this player has reached (the level map, the prizes for their student)."""
     try:
-        return level_status(endings_reached(DB_PATH, PLAYER))
+        return endings_reached(DB_PATH, PLAYER)
     except StorageError:
         st.session_state.db_error = True
-        return level_status(set())
+        return set()
+
+
+def player_levels():
+    return level_status(player_endings())
 
 
 def record_progress(game):
@@ -268,6 +278,28 @@ def record_progress(game):
             record_ending(DB_PATH, player, game["scene"])
     except StorageError:
         st.session_state.db_error = True
+
+
+def my_look():
+    """This player's student (looks.py): saved in the database, or the default student."""
+    try:
+        return load_look(DB_PATH, PLAYER) or DEFAULT_LOOK
+    except StorageError:
+        st.session_state.db_error = True
+        return DEFAULT_LOOK
+
+
+def save_my_look(value):
+    """The look sent by the menu: checked (only known choices, prizes only once won), then saved."""
+    st.session_state.menu_screen = "look"
+    # Checked before it is saved: anything can arrive from a browser
+    look = clean_look(value, player_endings())
+    try:
+        save_look(DB_PATH, PLAYER, look)
+    except StorageError:
+        st.session_state.db_error = True
+        return
+    st.session_state.look_saved = True
 
 
 def cancel_new_game():
@@ -478,6 +510,8 @@ def run_command(command):
         create_room_clicked()
     elif name == "join_room" and ONLINE:
         join_code(command.get("code", ""))
+    elif name == "save_look":
+        save_my_look(command.get("look"))
     elif name == "set_language":
         set_language(command.get("lang"))
     elif name == "create_account" and ONLINE:
@@ -748,7 +782,7 @@ def view_data(game, role, message, chat):
         # Co-op: dark patches over the clues in the agent's picture (only the contacto reads them)
         "shadows": scene_shadows(game, role),
         # The place as a 3D room (world3d.py), or None: then the 2D picture is drawn
-        "world": world_view(game, role),
+        "world": world_view(game, role, look=my_look()),
         "hud": {
             "title": say(scene["title"]),
             "subtitle": subtitle,
@@ -883,10 +917,13 @@ def menu_levels():
 def menu_data(can_continue):
     labels = {key: t(key) for key, value in UI_TEXT.items() if isinstance(value["en"], str) and "{" not in value["en"]}
     account = current_account()
+    look = my_look()
+    endings = player_endings()
     menu = {
         "levels": menu_levels(),
         "account": t("logged_in_as", name=account) if account else None,
         "title": t("game_title"),
+        "subtitle": t("game_subtitle"),
         "tagline": t("tagline"),
         "labels": labels,
         "rules": UI_TEXT["how_to_play_rules"][LANG],
@@ -897,10 +934,16 @@ def menu_data(can_continue):
         "language": LANG,
         "background": svg_data_uri(ART_DIR / "c2_cidade.svg"),
         # Behind the menu, the terrace of the library at night in 3D (the picture above if 3D cannot be drawn)
-        "world": menu_world(),
+        "world": menu_world(look),
         "screen": st.session_state.menu_screen,
+        # Your student: the saved look, every choice of every part, and the prizes this player won
+        "look": look,
+        "parts": PARTS,
+        "prizes": {prize: {"won": ending in endings, "how": t(f"prize_{prize}")} for prize, ending in PRIZES.items()},
+        "look_saved": st.session_state.look_saved,
     }
     st.session_state.menu_screen = "main"
+    st.session_state.look_saved = False
     return {"mode": "menu", "menu": menu, "scene_key": scene_key("menu", menu)}
 
 

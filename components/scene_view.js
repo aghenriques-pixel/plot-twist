@@ -1703,8 +1703,12 @@ function menuScreen(data, setTriggerValue) {
   }
 
   function heading(withTagline) {
-    const title = el("h1", "game-name", menu.title);
+    // The name: a git branch with two commits, then "Git Out"
+    const title = el("h1", "game-name");
+    title.innerHTML = `<svg class="logo-branch" viewBox="0 0 40 48" aria-hidden="true"><path d="M12 6v36M12 30c0-10 16-6 16-16" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><circle cx="12" cy="42" r="5"/><circle cx="28" cy="12" r="5"/></svg>`;
+    title.append(el("span", "", menu.title));
     panel.append(title);
+    panel.append(el("p", "game-subtitle", menu.subtitle));
     if (withTagline) panel.append(el("p", "tagline", menu.tagline));
     if (menu.error) panel.append(el("p", "menu-error", menu.error));
   }
@@ -1712,10 +1716,15 @@ function menuScreen(data, setTriggerValue) {
   function show(screen) {
     panel.replaceChildren();
     panel.dataset.screen = screen;
+    root.dataset.screen = screen;
+    // The student on the terrace: framed beside the menu, or close up while dressing them
+    globalThis.__gitOutShowcase?.mode(screen === "look" ? "look" : "main");
     if (screen === "main") {
       heading(true);
+      if (menu.can_continue) panel.append(button(L.continue, () => startCommand("continue"), "menu-item primary"));
       panel.append(
-        button(L.play, () => show("map"), "menu-item primary"),
+        button(L.play, () => show("map"), menu.can_continue ? "menu-item" : "menu-item primary"),
+        button(L.your_student, () => show("look")),
         button(L.how_to_play, () => show("how")),
         button(L.settings, () => show("settings")),
         button(L.exit, () => {
@@ -1723,6 +1732,8 @@ function menuScreen(data, setTriggerValue) {
           show("goodbye");
         }),
       );
+    } else if (screen === "look") {
+      panel.append(el("h2", "menu-heading", L.your_student), el("p", "coop-text", L.your_student_text), lookEditor());
     } else if (screen === "map") {
       panel.append(el("h2", "menu-heading", L.map_title));
       if (menu.error) panel.append(el("p", "menu-error", menu.error));
@@ -1751,30 +1762,46 @@ function menuScreen(data, setTriggerValue) {
     }
   }
 
-  // An original map of the city: a road from the Ministry (level 1) to the radio tower (level 2)
+  // An original map of Nova SBE by the sea at night: the study room (level 1), the building locked
+  // for the night (level 2) and the auditorium at sunrise (level 3), joined by a path
   function levelMap() {
     const map = el("div", "level-map");
     map.innerHTML = `<svg class="map-art" viewBox="0 0 600 260" aria-hidden="true">
-      <defs><linearGradient id="mapSky" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#2b1d5c"/><stop offset="1" stop-color="#16324f"/></linearGradient></defs>
+      <defs>
+        <linearGradient id="mapSky" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#0d1330"/><stop offset=".62" stop-color="#1b2550"/><stop offset="1" stop-color="#e98a5c"/></linearGradient>
+        <linearGradient id="mapSea" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#1d3a6b"/><stop offset="1" stop-color="#0b1730"/></linearGradient>
+      </defs>
       <rect width="600" height="260" rx="18" fill="url(#mapSky)"/>
-      <path d="M0 200 Q150 170 300 205 T600 190 V260 H0Z" fill="#1d4d4f" opacity=".8"/>
-      <path d="M30 150 L60 150 L60 110 L100 110 L100 150 L130 150" fill="none" stroke="#f7c873" stroke-width="3" opacity=".5"/>
-      <g fill="#3b2f6e"><rect x="40" y="120" width="40" height="70"/><rect x="95" y="100" width="30" height="90"/>
-        <rect x="250" y="120" width="30" height="70"/></g>
-      <g fill="#f7c873" opacity=".7"><rect x="48" y="130" width="6" height="8"/><rect x="66" y="150" width="6" height="8"/>
-        <rect x="103" y="115" width="6" height="8"/><rect x="258" y="135" width="6" height="8"/></g>
-      <path d="M300 170 L320 50 L340 170" fill="none" stroke="#e86a92" stroke-width="4"/>
-      <circle cx="320" cy="45" r="7" fill="#ff8fab" class="map-beacon"/>
-      <path d="M470 150 L530 40 L590 150 Z" fill="#4a3f7a"/><path d="M500 95 L560 95" stroke="#8fb8ff" stroke-width="3"/>
-      <rect x="520" y="118" width="20" height="32" fill="#2b1d5c"/>
-      <path class="map-road" d="M84 205 C160 150 220 215 288 170 S 430 95 510 120" fill="none" stroke="#ffe8a3" stroke-width="6" stroke-dasharray="4 14" stroke-linecap="round"/>
-      <text x="170" y="40" text-anchor="middle" fill="#ffe8a3" font-size="15" font-family="Georgia, serif" opacity=".85">✶ ✶ ✶</text>
+      <g fill="#fff" opacity=".7"><circle cx="40" cy="30" r="1.2"/><circle cx="120" cy="18" r="1"/><circle cx="210" cy="40" r="1.3"/>
+        <circle cx="300" cy="22" r="1"/><circle cx="360" cy="48" r="1.1"/></g>
+      <circle cx="80" cy="44" r="13" fill="#fff6dc"/><circle cx="86" cy="40" r="12" fill="#0d1330"/>
+      <circle cx="560" cy="150" r="22" fill="#ffc87a" opacity=".9"/>
+      <path d="M0 196 H600 V260 H0Z" fill="url(#mapSea)"/>
+      <path d="M0 202 Q60 196 120 202 T240 202 T360 202 T480 202 T600 202" fill="none" stroke="#8fb8ff" stroke-width="1.5" opacity=".35"/>
+      <path d="M0 178 Q300 160 600 176 V198 H0Z" fill="#d9c49a" opacity=".85"/>
+      <g fill="#eceae4">
+        <rect x="40" y="112" width="120" height="58" rx="3"/><rect x="190" y="92" width="170" height="78" rx="3"/>
+        <rect x="390" y="104" width="130" height="66" rx="3"/><path d="M390 104 Q455 76 520 104Z"/>
+      </g>
+      <g fill="#ffd27a" opacity=".85">
+        <rect x="52" y="124" width="16" height="10"/><rect x="76" y="124" width="16" height="10"/><rect x="128" y="146" width="16" height="10"/>
+        <rect x="204" y="106" width="14" height="10"/><rect x="226" y="128" width="14" height="10"/><rect x="306" y="106" width="14" height="10"/>
+        <rect x="408" y="120" width="94" height="8" opacity=".6"/>
+      </g>
+      <g font-family="Helvetica, Arial, sans-serif" font-weight="bold" font-size="17" fill="#ffffff" stroke="#c8d0dc" stroke-width=".6">
+        <text x="236" y="160">N</text><text x="254" y="160">O</text><text x="274" y="160">V</text><text x="292" y="160">A</text>
+      </g>
+      <path class="map-road" d="M100 178 C150 205 200 150 275 176 S 400 200 455 172" fill="none" stroke="#ffe8a3" stroke-width="5" stroke-dasharray="4 13" stroke-linecap="round"/>
+      <text x="40" y="96" fill="#ffe8a3" font-size="12" font-family="Georgia, serif" opacity=".8">23:59</text>
+      <text x="252" y="80" fill="#ffe8a3" font-size="12" font-family="Georgia, serif" opacity=".8">00:00 – 06:00</text>
+      <text x="470" y="90" fill="#fff0d0" font-size="12" font-family="Georgia, serif" opacity=".9">09:00</text>
     </svg>`;
     const positions = [
-      [14, 79],
-      [48, 65],
-      [85, 46],
+      [17, 62],
+      [46, 54],
+      [76, 58],
     ];
     // Narrow screens: the cards move to a row under the map, so they never run off it
     const list = el("div", "level-list");
@@ -1806,6 +1833,88 @@ function menuScreen(data, setTriggerValue) {
     const wrap = el("div", "level-map-wrap");
     wrap.append(map, list);
     return wrap;
+  }
+
+  // Your student: every part with arrows (or colour dots); the student on the terrace changes at once
+  // The look being dressed, not saved yet (Back forgets it)
+  let draft = { ...menu.look };
+  function lookEditor() {
+    const look = draft;
+    const box = el("div", "look-editor");
+    const rows = el("div", "look-rows");
+    const note = el("p", "look-note");
+    const saveButton = button(L.look_save, () => command("save_look", { look }), "menu-item primary small");
+    const isPrize = (choice) => !!menu.prizes[choice];
+    const locked = (choice) => isPrize(choice) && !menu.prizes[choice].won;
+    const refresh = () => {
+      globalThis.__gitOutShowcase?.look(look);
+      const prize = Object.values(look).find(locked);
+      note.textContent = prize ? `🔒 ${menu.prizes[prize].how}` : "";
+      saveButton.disabled = !!prize;
+    };
+    for (const [part, choices] of Object.entries(menu.parts)) {
+      const row = el("div", "look-row");
+      row.append(el("span", "look-part", L[`look_${part}`]));
+      if (choices[0].startsWith("#")) {
+        const dots = el("div", "look-dots");
+        for (const colour of choices) {
+          const dot = el("button", "look-dot");
+          dot.style.background = colour;
+          dot.setAttribute("aria-label", `${L[`look_${part}`]} ${colour}`);
+          dot.classList.toggle("on", look[part] === colour);
+          dot.onclick = () => {
+            Sound.click();
+            look[part] = colour;
+            dots.querySelectorAll(".look-dot").forEach((d) => d.classList.toggle("on", d === dot));
+            refresh();
+          };
+          dots.append(dot);
+        }
+        row.append(dots);
+      } else {
+        const name = el("span", "look-choice");
+        const shown = () => {
+          const choice = look[part];
+          name.textContent = `${locked(choice) ? "🔒 " : isPrize(choice) ? "🏆 " : ""}${L[`look_${part}_${choice}`] || choice}`;
+        };
+        const step = (by) => {
+          Sound.click();
+          const i = choices.indexOf(look[part]);
+          look[part] = choices[(i + by + choices.length) % choices.length];
+          shown();
+          refresh();
+        };
+        const prev = el("button", "look-arrow", "‹");
+        const next = el("button", "look-arrow", "›");
+        prev.setAttribute("aria-label", `${L[`look_${part}`]} −`);
+        next.setAttribute("aria-label", `${L[`look_${part}`]} +`);
+        prev.onclick = () => step(-1);
+        next.onclick = () => step(1);
+        const picker = el("div", "look-picker");
+        picker.append(prev, name, next);
+        row.append(picker);
+        shown();
+      }
+      rows.append(row);
+    }
+    const random = button(L.look_random, () => {
+      for (const [part, choices] of Object.entries(menu.parts)) {
+        const allowed = choices.filter((c) => !locked(c));
+        look[part] = allowed[Math.floor(Math.random() * allowed.length)];
+      }
+      box.replaceWith(lookEditor());
+    }, "menu-item small");
+    const actions = el("div", "look-actions");
+    actions.append(random, saveButton);
+    box.append(rows, note, actions);
+    if (menu.look_saved) box.append(el("p", "look-saved", L.look_saved));
+    box.append(button(L.back, () => {
+      draft = { ...menu.look };
+      globalThis.__gitOutShowcase?.look(menu.look);
+      show("main");
+    }, "menu-item ghost"));
+    refresh();
+    return box;
   }
 
   function coopBox() {
