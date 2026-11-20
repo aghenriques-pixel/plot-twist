@@ -29,7 +29,7 @@ def fresh(state):
 
 
 def open_app():
-    at = AppTest.from_file(APP_PATH)
+    at = AppTest.from_file(APP_PATH, default_timeout=10)
     at.run()
     return at
 

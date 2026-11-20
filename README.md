@@ -1,4 +1,4 @@
-# The Forbidden Archive
+# Midnight at Nova
 
 A 3D escape room in the browser, at Nova SBE. **Level 1 — "Submission at 23:59":** it is 23:44 in Study Room B, the group project is due on GitHub at 23:59, the code is on Rita's pen drive locked in her locker, your laptop is at 3% and Tiago changed its password as a joke. Get out of the room, find Rita's card in the cafeteria, open her locker, hide from the security round, find a working socket on the terrace, survive the sprinklers, and `git push` before midnight. Your answer to Tiago decides one of the five endings.
 
@@ -64,7 +64,7 @@ The same tests run on GitHub Actions for every pull request and every push to `m
 | Fullscreen game | `components/scene_view.js`, `.css` | The whole game screen: top bar, the picture you click to walk, observe, talk and type codes, narration, endings, co-op chat. Sends actions, commands and chat messages to `app.py`; Python decides. |
 | 3D rooms | `world3d.py`, `components/scene3d.js`, `static/three.module.min.js` | A place with a 3D room is drawn with Three.js, the character seen from behind (third person). `world3d.py` lists each room's things and which action or look each one is; `scene3d.js` builds them from simple shapes, walks the character (WASD, or click; A* around the furniture) and uses a thing like a 2D spot. Python still decides everything. Three.js (MIT) is served once as a static file. Places without a 3D room keep the 2D picture; the top bar's 2D/3D button switches. |
 | Texts in two languages | `translations.py` | The Portuguese version of every story text (`STORY_PT`) and every screen text in both languages (`UI_TEXT`). |
-| Pictures | `assets/` | Original SVG illustrations. Chapters 2 and 3 are drawn by `scripts/art_chapter2.py` and `scripts/art_chapter3.py`; `scripts/art_colour.py` then gives every picture its colours and ambient animation, and `scripts/art_events.py` draws the event pictures on top of the coloured scenes. |
+| Pictures | `assets/` | The 2D character and the night city behind the menu (original SVG). The rooms themselves are 3D, built from code. |
 | Specs | `specs/` | One spec per feature (Why / What / Out of scope / Done when). |
 | Tests | `tests/` | pytest: rules, puzzles, saving, players, and the app itself with Streamlit's `AppTest`. |
 
@@ -73,7 +73,7 @@ The same tests run on GitHub Actions for every pull request and every push to `m
 - **Online:** a hosted Postgres database. Its connection string is the secret `DATABASE_URL`, set in the Streamlit Cloud app settings — never in this repository.
 - **Locally:** `data/game.db` (SQLite, ignored by git). Delete it to reset local progress. If `.streamlit/secrets.toml` holds a `DATABASE_URL`, the local app uses that database instead.
 - **Tests:** a temporary SQLite file per test.
-- Only player progress is stored (scene, items, decisions, the endings each player reached, accounts). The story is code in `logic.py`.
+- Only player progress is stored (scene, items, decisions, the endings each player reached, accounts). The story is code in `story.py`.
 
 ## Limits
 

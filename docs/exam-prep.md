@@ -1,5 +1,7 @@
 # Preparação para o exame — Plot Twist: *O Arquivo Proibido*
 
+> **Atenção:** este guia é sobre o **projeto solo** (a história do Ministério da Verdade). O jogo de equipa substituiu essa história por *Meia-Noite na Nova* (PR #20), por isso as cenas, as ações e os ficheiros aqui citados (`ministerio`, `ir_arquivo`, `cartao_acesso`...) já não estão no código atual. Para os ver como eram, abre o commit `e9b639a` (o último antes do PR #20): `git switch --detach e9b639a`, e depois `git switch main` para voltar.
+
 > Atualizado depois do *plot twist* do Tomás e dos enigmas: há 3 itens, 3 decisões possíveis, 3 finais, 5 enigmas e 6 cenas jogáveis.
 
 Parte do exame sobre o projeto solo: **30% da nota**. As perguntas seguem os 6 tipos do template do curso.

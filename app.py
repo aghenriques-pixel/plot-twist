@@ -1,4 +1,4 @@
-"""Screens for The Forbidden Archive. Rules are in logic.py, storage in db.py, rooms in rooms.py,
+"""Screens for Midnight at Nova. Rules are in logic.py, storage in db.py, rooms in rooms.py,
 texts in two languages in translations.py.
 
 The game itself — main menu included — is drawn fullscreen by the scene_view component
@@ -108,7 +108,7 @@ scene_view = st.components.v2.component(
 # The language is kept in the link (?lang=pt), so it survives a reload; English by default
 LANG = st.query_params.get("lang") if st.query_params.get("lang") in LANGUAGES else "en"
 
-st.set_page_config(page_title=ui("game_title", LANG), page_icon="🗄️", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title=ui("game_title", LANG), page_icon="🕛", layout="wide", initial_sidebar_state="collapsed")
 
 # Streamlit's own toolbar and footer are hidden; the header stays only for the text-mode toggle
 st.markdown(
