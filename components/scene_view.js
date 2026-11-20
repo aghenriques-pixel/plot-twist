@@ -544,9 +544,11 @@ function gameKeys(game, data, setTriggerValue, keys, event, down) {
     if (key === "Enter") return click(ending.querySelector(".big.primary"));
     if (numbered(ending)) return;
   }
-  // Looking at a thing close up (3D): Esc, E, Enter or Space go back to the room
+  // Looking at a thing close up (3D): Esc goes back to the room; E, Enter or Space use it when it
+  // can also be used (PC 7: log in), or go back
   const inspecting = game.querySelector(".inspect3d");
-  if (inspecting && ["Escape", "e", "E", "Enter", " "].includes(key)) return click(inspecting.querySelector(".inspect-back"));
+  if (inspecting && key === "Escape") return click(inspecting.querySelector(".inspect-back"));
+  if (inspecting && ["e", "E", "Enter", " "].includes(key)) return click(inspecting.querySelector(".inspect-act") || inspecting.querySelector(".inspect-back"));
   // A lock or the laptop's screen (3D) takes the keys while it is open; Esc closes it
   const device = game.querySelector(".lock3d, .laptop3d");
   if (device) {
@@ -904,12 +906,16 @@ function endingCard(data, setTriggerValue) {
   const [told, texted] = ending.text.split("📱");
   if (texted) {
     if (told.trim()) inner.append(el("p", "ending-text", told.trim()));
-    const [who, ...said] = texted.split(":");
+    // "Rita, 01:04: “…”": the sender (with the time) ends where the quoted message starts, so the
+    // colons of a time do not cut the message
+    const quote = texted.indexOf("“");
+    const who = (quote > 0 ? texted.slice(0, quote) : texted.split(":")[0]).trim().replace(/:$/, "");
+    const said = quote > 0 ? texted.slice(quote) : texted.split(":").slice(1).join(":");
     const phone = el("div", "phone small");
     const head = el("div", "phone-head");
-    head.append(el("span", "phone-avatar", who.trim().slice(0, 1)), el("span", "phone-title", who.trim()));
+    head.append(el("span", "phone-avatar", who.slice(0, 1)), el("span", "phone-title", who));
     const list = el("div", "phone-messages");
-    list.append(el("div", "phone-bubble", said.join(":").trim().replace(/^“|”$/g, "")));
+    list.append(el("div", "phone-bubble", said.trim().replace(/^“|”$/g, "")));
     phone.append(head, list);
     inner.append(phone);
   } else {

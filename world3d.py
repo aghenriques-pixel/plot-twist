@@ -238,7 +238,7 @@ ATRIUM_THINGS = [
     {"kind": "planter", "at": [6.4, -5.4]},
     {"kind": "planter", "at": [8.8, 5.6], "small": True},
     {"kind": "round_table", "at": [-4.6, 3.6], "chairs": 3},
-    {"kind": "phone_spot", "at": [-4.45, 3.75], "y": 0.75, "stand": [-4.6, 4.9], "look": "Your phone"},
+    {"kind": "phone_spot", "at": [-4.45, 3.75], "y": 0.75, "stand": [-4.6, 5.5], "look": "Your phone"},
     {"kind": "round_table", "at": [3.0, 4.6], "chairs": 3},
     {"kind": "round_table", "at": [-1.8, 5.8], "chairs": 2},
 ]
@@ -249,9 +249,9 @@ ROOMS_3D.update({
         "height": 8.4,
         "start": [-9.6, 5.6],
         "arrive": {
-            "l2_biblioteca": {"at": [-7.4, -0.9], "turn": 0.0},
-            "l2_lab": {"at": [10.0, -3.6], "turn": -1.571},
-            "l2_tunel": {"at": [8.6, -6.8], "turn": 0.0},
+            "l2_biblioteca": {"at": [-7.4, 0.8], "turn": 0.0},
+            "l2_lab": {"at": [8.2, -2.6], "turn": -1.571},
+            "l2_tunel": {"at": [8.6, -5.0], "turn": 0.0},
         },
         "dim": True,
         "style": {"floor": "wood", "ceiling": "glass", "palette": {**NOVA, "floor": "#7a5136"}},
@@ -264,8 +264,8 @@ ROOMS_3D.update({
     },
     "l3_atrio": {
         "base": "l2_atrio",
-        "start": [-10.0, 3.0],
-        "arrive": {"l3_tunel": {"at": [-10.0, 3.0], "turn": 1.571}, "l3_auditorio": {"at": [-7.4, -0.9], "turn": 3.1416}},
+        "start": [-8.2, 4.2],
+        "arrive": {"l3_tunel": {"at": [-8.2, 4.2], "turn": 1.571}, "l3_auditorio": {"at": [-7.4, 0.8], "turn": 3.1416}},
         "dim": False,
         "style": {"floor": "wood", "ceiling": "glass", "day": True, "palette": {**NOVA, "floor": "#7a5136"}},
         "add": [
@@ -280,18 +280,19 @@ ROOMS_3D.update({
     "l2_lab": {
         "size": [12, 10],
         "height": 3.6,
-        "start": [-5.0, 3.0],
-        "arrive": {"l2_atrio": {"at": [-5.0, 3.0], "turn": 1.571}},
+        "start": [-3.6, 4.3],
+        "arrive": {"l2_atrio": {"at": [-3.6, 4.3], "turn": 1.571}},
         "dim": True,
         "style": {"floor": "lino", "ceiling": "perforated", "lights": "lines", "palette": {**NOVA, "floor": "#8e8a84"}},
         "things": [
             *[
                 {"kind": "pc_desk", "at": [x, z], "number": 1 + row * 4 + col, "on": 1 + row * 4 + col == 7,
-                 **({"stand": [x, z + 1.05], "look": "PC 7", "action": "entrar_pc7"} if 1 + row * 4 + col == 7 else {})}
+                 **({"stand": [x, z + 1.3], "look": "PC 7", "action": "entrar_pc7"} if 1 + row * 4 + col == 7 else {})}
                 for row, z in enumerate((-2.4, 0.0, 2.4))
                 for col, x in enumerate((-3.0, -0.8, 1.4, 3.6))
             ],
-            {"kind": "printer", "at": [5.2, -3.9], "stand": [5.2, -2.8], "action": "imprimir"},
+            # Stand beside the printer, so the character does not hide it from the camera
+            {"kind": "printer", "at": [5.2, -3.9], "stand": [4.0, -3.4], "action": "imprimir"},
             {"kind": "whiteboard", "wall": "back", "at": [-1.6, -5.0], "stand": [-1.6, -3.9], "look": "IT whiteboard"},
             {"kind": "server_rack", "at": [5.4, 3.6]},
             {"kind": "door", "wall": "left", "at": [-6.0, 3.0], "stand": [-5.1, 3.0], "action": "voltar_atrio_lab"},
@@ -319,7 +320,7 @@ ROOMS_3D.update({
         "size": [7, 34],
         "height": 3.2,
         "start": [0.0, 15.0],
-        "arrive": {"l3_praia": {"at": [0.0, 15.0], "turn": 3.1416}, "l3_atrio": {"at": [0.0, -14.8], "turn": 0.0}},
+        "arrive": {"l3_praia": {"at": [0.0, 15.0], "turn": 3.1416}, "l3_atrio": {"at": [0.0, -13.0], "turn": 0.0}},
         "style": {"floor": "concrete", "ceiling": "concrete", "lights": "strips", "murals": True, "far": "campus", "day": True,
                   "palette": {**NOVA, "wall": "#d8d1c4", "floor": "#b3ac9f"}},
         "things": [
@@ -348,7 +349,7 @@ ROOMS_3D.update({
         "size": [26, 18],
         "height": 6.0,
         "start": [-5.0, -2.2],
-        "arrive": {"l3_tunel": {"at": [10.4, 5.6], "turn": -1.571}},
+        "arrive": {"l3_tunel": {"at": [8.4, 4.6], "turn": -1.571}},
         "style": {"outdoor": True, "beach": True, "day": True, "floor": "sand", "palette": {**NOVA, "floor": "#e6d3a6"}},
         "things": [
             {"kind": "fort", "at": [-9.0, -6.2], "day": True},
@@ -402,7 +403,8 @@ def library_room():
         {"kind": "notice_board", "wall": "right", "at": [8.0, -2.6], "stand": [7.0, -2.6], "look": "Notice board"},
         {"kind": "notebook", "at": [-2.8, -2.4], "stand": [-2.8, -1.2], "action": "apanhar_caderno", "only_while_offered": True},
     ]
-    return {**room, "things": things, "dim": True, "arrive": {"l2_atrio": {"at": room["start"], "turn": 1.571}}}
+    # You come up the stairs a few steps into the room (not on the door's ring: E would take you back)
+    return {**room, "things": things, "dim": True, "start": [-5.2, 3.0], "arrive": {"l2_atrio": {"at": [-5.2, 3.0], "turn": 1.571}}}
 
 
 ROOMS_3D["l2_biblioteca"] = library_room()
@@ -420,7 +422,7 @@ CHOICES = {
     "esperar_rega": {"icon": "⏳", "at": None},
     # Level 2: the guard's round in the atrium (behind the O of NOVA, under a table, the stairs)
     "esconder_letra": {"icon": "🫣", "at": [-0.4, -2.5]},
-    "esconder_mesa": {"icon": "🪑", "at": [-4.6, 3.6]},
+    "esconder_mesa": {"icon": "🪑", "at": [-4.6, 5.5]},
     "correr_escadas": {"icon": "🏃", "at": [-7.4, -1.2]},
     "ficar_parado_l2": {"icon": "🧍", "at": None},
     "tiago_vem_a": {"icon": "🤝", "at": None},

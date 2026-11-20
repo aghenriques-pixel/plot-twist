@@ -782,11 +782,19 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
         Sound.click();
         stage.dispatchEvent(new Event("choice-sent"));
         b.classList.add("chosen");
-        const send = () => setTriggerValue("action", { id: option.action, x: spot.stand });
+        // Sent once: when the character gets there, or after 4 seconds if it cannot get there
+        // (a danger's clock has stopped by now, so the choice must always reach Python)
+        let sent = false;
+        const send = () => {
+          if (sent || !stage.isConnected) return;
+          sent = true;
+          setTriggerValue("action", { id: option.action, x: spot.stand });
+        };
         setTimeout(closeChoices, 180);
         if (card.at && hero) {
           heroSays(option.say);
           walkTo(new THREE.Vector3(card.at[0], 0, card.at[1]), () => setTimeout(send, 250), WALK_SPEED * 1.8);
+          setTimeout(send, 4000);
         } else {
           setTimeout(send, 260);
         }
@@ -906,7 +914,21 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
       Sound.click();
       stopInspecting();
     };
-    panel.append(el("div", "inspect-name", `🔍 ${item.label}`), back);
+    panel.append(el("div", "inspect-name", `🔍 ${item.look.label || item.label}`));
+    // A thing to look at that is also used (PC 7: read the post-it, then log in): its action is
+    // a button here, and E does it
+    if (item.spot && hero) {
+      const act = el("button", "choice inspect-act");
+      act.append(el("kbd", "", "E"), el("span", "", ` ${item.spot.label}`));
+      act.onclick = (event) => {
+        event.stopPropagation();
+        Sound.click();
+        stopInspecting();
+        useSpot(item.spot);
+      };
+      panel.append(act);
+    }
+    panel.append(back);
     stage.append(panel);
     // What the character thinks about it (the snack machine, the coffee machine)
     if (item.look.remark) {
@@ -1390,6 +1412,12 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
         standFree: !collides(u.stand.x, u.stand.z),
         reachable: seen.has(index(u.stand.x, u.stand.z)),
       })),
+      // The places a choice sends the character to (behind the O, the snack machine...)
+      choices: Object.entries(world.choices || {}).filter(([, c]) => c.at).map(([id, c]) => ({
+        id,
+        free: !collides(c.at[0], c.at[1]),
+        reachable: seen.has(index(c.at[0], c.at[1])),
+      })),
       freeShare: +(seen.size / free.length).toFixed(2),
       // A map, step × 25 cm a letter: # blocked, . reached, o free but cut off
       map: Array.from({ length: Math.floor(rows / step) }, (_, j) =>
@@ -1422,7 +1450,13 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
     },
     useNearest: () => {
       rememberKeys();
-      if (inspecting) return stopInspecting();
+      if (inspecting) {
+        // Looking at something that is also used (PC 7): E uses it; otherwise E goes back
+        const spot = hero && inspecting.item.spot;
+        stopInspecting();
+        if (spot && canWalk()) useSpot(spot);
+        return;
+      }
       if (nearest && canWalk()) use(nearest);
     },
     stopInspecting,
@@ -3960,12 +3994,13 @@ const THINGS = {
       glow.position.set(0, 1.25, 0.4);
       group.add(screen, glow);
       if (face && !thing.unlocked) {
-        const note = sheet(THREE, postItTexture(THREE, face.postit, face.sign), 0.13, 0.13);
-        note.position.set(0.22, 1.12, -0.175);
+        // Tiago's post-it, big and stuck over the monitor's right edge
+        const note = sheet(THREE, postItTexture(THREE, face.postit, face.sign), 0.21, 0.21);
+        note.position.set(0.29, 1.11, -0.172);
         note.rotation.z = -0.08;
         group.add(note);
       }
-      focusOn(group, [0, 1.18, -0.17], [0, 0, 1], 0.7, 0.42);
+      focusOn(group, [0.08, 1.16, -0.17], [0, 0, 1], 0.78, 0.44);
     }
   },
 

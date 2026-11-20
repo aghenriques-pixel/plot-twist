@@ -268,3 +268,25 @@ def test_endings_are_endings():
     for ending in ("final_l2_praia", "final_l2_sem_prova", "final_l2_apanhado", "final_l2_alarme",
                    "final_apresentacao", "final_l3_tiago", "final_l3_atrasado", "final_l3_force", "final_l3_zero"):
         assert is_finished({"scene": ending, "inventory": [], "decisions": {}}), ending
+
+
+def test_you_never_arrive_on_the_ring_of_a_way_out():
+    """Found while playing: arriving on the door's ring, a stray E took you straight back out."""
+    import math
+
+    from world3d import ROOMS_3D, full_room
+
+    for room_id in ROOMS_3D:
+        if not room_id.startswith(("l2_", "l3_")):
+            continue
+        room = full_room(room_id)
+        exits = [
+            thing["stand"]
+            for thing in room["things"]
+            for name in (thing.get("actions") or ([thing["action"]] if thing.get("action") else []))
+            if name in ACTIONS and ACTIONS[name].get("goes_to") and "stand" in thing
+        ]
+        points = [room["start"], *(where["at"] for where in room.get("arrive", {}).values())]
+        for point in points:
+            for stand in exits:
+                assert math.dist(point, stand) >= 1.7, (room_id, point, stand)
