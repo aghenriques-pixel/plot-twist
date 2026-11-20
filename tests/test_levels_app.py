@@ -43,12 +43,12 @@ def open_app(**params):
     return at
 
 
-def test_a_new_player_sees_level_1_open_and_the_others_coming_soon(db):
+def test_a_new_player_sees_level_1_open_and_the_others_locked(db):
+    # Changed (specs/levels-2-and-3.md): levels 2 and 3 were "Coming soon"
     at = open_app()
 
     assert not at.button(key="nivel_1").disabled
-    assert "nivel_2" not in [button.key for button in at.button]
-    assert any("Coming soon" in caption.value for caption in at.sidebar.caption)
+    assert at.button(key="nivel_2").disabled and at.button(key="nivel_3").disabled
 
 
 def test_submitting_is_remembered_and_completes_level_1(db):

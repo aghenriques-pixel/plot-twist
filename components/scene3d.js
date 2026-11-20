@@ -224,6 +224,19 @@ function floorTexture(THREE, kind, colour) {
           g.strokeRect(x + 0.5, y + 0.5, 320, 32);
         }
       }
+    } else if (kind === "sand") {
+      // Fine grains, and soft ripples left by the wind
+      for (let i = 0; i < 12000; i++) {
+        g.fillStyle = shade(colour, Math.random() * 0.14 - 0.07);
+        g.fillRect(Math.random() * w, Math.random() * h, 1.5, 1.5);
+      }
+      g.strokeStyle = shade(colour, -0.08);
+      g.lineWidth = 3;
+      for (let y = 20; y < h; y += 46) {
+        g.beginPath();
+        for (let x = 0; x <= w; x += 16) g.lineTo(x, y + Math.sin(x / 40 + y) * 6);
+        g.stroke();
+      }
     } else if (kind === "carpet") {
       for (let i = 0; i < 9000; i++) {
         g.fillStyle = shade(colour, Math.random() * 0.12 - 0.06);
@@ -250,12 +263,18 @@ function floorTexture(THREE, kind, colour) {
 // Kinds of things the character walks around (their outline on the floor is an obstacle)
 // (a thing with its own outlines, like a curved row of desks, gives those instead)
 // Tall things that may stand between the camera and the character: they fade while they do
-const SEE_THROUGH = new Set(["column", "staircase", "bookshelf", "olive_tree", "street_lamp", "snack_machine", "lockers", "window_wall", "lectern"]);
+const SEE_THROUGH = new Set([
+  "column", "staircase", "bookshelf", "olive_tree", "street_lamp", "snack_machine", "lockers", "window_wall", "lectern",
+  "nova_letters", "planter", "server_rack", "fort", "kiosk", "parasol", "seat_rows", "gallery",
+]);
 
 const SOLID = new Set([
   "tiago_sleeping", "chair_coat", "lockers", "snack_machine", "staircase", "bookshelf", "beanbag", "lectern",
   "round_table", "counter", "long_table", "picnic_table", "bistro_set", "street_lamp", "socket_post",
   "sign_post", "guard", "column", "sofa", "atrium", "olive_tree", "bin",
+  // Levels 2 and 3
+  "planter", "security_desk", "pc_desk", "printer", "server_rack", "kiosk", "fisherman", "tiago_beach", "professor",
+  "projector_desk", "teresa_seated", "rita_seated", "tiago_standing", "lectern", "beach_stairs",
 ]);
 
 function drawRoom(THREE, stage, data, setTriggerValue) {
@@ -306,14 +325,16 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
   scene.add(floor);
 
   const lamps = []; // lights that can flicker
+  const early = []; // animations of the sky or the room itself (waves, the lighthouse), added to "animated" below
   if (outdoor) {
-    buildSky(THREE, scene, W, D);
+    if (style.beach) buildBeach(THREE, scene, W, D, !!style.day, early);
+    else buildSky(THREE, scene, W, D);
   } else {
     scene.background = new THREE.Color("#0b0a12");
-    scene.fog = new THREE.Fog("#0b0a12", 16, 34);
+    scene.fog = new THREE.Fog("#0b0a12", style.far ? 40 : 16, style.far ? 60 : 34);
     const wall = (width, repeat) =>
       new THREE.Mesh(new THREE.PlaneGeometry(width, H), material(palette.wall, { roughness: 0.92 }));
-    const back = wall(W);
+    const back = style.far ? farView(THREE, W, H, style.far, !!style.day) : wall(W);
     back.position.set(0, H / 2, -D / 2);
     const left = wall(D);
     left.rotation.y = Math.PI / 2;
@@ -321,6 +342,15 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
     const right = wall(D);
     right.rotation.y = -Math.PI / 2;
     right.position.set(W / 2, H / 2, 0);
+    // The tunnel: its walls are painted with murals (the team's photos)
+    if (style.murals) {
+      for (const [side, w] of [[-1, left], [1, right]]) {
+        const map = muralTexture(THREE, side);
+        map.wrapS = THREE.RepeatWrapping;
+        map.repeat.set(D / 12, 1);
+        w.material = material("#ffffff", { map, roughness: 0.85 });
+      }
+    }
     for (const w of [back, left, right]) {
       w.receiveShadow = true;
       scene.add(w);
@@ -357,7 +387,14 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
       scene.add(piece);
     };
     const front = D / 2 + 8;
-    if (style.opening) {
+    if (style.ceiling === "glass") {
+      glassRoof(THREE, scene, W, D, H, !!style.day);
+    } else if (style.ceiling === "concrete") {
+      const slab = new THREE.Mesh(new THREE.PlaneGeometry(W, D + 8), material(style.day ? "#d6d0c4" : "#9d978b", { roughness: 1 }));
+      slab.rotation.x = Math.PI / 2;
+      slab.position.set(0, H, 4);
+      scene.add(slab);
+    } else if (style.opening) {
       const [ox1, ox2, oz1, oz2] = style.opening;
       ceilingPiece(-W / 2, ox1, -D / 2, front);
       ceilingPiece(ox2, W / 2, -D / 2, front);
@@ -384,6 +421,20 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
     } else {
       ceilingPiece(-W / 2, W / 2, -D / 2, front);
     }
+    if (style.lights === "strips") {
+      // A line of LED light along the top of each wall, the whole length of the tunnel
+      for (const side of [-1, 1]) {
+        const strip = box(0.06, 0.05, D, "#ffffff", { emissive: "#ffe6b0", emissiveIntensity: 2.4 });
+        strip.position.set(side * (W / 2 - 0.08), H - 0.25, 0);
+        scene.add(strip);
+      }
+      for (let z = -D / 2 + 3; z < D / 2; z += 6) {
+        const light = new THREE.PointLight("#ffe2b0", world.dim ? 4 : 9, 9, 1.5);
+        light.position.set(0, H - 0.4, z);
+        scene.add(light);
+        lamps.push({ light, base: light.intensity, flicker: 2 + Math.random() * 6 });
+      }
+    }
     if (style.lights === "lines") {
       // Long lines of LED light, slightly askew, like the library
       for (let z = -D / 2 + 1.2; z < D / 2; z += 2.2) {
@@ -407,9 +458,10 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
     if (style.windows) buildWindows(THREE, scene, W, D, H, style.windows);
   }
 
-  // A soft fill and a key light for the shadows
-  scene.add(new THREE.HemisphereLight(outdoor ? "#7d8fc8" : "#ffffff", outdoor ? "#1c1a26" : "#3a3330", outdoor ? 0.9 : world.dim ? 0.35 : 1.0));
-  const key = new THREE.DirectionalLight(outdoor ? "#b9c8ff" : "#fff6e8", outdoor ? 1.1 : world.dim ? 0.3 : 1.2);
+  // A soft fill and a key light for the shadows (by day: the sun, warm and strong)
+  const day = !!style.day;
+  scene.add(new THREE.HemisphereLight(day ? "#dbe9ff" : outdoor ? "#7d8fc8" : "#ffffff", day ? "#8a7a5a" : outdoor ? "#1c1a26" : "#3a3330", day ? 1.3 : outdoor ? 0.9 : world.dim ? 0.35 : 1.0));
+  const key = new THREE.DirectionalLight(day ? "#fff1d6" : outdoor ? "#b9c8ff" : "#fff6e8", day ? 2.2 : outdoor ? 1.1 : world.dim ? 0.3 : 1.2);
   key.position.set(outdoor ? -6 : -4, 12, outdoor ? -10 : 8);
   key.castShadow = true;
   key.shadow.mapSize.set(2048, 2048);
@@ -421,7 +473,7 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
   // --- The things in the room, from world3d.py ---
   const obstacles = []; // outlines on the floor the character walks around: (x, z, margin) => touches
   const usable = []; // things the character can use
-  const animated = []; // little things that move every frame: (dt, time, heroPosition) => {}
+  const animated = [...early]; // little things that move every frame: (dt, time, heroPosition) => {}
   const context = { THREE, box, cylinder, material, palette, animated, data, W, D, H, world };
   const lookOf = (thing) => (thing.look !== null && thing.look !== undefined ? data.looks[thing.look] : null);
   const later = []; // things placed next to the character once it exists (the guard who caught you)
@@ -480,6 +532,16 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
   const dust = new THREE.Points(dustGeometry, new THREE.PointsMaterial({ color: "#fff2c8", size: 0.025, transparent: true, opacity: 0.5, depthWrite: false }));
   scene.add(dust);
   if (world.spray) addSpray(THREE, scene, world.things.filter((t) => t.kind === "sprinkler"), animated);
+  if (world.alarm) {
+    // The alarm: red lights turning, everywhere
+    const sirens = [-1, 1].map((side) => {
+      const light = new THREE.PointLight("#ff2a2a", 0, 18, 1.2);
+      light.position.set(side * W * 0.3, H - 0.5, 0);
+      scene.add(light);
+      return light;
+    });
+    animated.push((dt, time) => sirens.forEach((light, i) => (light.intensity = Math.max(0, Math.sin(time * 6 + i * Math.PI)) * 30)));
+  }
 
   // --- The character (none for the contacto, who watches through a camera) ---
   // Where it stands is kept while the player stays in this room (an action redraws the screen);
@@ -492,11 +554,13 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
     const cameFrom = before && before.endsWith(`:${data.timer.run}`) ? before.slice(0, before.lastIndexOf(":")) : null;
     const arrival = world.arrive?.[cameFrom];
     here = arrival
-      ? { visit, x: arrival.at[0], z: arrival.at[1], turn: arrival.turn }
-      : { visit, x: world.start[0], z: world.start[1], turn: Math.PI };
+      ? { visit, x: arrival.at[0], z: arrival.at[1], turn: arrival.turn, fresh: true }
+      : { visit, x: world.start[0], z: world.start[1], turn: Math.PI, fresh: true };
     globalThis.__forbiddenArchiveHere = here;
   }
-  const hero = watching || menuView ? null : makePerson(THREE, { coat: world.hero.coat });
+  // The room has one raincoat: in co-op Player 1 wears it, so both screens show the same
+  const coatOnMe = world.hero.coat && data.role !== "contacto";
+  const hero = watching || menuView ? null : makeStudent(THREE, world.hero.look, { coat: coatOnMe });
   if (hero) {
     hero.group.position.set(here.x, 0, here.z);
     hero.group.rotation.y = here.turn;
@@ -507,6 +571,91 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
       group.position.set(here.x + Math.sin(angle) * 1.4, 0, here.z + Math.cos(angle) * 1.4);
       group.rotation.y = angle + Math.PI;
     }
+  }
+
+  // --- Co-op: your friend's student (specs/coop-two-students.md) ---
+  // Python sends where they stand (data.partner.at, refreshed every second without rebuilding the
+  // room: scene_view.js puts it in __gitOutPartnerAt); their student glides there. Before they have
+  // moved here, they stand beside you.
+  let partner = null;
+  if (data.partner && hero && !ending) {
+    partner = makeStudent(THREE, data.partner.look, { coat: world.hero.coat && data.role === "contacto" });
+    const at = data.partner.at;
+    partner.group.position.set(at ? at.x : here.x + 1.1, 0, at ? at.z : here.z + 0.5);
+    partner.group.rotation.y = at ? at.turn : here.turn;
+    scene.add(shadowy(partner.group));
+    partner.tag = el("div", "partner-name", data.partner.name);
+    stage.append(partner.tag);
+  }
+  const partnerTarget = new THREE.Vector3();
+  function placePartner(dt, time) {
+    if (!partner) return;
+    const at = globalThis.__gitOutPartnerAt;
+    const p = partner.group.position;
+    let walking = false;
+    if (at) {
+      partnerTarget.set(at.x, 0, at.z);
+      const dx = partnerTarget.x - p.x;
+      const dz = partnerTarget.z - p.z;
+      const distance = Math.hypot(dx, dz);
+      if (distance > 6) {
+        p.copy(partnerTarget); // far away (a refresh was missed): appear there
+      } else if (distance > 0.05) {
+        // A little faster than walking, so they catch up between refreshes
+        const step = Math.min(distance, WALK_SPEED * 1.15 * dt);
+        p.x += (dx / distance) * step;
+        p.z += (dz / distance) * step;
+        walking = true;
+      }
+      const wanted = walking ? Math.atan2(dx, dz) : at.turn;
+      const diff = Math.atan2(Math.sin(wanted - partner.group.rotation.y), Math.cos(wanted - partner.group.rotation.y));
+      partner.group.rotation.y += diff * Math.min(1, dt * 8);
+    }
+    partner.animate(dt, time, walking);
+    placeOver(partner.tag, projected.set(p.x, 2.15, p.z));
+  }
+  // Where you stand, sent to Python while you walk (about twice a second) and once on arrival
+  let sentClock = 0;
+  let sent = null;
+  function sendMove(dt) {
+    if (!partner) return;
+    sentClock -= dt;
+    const p = hero.group.position;
+    const turn = hero.group.rotation.y;
+    const moved = !sent || Math.hypot(p.x - sent.x, p.z - sent.z) > 0.05 || Math.abs(turn - sent.turn) > 0.2;
+    if (sentClock > 0 || !moved) return;
+    sentClock = 0.5;
+    sent = { place: data.place, x: +p.x.toFixed(2), z: +p.z.toFixed(2), turn: +turn.toFixed(2) };
+    setTriggerValue("move", sent);
+  }
+
+  // The main menu: the player's student stands on the terrace, beside the menu (or close up while
+  // the menu dresses them: scene_view.js calls __gitOutShowcase.look() and .mode())
+  const SHOW = new THREE.Vector3(1.6, 0, 2.6);
+  let showcase = null;
+  let showcaseMode = "main";
+  if (menuView) {
+    const dress = (look) => {
+      if (showcase) {
+        scene.remove(showcase.group);
+        showcase.group.traverse((o) => {
+          o.geometry?.dispose();
+          o.material?.dispose?.();
+        });
+      }
+      const turn = showcase ? showcase.group.rotation.y : -0.35;
+      showcase = makeStudent(THREE, look, {});
+      showcase.group.position.copy(SHOW);
+      showcase.group.rotation.y = turn;
+      scene.add(shadowy(showcase.group));
+    };
+    dress(world.hero.look);
+    // A warm lamp on the student, so they can be seen at night
+    const lamp = new THREE.SpotLight("#ffe2b0", 26, 9, 0.6, 0.6, 1.4);
+    lamp.position.set(SHOW.x + 1.2, 3.6, SHOW.z + 2.2);
+    lamp.target.position.copy(SHOW);
+    scene.add(lamp, lamp.target);
+    globalThis.__gitOutShowcase = { look: dress, mode: (mode) => (showcaseMode = mode) };
   }
 
   // Screen-space elements over the canvas: the label of the nearest thing and what the hero says
@@ -543,6 +692,18 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
   const collides = (x, z) =>
     x < -W / 2 + edge || x > W / 2 - edge || z < -D / 2 + edge + 0.1 || z > D / 2 - 0.2 ||
     obstacles.some((touches) => touches(x, z, HERO_RADIUS));
+
+  // Co-op: Player 2 arrives a step beside Player 1, not inside them
+  if (hero && here.fresh && data.role === "contacto") {
+    for (const [ox, oz] of [[0.9, 0.5], [-0.9, 0.5], [0, 1.0], [0.9, -0.5], [-0.9, -0.5]]) {
+      if (collides(here.x + ox, here.z + oz)) continue;
+      here.x += ox;
+      here.z += oz;
+      hero.group.position.set(here.x, 0, here.z);
+      break;
+    }
+  }
+  here.fresh = false;
 
   function moveBy(dx, dz) {
     // Each axis on its own, so the character slides along a desk instead of stopping
@@ -621,11 +782,19 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
         Sound.click();
         stage.dispatchEvent(new Event("choice-sent"));
         b.classList.add("chosen");
-        const send = () => setTriggerValue("action", { id: option.action, x: spot.stand });
+        // Sent once: when the character gets there, or after 4 seconds if it cannot get there
+        // (a danger's clock has stopped by now, so the choice must always reach Python)
+        let sent = false;
+        const send = () => {
+          if (sent || !stage.isConnected) return;
+          sent = true;
+          setTriggerValue("action", { id: option.action, x: spot.stand });
+        };
         setTimeout(closeChoices, 180);
         if (card.at && hero) {
           heroSays(option.say);
           walkTo(new THREE.Vector3(card.at[0], 0, card.at[1]), () => setTimeout(send, 250), WALK_SPEED * 1.8);
+          setTimeout(send, 4000);
         } else {
           setTimeout(send, 260);
         }
@@ -745,7 +914,21 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
       Sound.click();
       stopInspecting();
     };
-    panel.append(el("div", "inspect-name", `🔍 ${item.label}`), back);
+    panel.append(el("div", "inspect-name", `🔍 ${item.look.label || item.label}`));
+    // A thing to look at that is also used (PC 7: read the post-it, then log in): its action is
+    // a button here, and E does it
+    if (item.spot && hero) {
+      const act = el("button", "choice inspect-act");
+      act.append(el("kbd", "", "E"), el("span", "", ` ${item.spot.label}`));
+      act.onclick = (event) => {
+        event.stopPropagation();
+        Sound.click();
+        stopInspecting();
+        useSpot(item.spot);
+      };
+      panel.append(act);
+    }
+    panel.append(back);
     stage.append(panel);
     // What the character thinks about it (the snack machine, the coffee machine)
     if (item.look.remark) {
@@ -948,7 +1131,8 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
       if (left <= 0) {
         done = true;
         ui.closeBubble();
-        setTriggerValue("action", { id: timeout, x: 0 });
+        // Co-op: only Player 1's browser sends it, so it is sent once
+        if (data.sends_timeout !== false) setTriggerValue("action", { id: timeout, x: 0 });
       }
     }, 1000);
     stage.addEventListener("choice-sent", () => (done = true));
@@ -999,10 +1183,32 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
     if (dustCount) positions.needsUpdate = true;
 
     if (menuView) {
-      const angle = time * 0.05;
-      camera.position.set(Math.sin(angle) * 9, 3.2, Math.cos(angle) * 9 + 1);
-      look.set(0, 1.2, -2);
+      // Beside the menu (the panel on the left, the student on the right), or close up; on a tall
+      // screen (a phone) the student stands above the panel
+      const close = showcaseMode === "look";
+      const tallScreen = camera.aspect < 1;
+      const distance = close ? (tallScreen ? 6.6 : 2.9) : tallScreen ? 7.5 : 5.2;
+      const side = tallScreen ? 0 : close ? -0.8 : -1.9;
+      // On a phone, dressing: the student in the top third, above the panel
+      const height = tallScreen ? (close ? -0.7 : 0.2) : close ? 1.05 : 1.25;
+      const sway = Math.sin(time * 0.12) * (close ? 0.15 : 0.6);
+      wantedLook.set(SHOW.x + side, height, SHOW.z);
+      wantedCamera.set(SHOW.x + side + 0.7 + sway, close ? 1.55 : 1.9, SHOW.z + distance);
+      const ease = 1 - Math.exp(-dt * 2.5);
+      camera.position.lerp(wantedCamera, ease);
+      look.lerp(wantedLook, ease);
       camera.lookAt(look);
+      if (showcase) {
+        showcase.animate(dt, time, false);
+        // Dressing: the student turns slowly, so every side can be seen
+        if (close) showcase.group.rotation.y += dt * 0.45;
+        else {
+          // Back to facing the camera (the short way round, however far the student had turned)
+          const wanted = Math.atan2(camera.position.x - SHOW.x, camera.position.z - SHOW.z) - 0.25;
+          const diff = Math.atan2(Math.sin(wanted - showcase.group.rotation.y), Math.cos(wanted - showcase.group.rotation.y));
+          showcase.group.rotation.y += diff * Math.min(1, dt * 1.5);
+        }
+      }
       return;
     }
     if (inspecting) {
@@ -1062,6 +1268,8 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
 
     seeThrough(dt, p);
     placeChoices(time);
+    placePartner(dt, time);
+    sendMove(dt);
 
     // The nearest thing: its ring glows and its label floats over it
     nearest = findNearest();
@@ -1204,6 +1412,12 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
         standFree: !collides(u.stand.x, u.stand.z),
         reachable: seen.has(index(u.stand.x, u.stand.z)),
       })),
+      // The places a choice sends the character to (behind the O, the snack machine...)
+      choices: Object.entries(world.choices || {}).filter(([, c]) => c.at).map(([id, c]) => ({
+        id,
+        free: !collides(c.at[0], c.at[1]),
+        reachable: seen.has(index(c.at[0], c.at[1])),
+      })),
       freeShare: +(seen.size / free.length).toFixed(2),
       // A map, step × 25 cm a letter: # blocked, . reached, o free but cut off
       map: Array.from({ length: Math.floor(rows / step) }, (_, j) =>
@@ -1236,7 +1450,13 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
     },
     useNearest: () => {
       rememberKeys();
-      if (inspecting) return stopInspecting();
+      if (inspecting) {
+        // Looking at something that is also used (PC 7): E uses it; otherwise E goes back
+        const spot = hero && inspecting.item.spot;
+        stopInspecting();
+        if (spot && canWalk()) useSpot(spot);
+        return;
+      }
       if (nearest && canWalk()) use(nearest);
     },
     stopInspecting,
@@ -1276,6 +1496,199 @@ function darken(group) {
 }
 
 // --- Outside: the night sky, the moon and the sea of Carcavelos, beyond the railing on the right --
+
+// --- Levels 2 and 3 (specs/levels-2-and-3.md): the beach, the tunnel's murals, the atrium's roof --
+
+// A sky dome: night (dark blue, stars) or day (blue, a soft haze at the horizon)
+function skyDome(THREE, scene, day) {
+  const sky = canvasTexture(THREE, 64, 512, (g, w, h) => {
+    const gradient = g.createLinearGradient(0, 0, 0, h);
+    if (day) {
+      gradient.addColorStop(0, "#3d7fd1");
+      gradient.addColorStop(0.42, "#8fc1ec");
+      gradient.addColorStop(0.5, "#e8f1f6");
+      gradient.addColorStop(0.52, "#9fb7c6");
+      gradient.addColorStop(1, "#7f98a8");
+    } else {
+      gradient.addColorStop(0, "#05060f");
+      gradient.addColorStop(0.45, "#101a3a");
+      gradient.addColorStop(0.5, "#2a2f5a");
+      gradient.addColorStop(0.52, "#0a1024");
+      gradient.addColorStop(1, "#05070f");
+    }
+    g.fillStyle = gradient;
+    g.fillRect(0, 0, w, h);
+  });
+  scene.add(new THREE.Mesh(new THREE.SphereGeometry(180, 32, 16), new THREE.MeshBasicMaterial({ map: sky, side: THREE.BackSide, fog: false })));
+  scene.background = new THREE.Color(day ? "#9fc8ee" : "#05060f");
+  scene.fog = new THREE.Fog(day ? "#cfe0ec" : "#0a1024", 50, 175);
+  if (!day) {
+    const stars = new Float32Array(900);
+    for (let i = 0; i < 300; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const up = 0.12 + Math.random() * 0.8;
+      stars[i * 3] = Math.cos(a) * 170 * Math.cos(up);
+      stars[i * 3 + 1] = 170 * Math.sin(up);
+      stars[i * 3 + 2] = Math.sin(a) * 170 * Math.cos(up);
+    }
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.BufferAttribute(stars, 3));
+    scene.add(new THREE.Points(geometry, new THREE.PointsMaterial({ color: "#ffffff", size: 0.6, fog: false })));
+  }
+}
+
+// Carcavelos beach: the sky, the sea at the back with waves breaking on the sand, the moon and its
+// path on the water (or the sun), and soft light. The fort is a thing of its own ("fort").
+function buildBeach(THREE, scene, W, D, day, animated) {
+  skyDome(THREE, scene, day);
+  const shore = -D / 2 + 0.6;
+  const sea = new THREE.Mesh(
+    new THREE.PlaneGeometry(400, 200),
+    new THREE.MeshStandardMaterial({ color: day ? "#2f7fa8" : "#0c1834", roughness: 0.2, metalness: 0.5 })
+  );
+  sea.rotation.x = -Math.PI / 2;
+  sea.position.set(0, 0.025, shore - 100);
+  scene.add(sea);
+  // Wet sand along the water
+  const wet = new THREE.Mesh(new THREE.PlaneGeometry(400, 1.6), new THREE.MeshStandardMaterial({ color: day ? "#b9a477" : "#3a3326", roughness: 0.35 }));
+  wet.rotation.x = -Math.PI / 2;
+  wet.position.set(0, 0.015, shore + 0.6);
+  scene.add(wet);
+  // Waves: lines of white foam rolling in and fading on the sand
+  const foamMaterial = new THREE.MeshBasicMaterial({ color: "#f4f8ff", transparent: true, opacity: 0.6, depthWrite: false });
+  const waves = [0, 1, 2].map((i) => {
+    const foam = new THREE.Mesh(new THREE.PlaneGeometry(400, 0.35), foamMaterial.clone());
+    foam.rotation.x = -Math.PI / 2;
+    scene.add(foam);
+    return { foam, phase: i / 3 };
+  });
+  animated.push((dt, time) => {
+    for (const wave of waves) {
+      const t = (time * 0.12 + wave.phase) % 1;
+      wave.foam.position.set(0, 0.03, shore - 9 + t * 10);
+      wave.foam.material.opacity = Math.sin(t * Math.PI) * (day ? 0.8 : 0.45);
+      wave.foam.scale.y = 1 + t * 2;
+    }
+  });
+  if (day) {
+    const sun = new THREE.Mesh(new THREE.CircleGeometry(7, 32), new THREE.MeshBasicMaterial({ color: "#fff6d8", fog: false }));
+    sun.position.set(60, 70, -120);
+    sun.lookAt(0, 0, 0);
+    scene.add(sun);
+  } else {
+    const moon = new THREE.Mesh(new THREE.CircleGeometry(4, 32), new THREE.MeshBasicMaterial({ color: "#fff6dc", fog: false }));
+    moon.position.set(40, 30, -150);
+    moon.lookAt(0, 0, 0);
+    scene.add(moon);
+    const glint = new THREE.Mesh(new THREE.PlaneGeometry(5, 120), new THREE.MeshBasicMaterial({ color: "#fff2c0", transparent: true, opacity: 0.16, depthWrite: false }));
+    glint.rotation.x = -Math.PI / 2;
+    glint.rotation.z = -0.26;
+    glint.position.set(12, 0.04, shore - 62);
+    scene.add(glint);
+    const moonlight = new THREE.DirectionalLight("#c8d4ff", 1.3);
+    moonlight.position.set(30, 30, -40);
+    scene.add(moonlight, new THREE.AmbientLight("#4a5a8a", 0.6));
+  }
+}
+
+// What you see at the far end of the tunnel: the sea at night, or the sunny campus
+function farView(THREE, W, H, far, day) {
+  const texture = canvasTexture(THREE, 512, 256, (g, w, h) => {
+    const gradient = g.createLinearGradient(0, 0, 0, h);
+    if (far === "sea") {
+      gradient.addColorStop(0, day ? "#a9d4f5" : "#101a3a");
+      gradient.addColorStop(0.55, day ? "#e6f3fb" : "#2a3466");
+      gradient.addColorStop(0.56, day ? "#2f7fa8" : "#0c1834");
+      gradient.addColorStop(1, day ? "#e6d3a6" : "#3a3326");
+    } else {
+      gradient.addColorStop(0, "#bfe0fa");
+      gradient.addColorStop(0.6, "#f5f2ea");
+      gradient.addColorStop(1, "#d9d4c8");
+    }
+    g.fillStyle = gradient;
+    g.fillRect(0, 0, w, h);
+    if (far === "sea" && !day) {
+      g.fillStyle = "#fff6dc";
+      g.beginPath();
+      g.arc(w * 0.7, h * 0.2, 10, 0, Math.PI * 2);
+      g.fill();
+    }
+    if (far === "campus") {
+      // White buildings, glass, and the sun on them
+      g.fillStyle = "#ffffff";
+      g.fillRect(w * 0.1, h * 0.35, w * 0.35, h * 0.5);
+      g.fillRect(w * 0.55, h * 0.28, w * 0.35, h * 0.57);
+      g.fillStyle = "rgba(120,170,210,0.6)";
+      for (let x = 0; x < 6; x++) g.fillRect(w * (0.13 + x * 0.05), h * 0.45, w * 0.03, h * 0.2);
+    }
+  });
+  return new THREE.Mesh(new THREE.PlaneGeometry(W, H), new THREE.MeshBasicMaterial({ map: texture, fog: false }));
+}
+
+// The murals inside the tunnel: big soft shapes in yellow, red, blue and green (inspired by the
+// photos, not copied), one long strip that repeats along the walls
+function muralTexture(THREE, side) {
+  return canvasTexture(THREE, 1024, 256, (g, w, h) => {
+    g.fillStyle = "#f2e6c9";
+    g.fillRect(0, 0, w, h);
+    const colours = ["#f2b632", "#e2563b", "#2f6fb7", "#3c9d6b", "#f08aa4", "#1f2a44", "#7ec8e3"];
+    let seed = side > 0 ? 7 : 3;
+    const random = () => ((seed = (seed * 9301 + 49297) % 233280) / 233280);
+    for (let i = 0; i < 26; i++) {
+      g.fillStyle = colours[Math.floor(random() * colours.length)];
+      g.beginPath();
+      const x = random() * w;
+      const y = random() * h;
+      if (i % 3 === 0) g.arc(x, y, 30 + random() * 80, 0, Math.PI * 2);
+      else g.ellipse(x, y, 40 + random() * 120, 20 + random() * 60, random() * Math.PI, 0, Math.PI * 2);
+      g.fill();
+    }
+    // A sun, waves and a face here and there
+    g.fillStyle = "#f7c948";
+    g.beginPath();
+    g.arc(w * 0.25, h * 0.4, 60, 0, Math.PI * 2);
+    g.fill();
+    g.strokeStyle = "#1f2a44";
+    g.lineWidth = 8;
+    for (let k = 0; k < 3; k++) {
+      g.beginPath();
+      for (let x = w * 0.55; x < w * 0.95; x += 10) g.lineTo(x, h * (0.6 + k * 0.1) + Math.sin(x / 22) * 10);
+      g.stroke();
+    }
+  });
+}
+
+// The atrium's glass roof on wooden beams, with the sky above (night or day)
+function glassRoof(THREE, scene, W, D, H, day) {
+  const sky = new THREE.Mesh(new THREE.PlaneGeometry(W, D + 8), new THREE.MeshBasicMaterial({ color: day ? "#bfe0fa" : "#0d1430", fog: false }));
+  sky.rotation.x = Math.PI / 2;
+  sky.position.set(0, H + 0.6, 4);
+  scene.add(sky);
+  const wood = new THREE.MeshStandardMaterial({ color: "#a8723f", roughness: 0.6 });
+  for (let x = -W / 2; x <= W / 2 + 0.01; x += 1.6) {
+    const beam = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.5, D + 8), wood);
+    beam.position.set(x, H, 4);
+    scene.add(beam);
+  }
+  for (let z = -D / 2; z < D / 2 + 8; z += 4) {
+    const cross = new THREE.Mesh(new THREE.BoxGeometry(W, 0.18, 0.16), wood);
+    cross.position.set(0, H + 0.12, z);
+    scene.add(cross);
+  }
+  const glass = new THREE.Mesh(
+    new THREE.PlaneGeometry(W, D + 8),
+    new THREE.MeshStandardMaterial({ color: "#cfe3f2", transparent: true, opacity: day ? 0.18 : 0.08, metalness: 0.3, roughness: 0.05, side: THREE.DoubleSide })
+  );
+  glass.rotation.x = Math.PI / 2;
+  glass.position.set(0, H + 0.3, 4);
+  scene.add(glass);
+  if (day) {
+    // Sunlight through the roof
+    const sun = new THREE.DirectionalLight("#fff3dc", 1.4);
+    sun.position.set(4, H + 12, 2);
+    scene.add(sun);
+  }
+}
 
 function buildSky(THREE, scene, W, D) {
   const sky = canvasTexture(THREE, 64, 512, (g, w, h) => {
@@ -1408,17 +1821,26 @@ function addSpray(THREE, scene, sprinklers, animated) {
 
 // --- People: the player, Tiago and the security guard, made of simple shapes --------------------
 //
-// options.coat: the yellow raincoat over the hoodie (the player once they take the coat)
+// options.look: the player's student (looks.py): skin, hair, face, clothes, hat, glasses, bag
+// options.coat: the yellow raincoat over the clothes (the player once they take the coat)
 // options.guard: a dark uniform, a cap and a torch with a beam of light
 // options.sleeping: sitting, slumped over a desk (Tiago)
 
+// The player's student (or a friend's, in co-op), built from their look
+function makeStudent(THREE, look, options = {}) {
+  return makePerson(THREE, { ...options, look: look || {} });
+}
+
 function makePerson(THREE, options = {}) {
   const material = (color, roughness = 0.75) => new THREE.MeshStandardMaterial({ color, roughness });
-  const top = options.guard ? "#1d2333" : options.coat ? "#f2c230" : options.hoodie || "#2c4a8a";
-  const topDark = options.guard ? "#141826" : options.coat ? "#c99a12" : shade(options.hoodie || "#2c4a8a", -0.3);
-  const legs = options.guard ? "#151a26" : "#3b5478";
-  const skin = material(options.skin || "#e9b996", 0.6);
-  const hair = material(options.hair || "#2a1a10", 0.9);
+  const look = options.look || {};
+  const shirt = look.top_colour || options.hoodie || "#2c4a8a";
+  const top = options.guard ? "#1d2333" : options.coat ? "#f2c230" : shirt;
+  const topDark = options.guard ? "#141826" : options.coat ? "#c99a12" : shade(shirt, -0.3);
+  const legs = options.guard ? "#151a26" : look.legs || "#3b5478";
+  const skin = material(look.skin || options.skin || "#e9b996", 0.6);
+  const hair = material(look.hair_colour || options.hair || "#2a1a10", 0.9);
+  const dark = material("#1a1020", 0.3);
   const mesh = (geometry, mat, x, y, z) => {
     const m = new THREE.Mesh(geometry, mat);
     m.position.set(x, y, z);
@@ -1443,11 +1865,7 @@ function makePerson(THREE, options = {}) {
   const long = options.coat ? 0.95 : 0.7;
   body.add(mesh(new THREE.CylinderGeometry(0.27, options.coat ? 0.38 : 0.3, long, 16), material(top, options.coat ? 0.35 : 0.8), 0, 1.6 - long / 2, 0));
   body.add(mesh(new THREE.CylinderGeometry(0.18, 0.27, 0.14, 16), material(topDark), 0, 1.66, 0));
-  if (!options.coat && !options.guard) {
-    // The hoodie's hood, resting on the back, and its pocket
-    body.add(mesh(new THREE.SphereGeometry(0.19, 14, 10, 0, Math.PI * 2, 0, Math.PI / 2), material(topDark), 0, 1.62, -0.14));
-    body.add(mesh(new THREE.BoxGeometry(0.3, 0.14, 0.02), material(topDark), 0, 1.08, 0.29));
-  }
+  if (!options.coat && !options.guard) dressTop(THREE, body, look.top || "hoodie", shirt, topDark, mesh, material);
   if (options.guard) body.add(mesh(new THREE.BoxGeometry(0.12, 0.08, 0.02), material("#d8b45a", 0.3), 0.12, 1.45, 0.27));
   body.add(mesh(new THREE.CylinderGeometry(0.07, 0.08, 0.1, 10), skin, 0, 1.76, 0));
 
@@ -1466,16 +1884,23 @@ function makePerson(THREE, options = {}) {
   const head = new THREE.Group();
   head.position.set(0, 1.95, 0);
   head.add(mesh(new THREE.SphereGeometry(0.18, 20, 16), skin, 0, 0, 0));
-  for (const x of [-0.065, 0.065]) head.add(mesh(new THREE.SphereGeometry(0.02, 8, 6), material("#1a1020", 0.3), x, 0.02, 0.165));
+  drawFace(THREE, head, options.guard || options.sleeping ? "calm" : look.face || "smile", mesh, dark, hair);
   if (options.guard) {
     head.add(mesh(new THREE.CylinderGeometry(0.19, 0.19, 0.12, 20), material("#141826"), 0, 0.12, 0));
     head.add(mesh(new THREE.BoxGeometry(0.26, 0.02, 0.14), material("#0b0d14"), 0, 0.07, 0.18));
   } else {
-    const cap = mesh(new THREE.SphereGeometry(0.19, 20, 16, 0, Math.PI * 2, 0, Math.PI * 0.55), hair, 0, 0.02, -0.02);
-    cap.rotation.x = -0.35;
-    head.add(cap);
+    styleHair(THREE, head, look.hair || "short", hair, mesh);
+    if (look.hat && look.hat !== "none") wearHat(THREE, head, look.hat, shirt, mesh, material);
+    if (look.glasses && look.glasses !== "none") wearGlasses(THREE, head, look.glasses, mesh, material);
   }
   body.add(head);
+  if (look.bag === "backpack" && !options.guard) {
+    // A backpack on the back, its straps over the shoulders
+    const bag = material(shade(legs, -0.25), 0.8);
+    body.add(mesh(new THREE.BoxGeometry(0.36, 0.42, 0.16), bag, 0, 1.26, -0.36));
+    body.add(mesh(new THREE.BoxGeometry(0.26, 0.16, 0.06), bag, 0, 1.12, -0.46));
+    for (const x of [-0.14, 0.14]) body.add(mesh(new THREE.BoxGeometry(0.05, 0.5, 0.03), bag, x, 1.32, 0.27));
+  }
 
   // The guard's torch, and its beam
   let beam = null;
@@ -1537,10 +1962,26 @@ function makePerson(THREE, options = {}) {
     blob.visible = false;
   }
 
+  // Sitting (the auditorium, Tiago on the sand): on a seat 0.48 m high, thighs forward
+  if (options.seated) {
+    body.position.y = options.onGround ? -0.84 + 0.12 : SEAT;
+    legParts.forEach((leg) => (leg.rotation.x = -Math.PI / 2));
+    blob.visible = false;
+  }
+
   group.scale.setScalar(0.9);
   let phase = 0;
   let swing = 0;
   function animate(dt, time, walking) {
+    if (options.seated) {
+      head.rotation.y = Math.sin(time * 0.5 + (options.seed || 0)) * 0.25;
+      // Rita waves from the front row
+      if (options.waving) {
+        arms[1].rotation.x = -2.6 + Math.sin(time * 6) * 0.15;
+        arms[1].rotation.z = 0.35 + Math.sin(time * 6) * 0.25;
+      }
+      return;
+    }
     if (options.sleeping) {
       // Breathing, very slowly: the back rises and falls
       waist.rotation.x = 0.98 + Math.sin(time * 1.4) * 0.015;
@@ -1558,6 +1999,177 @@ function makePerson(THREE, options = {}) {
     head.rotation.y = Math.sin(time * 0.6) * 0.15 * (1 - swing);
   }
   return { group, animate, beam };
+}
+
+// --- The parts of a student (makePerson) ---------------------------------------------------------
+// Coordinates are the person's own, before its 0.9 scale: the head is a ball of 0.18 m, its front
+// towards +z; the body (the clothes) is a cylinder from 0.9 to 1.6 m.
+
+function dressTop(THREE, body, kind, colour, colourDark, mesh, material) {
+  const light = material(shade(colour, 0.35));
+  if (kind === "hoodie" || kind === "nova") {
+    // The hood, resting on the back, and the front pocket
+    body.add(mesh(new THREE.SphereGeometry(0.19, 14, 10, 0, Math.PI * 2, 0, Math.PI / 2), material(colourDark), 0, 1.62, -0.14));
+    body.add(mesh(new THREE.BoxGeometry(0.3, 0.14, 0.02), material(colourDark), 0, 1.08, 0.29));
+    for (const x of [-0.06, 0.06]) body.add(mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.16, 6), light, x, 1.5, 0.27));
+  }
+  if (kind === "nova") {
+    // NOVA in white letters on the chest
+    const letters = canvasTexture(THREE, 256, 72, (g, w, h) => {
+      g.fillStyle = "#ffffff";
+      g.font = "bold 58px 'Helvetica Neue', Arial, sans-serif";
+      g.textAlign = "center";
+      g.textBaseline = "middle";
+      g.fillText("NOVA", w / 2, h / 2 + 3);
+    });
+    const plate = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.085), new THREE.MeshBasicMaterial({ map: letters, transparent: true }));
+    plate.position.set(0, 1.36, 0.293);
+    body.add(plate);
+  }
+  if (kind === "jacket") {
+    // An open denim jacket: the white T-shirt shows down the front, a collar folds over
+    body.add(mesh(new THREE.BoxGeometry(0.15, 0.62, 0.02), material("#f2f0ea"), 0, 1.27, 0.282));
+    for (const x of [-0.11, 0.11]) {
+      const collar = mesh(new THREE.BoxGeometry(0.12, 0.14, 0.03), material(colourDark), x, 1.55, 0.22);
+      collar.rotation.z = x < 0 ? 0.5 : -0.5;
+      body.add(collar);
+    }
+    for (const x of [-0.14, 0.14]) body.add(mesh(new THREE.BoxGeometry(0.09, 0.07, 0.015), material(colourDark), x, 1.38, 0.278));
+  }
+  if (kind === "shirt") {
+    // A collar and a line of buttons
+    for (const x of [-0.07, 0.07]) {
+      const collar = mesh(new THREE.BoxGeometry(0.11, 0.06, 0.02), light, x, 1.6, 0.17);
+      collar.rotation.z = x < 0 ? -0.4 : 0.4;
+      collar.rotation.x = -0.5;
+      body.add(collar);
+    }
+    for (const y of [1.48, 1.34, 1.2, 1.06]) body.add(mesh(new THREE.SphereGeometry(0.013, 6, 4), light, 0, y, 0.287));
+  }
+  if (kind === "sweater") {
+    // A ribbed band at the bottom and a pattern across the chest
+    body.add(mesh(new THREE.CylinderGeometry(0.305, 0.305, 0.07, 16), material(colourDark), 0, 0.94, 0));
+    body.add(mesh(new THREE.CylinderGeometry(0.287, 0.293, 0.05, 16), light, 0, 1.4, 0));
+  }
+}
+
+function drawFace(THREE, head, face, mesh, dark, hair) {
+  const z = 0.166;
+  // Eyes: open dots, or closed lines (sleepy)
+  for (const x of [-0.065, 0.065]) {
+    if (face === "sleepy") head.add(mesh(new THREE.BoxGeometry(0.045, 0.009, 0.01), dark, x, 0.015, z));
+    else head.add(mesh(new THREE.SphereGeometry(0.02, 8, 6), dark, x, 0.02, z - 0.001));
+    // Eyebrows, slanted when determined
+    const brow = mesh(new THREE.BoxGeometry(0.05, 0.011, 0.012), hair, x, 0.072, z - 0.012);
+    if (face === "determined") brow.rotation.z = x < 0 ? -0.35 : 0.35;
+    head.add(brow);
+  }
+  // The mouth
+  if (face === "smile") {
+    const mouth = mesh(new THREE.TorusGeometry(0.045, 0.01, 6, 14, Math.PI), dark, 0, -0.05, z - 0.008);
+    mouth.rotation.z = Math.PI;
+    head.add(mouth);
+  } else if (face === "grin") {
+    const mouth = mesh(new THREE.CircleGeometry(0.055, 18, Math.PI, Math.PI), new THREE.MeshStandardMaterial({ color: "#6b1d26", roughness: 0.6 }), 0, -0.045, z + 0.004);
+    head.add(mouth);
+    head.add(mesh(new THREE.BoxGeometry(0.08, 0.014, 0.004), new THREE.MeshStandardMaterial({ color: "#ffffff" }), 0, -0.052, z + 0.008));
+  } else if (face === "sleepy") {
+    head.add(mesh(new THREE.TorusGeometry(0.016, 0.007, 6, 12), dark, 0, -0.08, z - 0.012));
+  } else {
+    head.add(mesh(new THREE.BoxGeometry(face === "determined" ? 0.07 : 0.055, 0.011, 0.01), dark, 0, -0.07, z - 0.01));
+  }
+}
+
+function styleHair(THREE, head, style, hair, mesh) {
+  const cap = (radius, cover, tilt) => {
+    const c = mesh(new THREE.SphereGeometry(radius, 20, 16, 0, Math.PI * 2, 0, Math.PI * cover), hair, 0, 0.02, -0.02);
+    c.rotation.x = tilt;
+    head.add(c);
+  };
+  if (style === "afro") {
+    head.add(mesh(new THREE.SphereGeometry(0.26, 20, 16), hair, 0, 0.14, -0.1));
+    return;
+  }
+  cap(style === "buzz" ? 0.184 : 0.19, style === "buzz" ? 0.5 : 0.55, style === "buzz" ? -0.25 : -0.35);
+  if (style === "long") {
+    head.add(mesh(new THREE.BoxGeometry(0.34, 0.42, 0.09), hair, 0, -0.17, -0.12));
+    for (const x of [-0.165, 0.165]) head.add(mesh(new THREE.BoxGeometry(0.05, 0.32, 0.16), hair, x, -0.1, -0.02));
+  } else if (style === "curly") {
+    for (let i = 0; i < 16; i++) {
+      const a = (i / 16) * Math.PI * 2;
+      const up = i % 2 ? 0.55 : 0.2;
+      const x = Math.cos(a) * 0.17 * Math.cos(up);
+      const z = Math.sin(a) * 0.17 * Math.cos(up) - 0.03;
+      if (z > 0.1 && Math.abs(x) < 0.12) continue; // keep the face free
+      head.add(mesh(new THREE.SphereGeometry(0.065, 10, 8), hair, x, 0.04 + Math.sin(up) * 0.17, z));
+    }
+  } else if (style === "bun") {
+    head.add(mesh(new THREE.SphereGeometry(0.085, 14, 10), hair, 0, 0.17, -0.12));
+  } else if (style === "ponytail") {
+    const tail = mesh(new THREE.CylinderGeometry(0.045, 0.02, 0.32, 10), hair, 0, -0.1, -0.22);
+    tail.rotation.x = 0.35;
+    head.add(tail);
+    head.add(mesh(new THREE.SphereGeometry(0.035, 8, 6), hair, 0, 0.04, -0.19));
+  }
+}
+
+function wearHat(THREE, head, hat, shirt, mesh, material) {
+  if (hat === "cap") {
+    const colour = material("#c8343a", 0.7);
+    const crown = mesh(new THREE.SphereGeometry(0.198, 20, 12, 0, Math.PI * 2, 0, Math.PI * 0.45), colour, 0, 0.03, 0);
+    head.add(crown);
+    head.add(mesh(new THREE.BoxGeometry(0.2, 0.015, 0.15), colour, 0, 0.075, 0.2));
+  } else if (hat === "beanie") {
+    const wool = material(shade(shirt, 0.15), 0.95);
+    head.add(mesh(new THREE.SphereGeometry(0.2, 20, 12, 0, Math.PI * 2, 0, Math.PI * 0.5), wool, 0, 0.03, -0.01));
+    head.add(mesh(new THREE.CylinderGeometry(0.202, 0.202, 0.06, 20), material(shade(shirt, -0.2), 0.95), 0, 0.05, -0.01));
+    head.add(mesh(new THREE.SphereGeometry(0.05, 10, 8), material("#f4f3ef", 1), 0, 0.24, -0.01));
+  } else if (hat === "headphones" || hat === "gold_headphones") {
+    const gold = hat === "gold_headphones";
+    const metal = new THREE.MeshStandardMaterial({ color: gold ? "#e2b23a" : "#26262b", roughness: gold ? 0.25 : 0.5, metalness: gold ? 0.85 : 0.2 });
+    head.add(mesh(new THREE.TorusGeometry(0.205, 0.018, 8, 24, Math.PI), metal, 0, 0.02, -0.01));
+    for (const x of [-0.195, 0.195]) {
+      const cup = mesh(new THREE.CylinderGeometry(0.065, 0.065, 0.06, 16), metal, x, 0.0, -0.01);
+      cup.rotation.z = Math.PI / 2;
+      head.add(cup);
+    }
+  } else if (hat === "grad_cap") {
+    const black = material("#15151a", 0.6);
+    head.add(mesh(new THREE.CylinderGeometry(0.17, 0.18, 0.09, 20), black, 0, 0.14, 0));
+    const board = mesh(new THREE.BoxGeometry(0.4, 0.022, 0.4), black, 0, 0.2, 0);
+    board.rotation.y = Math.PI / 4;
+    head.add(board);
+    const gold = new THREE.MeshStandardMaterial({ color: "#e2b23a", metalness: 0.6, roughness: 0.4 });
+    head.add(mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.16, 6), gold, 0.19, 0.13, 0.0));
+    head.add(mesh(new THREE.SphereGeometry(0.02, 8, 6), gold, 0, 0.215, 0));
+  } else if (hat === "sleep_mask") {
+    // Tiago's sleep mask, pushed up on the forehead
+    const pink = material("#f29bc0", 0.8);
+    const band = mesh(new THREE.TorusGeometry(0.188, 0.012, 6, 28), pink, 0, 0.1, 0);
+    band.rotation.x = Math.PI / 2 - 0.25;
+    head.add(band);
+    const mask = mesh(new THREE.BoxGeometry(0.22, 0.075, 0.04), pink, 0, 0.12, 0.15);
+    mask.rotation.x = -0.45;
+    head.add(mask);
+  }
+}
+
+function wearGlasses(THREE, head, kind, mesh, material) {
+  const frame = material(kind === "sun" ? "#0d0d10" : "#2b2b30", 0.4);
+  const z = 0.178;
+  for (const x of [-0.065, 0.065]) {
+    if (kind === "round") {
+      head.add(mesh(new THREE.TorusGeometry(0.038, 0.007, 6, 18), frame, x, 0.02, z));
+    } else {
+      head.add(mesh(new THREE.BoxGeometry(0.078, 0.056, 0.008), frame, x, 0.02, z - 0.002));
+      if (kind === "square") {
+        // The lens: lighter, inside the frame
+        head.add(mesh(new THREE.BoxGeometry(0.06, 0.04, 0.004), new THREE.MeshStandardMaterial({ color: "#cfe6f2", roughness: 0.1 }), x, 0.02, z + 0.003));
+      }
+    }
+  }
+  head.add(mesh(new THREE.BoxGeometry(0.05, 0.008, 0.008), frame, 0, 0.03, z));
+  for (const x of [-0.11, 0.11]) head.add(mesh(new THREE.BoxGeometry(0.008, 0.008, 0.12), frame, x, 0.03, z - 0.06));
 }
 
 // --- What is written on the real things (story.py "face"), drawn on canvases ---------------------
@@ -1752,8 +2364,10 @@ function whiteboardTexture(THREE, face) {
     g.font = `700 64px ${HAND}`;
     g.fillText(`${face.title}:`, 90, 140);
     g.fillStyle = "#1d3c8f";
-    g.font = `700 104px ${HAND}`;
-    face._lines.forEach((line, i) => g.fillText(line, 140, 300 + i * 150));
+    // An exercise in big code (Level 1), or a few lines of words (the IT whiteboard)
+    const lines = face.lines || face._lines;
+    g.font = face.lines ? `700 74px ${HAND}` : `700 104px ${HAND}`;
+    lines.forEach((line, i) => g.fillText(line, face.lines ? 90 : 140, (face.lines ? 270 : 300) + i * (face.lines ? 120 : 150)));
   });
 }
 
@@ -2082,6 +2696,110 @@ function boxOutline(THREE, group) {
   };
 }
 
+// --- Levels 2 and 3: plates, screens and the words on them --------------------------------------
+
+// A plate with a title and a line of text (a plaque, a sticker, a caption, a kiosk's sign)
+function plateTexture(THREE, face, colours = {}) {
+  const { background = "#f4f3ef", color = "#1a1a1a", accent = "#c8343a", width = 640, height = 360 } = colours;
+  return canvasTexture(THREE, width, height, (g, w, h) => {
+    g.fillStyle = background;
+    g.fillRect(0, 0, w, h);
+    g.strokeStyle = accent;
+    g.lineWidth = 12;
+    g.strokeRect(6, 6, w - 12, h - 12);
+    if (!face) return;
+    g.textAlign = "center";
+    g.fillStyle = accent;
+    g.font = `800 58px ${PRINT}`;
+    g.fillText(face.title || "", w / 2, h * 0.36);
+    g.fillStyle = color;
+    g.font = `600 40px ${PRINT}`;
+    writeText(g, face.text || "", w / 2, h * 0.6, w - 60, 48);
+  });
+}
+
+// A big LED screen: white words on black (the atrium's giant screen)
+function screenTexture(THREE, face) {
+  return canvasTexture(THREE, 1024, 576, (g, w, h) => {
+    g.fillStyle = "#040507";
+    g.fillRect(0, 0, w, h);
+    g.fillStyle = "rgba(120,140,255,0.06)";
+    for (let y = 0; y < h; y += 4) g.fillRect(0, y, w, 1);
+    if (!face) return;
+    g.textAlign = "left";
+    g.fillStyle = "#ff4a3d";
+    g.font = `700 34px ${PRINT}`;
+    g.fillText("● REC", 50, 70);
+    g.fillStyle = "#c9cfdb";
+    g.font = `500 40px ${PRINT}`;
+    g.fillText(face.title, 50, 170);
+    g.fillStyle = "#ffffff";
+    g.font = "700 64px 'Courier New', monospace";
+    face._lines.forEach((line, i) => g.fillText(line, 50, 290 + i * 96));
+  });
+}
+
+// PC 7 once logged in: the browser's history, with the download that gave everything away
+function historyTexture(THREE) {
+  return canvasTexture(THREE, 1024, 640, (g, w, h) => {
+    g.fillStyle = "#f4f5f7";
+    g.fillRect(0, 0, w, h);
+    g.fillStyle = "#2b3a55";
+    g.fillRect(0, 0, w, 70);
+    g.fillStyle = "#ffffff";
+    g.font = `600 34px ${PRINT}`;
+    g.fillText("🕘", 30, 48);
+    const rows = [
+      ["23:39", "🔐 login · tiago.s"],
+      ["23:41", "github.com/…/trabalho-final  ⬇ .zip"],
+      ["23:52", "📄 trabalho_final_v3.py → grupo7.py"],
+      ["23:58", "moodle · G7 · ✓"],
+    ];
+    g.font = "600 36px 'Courier New', monospace";
+    rows.forEach(([time, what], i) => {
+      const y = 150 + i * 110;
+      if (i === 1 || i === 3) {
+        g.fillStyle = "rgba(255,214,90,0.55)";
+        g.fillRect(20, y - 50, w - 40, 76);
+      }
+      g.fillStyle = "#6b7280";
+      g.fillText(time, 40, y);
+      g.fillStyle = "#111827";
+      g.fillText(what, 200, y);
+    });
+  });
+}
+
+// The big screen of the auditorium: your desktop and a terminal, once the laptop is plugged in
+function desktopTexture(THREE, on) {
+  return canvasTexture(THREE, 1280, 720, (g, w, h) => {
+    if (!on) {
+      g.fillStyle = "#f2f2ef";
+      g.fillRect(0, 0, w, h);
+      g.fillStyle = "rgba(0,0,0,0.12)";
+      g.font = `700 90px ${PRINT}`;
+      g.textAlign = "center";
+      g.fillText("HDMI 1  ⏻", w / 2, h / 2);
+      return;
+    }
+    const sky = g.createLinearGradient(0, 0, w, h);
+    sky.addColorStop(0, "#1d3c8f");
+    sky.addColorStop(1, "#c8343a");
+    g.fillStyle = sky;
+    g.fillRect(0, 0, w, h);
+    // A cat as the wallpaper (someone laughed at it)
+    g.font = "260px sans-serif";
+    g.fillText("🐈", w * 0.68, h * 0.62);
+    g.font = "64px sans-serif";
+    ["📁", "📄", "🗑️"].forEach((icon, i) => g.fillText(icon, 40, 110 + i * 120));
+    g.fillStyle = "rgba(10,12,18,0.92)";
+    g.fillRect(w * 0.18, h * 0.16, w * 0.46, h * 0.56);
+    g.fillStyle = "#7dff9e";
+    g.font = "600 40px 'Courier New', monospace";
+    g.fillText("$ _", w * 0.21, h * 0.27);
+  });
+}
+
 // Many copies of one shape in one draw call (chairs, spotlights, railing bars)
 function copies(THREE, geometry, material, placements) {
   const mesh = new THREE.InstancedMesh(geometry, material, placements.length);
@@ -2354,6 +3072,11 @@ const THINGS = {
     const led = new THREE.Mesh(new THREE.SphereGeometry(0.015, 8, 6), new THREE.MeshBasicMaterial({ color: thing.keypad ? "#ff4a3d" : "#3bff6a" }));
     led.position.set(0.8, thing.keypad ? 1.29 : 1.26, 0.1);
     group.add(frame, reader, led);
+    if (thing.staff) {
+      const sign = sheet(THREE, textTexture(THREE, ["⛔ 🔧"], { width: 256, height: 128, background: "#f4f3ef", color: "#c8343a", font: "bold 70px sans-serif" }), 0.4, 0.2);
+      sign.position.set(0, 2.62, 0.06);
+      group.add(sign);
+    }
     if (thing.keypad) {
       for (let row = 0; row < 4; row++) {
         for (let col = 0; col < 3; col++) {
@@ -2472,7 +3195,8 @@ const THINGS = {
     // on its left
     const rise = 0.3;
     const run = 0.3;
-    const steps = Math.round(H / rise);
+    // Up to the ceiling, or to a gallery (the atrium's 1st floor: thing.height)
+    const steps = Math.round((thing.height || H) / rise);
     const width = 2.6;
     const words = thing.words || [];
     const white = new THREE.MeshStandardMaterial({ color: "#f6f6f4", roughness: 0.7 });
@@ -3063,6 +3787,672 @@ const THINGS = {
     const glow = new THREE.PointLight("#7fd0ff", 1.5, 2, 2);
     glow.position.set(0, 1.1, 0.3);
     group.add(base, lid, postIt, cable, glow);
+  },
+
+  // --- Levels 2 and 3 (specs/levels-2-and-3.md) ---------------------------------------------
+
+  // The big NOVA letters of the atrium (the team's photos): matte white, with volume. The N stands
+  // on the floor; the O sits on a long low plinth that reaches the V; the V and the A are joined in
+  // one zigzag, the A without its bar. Lit from below, they glow in the dark atrium.
+  nova_letters({ THREE, group, thing, animated }) {
+    const white = new THREE.MeshStandardMaterial({ color: "#f7f6f2", roughness: 0.5 });
+    const h = 2.4;
+    const t = 0.46;
+    const depth = 0.5;
+    const extrude = (shape) => {
+      const geometry = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 2, curveSegments: 40 });
+      geometry.translate(0, 0, -depth / 2);
+      return geometry;
+    };
+    // A straight stroke from a point on the floor to a point at the top, t wide
+    const stroke = (xb, xt) => {
+      const shape = new THREE.Shape();
+      shape.moveTo(xb - t / 2, 0);
+      shape.lineTo(xb + t / 2, 0);
+      shape.lineTo(xt + t / 2, h);
+      shape.lineTo(xt - t / 2, h);
+      shape.closePath();
+      return shape;
+    };
+    const letter = (shapes, x, y = 0) => {
+      for (const shape of shapes) {
+        const mesh = new THREE.Mesh(extrude(shape), white);
+        mesh.position.set(x, y, 0);
+        group.add(mesh);
+      }
+    };
+    // N (1.9 m wide), from x = -4.2
+    letter([stroke(0.23, 0.23), stroke(1.67, 1.67), stroke(1.67, 0.23)], -4.2);
+    // The O on its plinth (from x = -2.0, 2.4 m wide)
+    const ring = new THREE.Shape();
+    ring.absarc(1.2, 1.2, 1.2, 0, Math.PI * 2, false);
+    const hole = new THREE.Path();
+    hole.absarc(1.2, 1.2, 0.72, 0, Math.PI * 2, true);
+    ring.holes.push(hole);
+    const plinthHeight = 0.42;
+    letter([ring], -2.0, plinthHeight);
+    const plinth = new THREE.Mesh(new THREE.BoxGeometry(3.65, plinthHeight, 0.9), new THREE.MeshStandardMaterial({ color: "#efeeea", roughness: 0.6 }));
+    plinth.position.set(-0.33, plinthHeight / 2, 0);
+    group.add(plinth);
+    // V and A in one zigzag: \/\  (from x = 0.75)
+    letter([stroke(0.75, 0.0), stroke(0.75, 1.5), stroke(2.25, 1.5)], 0.75);
+    // Lights on the floor in front of the letters, shining up on them
+    for (const x of [-3.2, -0.8, 1.6, 3.2]) {
+      const up = new THREE.SpotLight("#fff1d6", thing.dim === false ? 6 : 14, 6, 0.7, 0.6, 1.2);
+      up.position.set(x, 0.1, 1.4);
+      up.target.position.set(x, 1.6, 0);
+      group.add(up, up.target);
+    }
+    // Where the character cannot walk: the N, the O with its plinth, the V and A
+    const at = thing.at;
+    const rect = (x1, x2, z1, z2) => (x, z, m) => x > at[0] + x1 - m && x < at[0] + x2 + m && z > at[1] + z1 - m && z < at[1] + z2 + m;
+    group.userData.outlines = [rect(-4.25, -2.3, -0.3, 0.3), rect(-2.15, 1.5, -0.45, 0.45), rect(0.5, 3.3, -0.3, 0.3)];
+  },
+
+  plaque({ THREE, group, face }) {
+    // A brushed metal plaque on the front of the letters' plinth
+    const plate = sheet(THREE, plateTexture(THREE, face, { background: "#cfd3d8", accent: "#1d2a44", color: "#1d2a44" }), 0.7, 0.4, { roughness: 0.35 });
+    plate.position.set(0, 0.22, 0.02);
+    group.add(plate);
+    focusOn(group, [0, 0.22, 0.02], [0, 0.35, 1], 0.8, 0.5);
+  },
+
+  gallery({ THREE, group, box, thing }) {
+    // The 1st floor's gallery along the back wall: a white slab, a glass balustrade, a line of light
+    const width = thing.width;
+    const slab = box(width, 0.32, 2.2, "#f2f1ec");
+    slab.position.set(0, 4.48, 1.1);
+    const glass = box(width, 1.0, 0.03, "#bcd6e6", { transparent: true, opacity: 0.25, metalness: 0.3, roughness: 0.05 });
+    glass.position.set(0, 5.14, 2.18);
+    const rail = box(width, 0.05, 0.06, "#d0d3d8", { metalness: 0.8, roughness: 0.25 });
+    rail.position.set(0, 5.66, 2.18);
+    const strip = box(width, 0.03, 0.05, "#ffffff", { emissive: "#fff1d6", emissiveIntensity: 1.6 });
+    strip.position.set(0, 4.3, 2.15);
+    group.add(slab, glass, rail, strip);
+  },
+
+  big_screen({ THREE, group, box, face, animated }) {
+    // The giant LED screen on the wall; it switches on by itself, flickering
+    const frame = box(3.4, 1.95, 0.12, "#121317");
+    frame.position.set(0, 2.5, 0.06);
+    const screen = sheet(THREE, screenTexture(THREE, face), 3.2, 1.8, { screen: true });
+    screen.position.set(0, 2.5, 0.125);
+    const glow = new THREE.PointLight("#9db4ff", 4, 7, 1.6);
+    glow.position.set(0, 2.5, 1.2);
+    group.add(frame, screen, glow);
+    let next = 1.5;
+    animated.push((dt, time) => {
+      // Mostly on; now and then a flicker, and a moment of black
+      next -= dt;
+      const flicker = next < 0 && next > -0.25;
+      if (next < -0.25) next = 3 + Math.random() * 6;
+      screen.visible = !flicker || Math.sin(time * 60) > 0;
+      glow.intensity = screen.visible ? 3.5 + Math.sin(time * 9) * 0.5 : 0;
+    });
+    focusOn(group, [0, 2.5, 0.13], [0, 0, 1], 3.4, 2.0);
+  },
+
+  glass_doors({ THREE, group, box, face, thing }) {
+    // The main glass doors: two tall panes in a dark frame, the outside behind them; a red sticker
+    const frame = box(2.7, 3.1, 0.14, "#2b2d33");
+    frame.position.set(0, 1.55, 0.03);
+    const outside = box(2.5, 2.95, 0.01, thing.day ? "#cfe6f7" : "#0e1430", { emissive: thing.day ? "#cfe6f7" : "#0e1430", emissiveIntensity: 0.6 });
+    outside.position.set(0, 1.5, 0.06);
+    group.add(frame, outside);
+    for (const x of [-0.62, 0.62]) {
+      const pane = box(1.2, 2.9, 0.04, "#a9c7d8", { transparent: true, opacity: 0.35, metalness: 0.4, roughness: 0.05 });
+      pane.position.set(x, 1.5, 0.12);
+      const bar = box(0.04, 0.6, 0.06, "#d0d3d8", { metalness: 0.8 });
+      bar.position.set(x > 0 ? 0.12 : -0.12, 1.1, 0.16);
+      group.add(pane, bar);
+    }
+    const sticker = sheet(THREE, plateTexture(THREE, face, { background: "#c8343a", accent: "#ffffff", color: "#ffffff" }), 0.52, 0.29);
+    sticker.position.set(-0.62, 1.6, 0.15);
+    group.add(sticker);
+    focusOn(group, [-0.62, 1.6, 0.15], [0, 0, 1], 0.7, 0.42);
+  },
+
+  security_desk({ THREE, group, box, thing }) {
+    // The security desk: a white counter, a monitor, and the hook with the beach gate's key
+    const counter = box(2.6, 1.1, 0.7, "#f2f1ec", { roughness: 0.5 });
+    counter.position.set(0, 0.55, 0);
+    const top = box(2.7, 0.05, 0.8, "#2b2d33");
+    top.position.set(0, 1.12, 0);
+    const monitor = box(0.55, 0.36, 0.04, "#111111");
+    monitor.position.set(-0.6, 1.36, -0.2);
+    const board = box(0.5, 0.4, 0.03, "#8a6a45");
+    board.position.set(0.7, 1.45, -0.32);
+    group.add(counter, top, monitor, board);
+    if (thing.key) {
+      const key = box(0.04, 0.12, 0.015, "#d7b24a", { metalness: 0.8, roughness: 0.3 });
+      key.position.set(0.7, 1.43, -0.3);
+      const tag = box(0.08, 0.06, 0.01, "#c8343a");
+      tag.position.set(0.7, 1.33, -0.3);
+      group.add(key, tag);
+    }
+  },
+
+  planter({ THREE, group, cylinder, thing }) {
+    // A big round white planter with leafy plants (the atrium's photos)
+    const r = thing.small ? 0.5 : 0.85;
+    const pot = cylinder(r, r * 0.9, 0.7, "#f2f1ec", { roughness: 0.6 }, 28);
+    pot.position.y = 0.35;
+    group.add(pot);
+    const leaf = new THREE.MeshStandardMaterial({ color: "#3f7a3a", roughness: 0.8 });
+    for (let i = 0; i < 9; i++) {
+      const a = (i / 9) * Math.PI * 2;
+      const bush = new THREE.Mesh(new THREE.SphereGeometry(r * 0.45, 12, 10), leaf);
+      bush.position.set(Math.cos(a) * r * 0.45, 0.85 + (i % 3) * 0.18, Math.sin(a) * r * 0.45);
+      group.add(bush);
+    }
+    const tall = new THREE.Mesh(new THREE.SphereGeometry(r * 0.55, 12, 10), leaf);
+    tall.position.y = 1.4;
+    group.add(tall);
+  },
+
+  phone_spot({ THREE, group, box, face, animated, thing }) {
+    // Your phone, face up (on a table, or on a towel on the sand), lighting up with a message
+    const y = thing.y ?? 0.75;
+    const phone = box(0.078, 0.009, 0.158, "#111111", { roughness: 0.3 });
+    phone.position.set(0, y + 0.005, 0);
+    const screen = sheet(THREE, phoneTexture(THREE, face), 0.07, 0.148, { screen: true });
+    screen.rotation.x = -Math.PI / 2;
+    screen.position.set(0, y + 0.011, 0);
+    const glow = new THREE.PointLight("#bcd6ff", 0, 0.9, 2);
+    glow.position.set(0, y + 0.12, 0);
+    group.add(phone, screen, glow);
+    animated.push((dt, time) => (glow.intensity = Math.max(0, Math.sin(time * 3)) * 0.9));
+    focusOn(group, [0, y + 0.01, 0], [0, 1, 0.12], 0.1, 0.16);
+  },
+
+  pc_desk({ THREE, group, box, face, thing, animated }) {
+    // A desk with a computer facing its chair; PC 7 is on (its login screen, or the history once in)
+    const desk = box(1.6, 0.05, 0.7, "#f2f1ec");
+    desk.position.set(0, 0.75, 0);
+    for (const x of [-0.75, 0.75]) {
+      const side = box(0.04, 0.75, 0.66, "#d9d8d3");
+      side.position.set(x, 0.375, 0);
+      group.add(side);
+    }
+    const stand = box(0.06, 0.25, 0.06, "#2b2d33");
+    stand.position.set(0, 0.9, -0.18);
+    const monitor = box(0.62, 0.38, 0.04, "#18191d");
+    monitor.position.set(0, 1.18, -0.2);
+    const keyboard = box(0.45, 0.02, 0.14, "#2b2d33");
+    keyboard.position.set(0, 0.785, 0.08);
+    const seat = chair(THREE, box, "#1b1c20");
+    seat.position.set(0, 0, 0.62);
+    seat.rotation.y = Math.PI;
+    const number = sheet(THREE, textTexture(THREE, [`PC ${thing.number}`], { width: 256, height: 96, background: "#f4f3ef", color: "#1a1a1a", font: "bold 56px sans-serif" }), 0.14, 0.05);
+    number.position.set(0.24, 1.4, -0.177);
+    group.add(desk, stand, monitor, keyboard, seat, number);
+    if (thing.on) {
+      const texture = thing.unlocked ? historyTexture(THREE) : laptopTexture(THREE, face);
+      const screen = sheet(THREE, texture, 0.58, 0.34, { screen: true });
+      screen.position.set(0, 1.18, -0.177);
+      const glow = new THREE.PointLight("#8fb6ff", 2.2, 3, 2);
+      glow.position.set(0, 1.25, 0.4);
+      group.add(screen, glow);
+      if (face && !thing.unlocked) {
+        // Tiago's post-it, big and stuck over the monitor's right edge
+        const note = sheet(THREE, postItTexture(THREE, face.postit, face.sign), 0.21, 0.21);
+        note.position.set(0.29, 1.11, -0.172);
+        note.rotation.z = -0.08;
+        group.add(note);
+      }
+      focusOn(group, [0.08, 1.16, -0.17], [0, 0, 1], 0.78, 0.44);
+    }
+  },
+
+  printer({ THREE, group, box, animated }) {
+    // The lab's printer on its cabinet, a green light blinking
+    const cabinet = box(0.7, 0.7, 0.55, "#d9d8d3");
+    cabinet.position.y = 0.35;
+    const body = box(0.6, 0.35, 0.5, "#f2f1ec");
+    body.position.y = 0.88;
+    const tray = box(0.4, 0.02, 0.25, "#ffffff");
+    tray.position.set(0, 0.9, 0.3);
+    const led = new THREE.Mesh(new THREE.SphereGeometry(0.015, 8, 6), new THREE.MeshBasicMaterial({ color: "#3bff6a" }));
+    led.position.set(0.22, 1.0, 0.26);
+    group.add(cabinet, body, tray, led);
+    animated.push((dt, time) => (led.visible = Math.sin(time * 4) > 0));
+  },
+
+  server_rack({ THREE, group, box, animated }) {
+    // A black server cabinet with rows of blinking lights
+    const rack = box(0.8, 2.0, 0.7, "#121317", { roughness: 0.4 });
+    rack.position.y = 1.0;
+    group.add(rack);
+    const leds = [];
+    for (let row = 0; row < 10; row++) {
+      for (let i = 0; i < 4; i++) {
+        const led = new THREE.Mesh(new THREE.SphereGeometry(0.012, 6, 4), new THREE.MeshBasicMaterial({ color: (row + i) % 3 ? "#3bff6a" : "#4da3ff" }));
+        led.position.set(-0.25 + i * 0.06, 0.3 + row * 0.16, 0.36);
+        group.add(led);
+        leds.push(led);
+      }
+    }
+    animated.push((dt, time) => leds.forEach((led, i) => (led.visible = Math.sin(time * (2 + (i % 5)) + i) > -0.3)));
+  },
+
+  gate({ THREE, group, box, animated }) {
+    // The tunnel's gate to the beach: grey bars and a padlock; it swings open on its hinge
+    const frame = box(2.8, 2.6, 0.1, "#3b3d42");
+    frame.position.set(0, 1.3, 0.02);
+    const hinge = new THREE.Group();
+    hinge.position.set(-1.25, 0, 0.08);
+    for (let i = 0; i < 12; i++) {
+      const bar = box(0.04, 2.35, 0.04, "#6b7078", { metalness: 0.6, roughness: 0.4 });
+      bar.position.set(0.1 + i * 0.21, 1.2, 0);
+      hinge.add(bar);
+    }
+    for (const y of [0.15, 1.2, 2.3]) {
+      const rail = box(2.5, 0.06, 0.05, "#6b7078", { metalness: 0.6 });
+      rail.position.set(1.25, y, 0);
+      hinge.add(rail);
+    }
+    const lock = box(0.12, 0.16, 0.08, "#c9a64a", { metalness: 0.8, roughness: 0.3 });
+    lock.position.set(2.35, 1.1, 0.06);
+    hinge.add(lock);
+    group.add(frame, hinge);
+    group.userData.hinge = hinge;
+    animated.push((dt) => {
+      const wanted = group.userData.open ? 1.4 : 0;
+      hinge.rotation.y += (wanted - hinge.rotation.y) * Math.min(1, dt * 5);
+    });
+  },
+
+  turnstile({ THREE, group, box }) {
+    // The campus turnstiles: three gates with card readers and glass flaps, campus beyond
+    for (const x of [-0.9, 0, 0.9]) {
+      const post = box(0.2, 1.0, 0.9, "#c9ccd2", { metalness: 0.5, roughness: 0.3 });
+      post.position.set(x - 0.4, 0.5, 0.6);
+      const reader = box(0.12, 0.02, 0.12, "#1c1c22");
+      reader.position.set(x - 0.4, 1.01, 0.8);
+      const flap = box(0.55, 0.7, 0.02, "#bcd6e6", { transparent: true, opacity: 0.4 });
+      flap.position.set(x - 0.05, 0.75, 0.6);
+      group.add(post, reader, flap);
+    }
+  },
+
+  mural_panel({ THREE, group, face }) {
+    // A detail of the murals, with its caption
+    const art = sheet(THREE, muralTexture(THREE, 1), 2.4, 1.2, { roughness: 0.85 });
+    art.position.set(0, 1.6, 0.02);
+    const caption = sheet(THREE, plateTexture(THREE, face, { background: "#1f2a44", accent: "#f2b632", color: "#ffffff" }), 0.6, 0.34);
+    caption.position.set(0.8, 0.75, 0.025);
+    group.add(art, caption);
+    focusOn(group, [0, 1.3, 0.03], [0, 0, 1], 2.6, 1.8);
+  },
+
+  fisherman({ THREE, group, box, animated }) {
+    // A shadow at the far end of the tunnel… only a fisherman, rod over the shoulder, and his bucket
+    const person = makeStudent(THREE, { skin: "#c98d64", hair: "buzz", hair_colour: "#bdbdbd", top: "jacket", top_colour: "#3d4a3a", legs: "#2a2a30", hat: "beanie", face: "calm" });
+    person.group.rotation.y = Math.PI * 0.85;
+    const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.02, 3.2, 6), new THREE.MeshStandardMaterial({ color: "#2a2a2a" }));
+    rod.position.set(0.3, 2.2, -0.6);
+    rod.rotation.x = -0.9;
+    const bucket = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.13, 0.3, 14), new THREE.MeshStandardMaterial({ color: "#4a7ac8" }));
+    bucket.position.set(-0.45, 0.15, 0.2);
+    group.add(person.group, rod, bucket);
+    animated.push((dt, time) => person.animate(dt, time, false));
+  },
+
+  exit_arrow({ THREE, group, animated }) {
+    // A glowing arrow on the floor, and a beach sign: the way back to the sand
+    const arrow = new THREE.Shape();
+    arrow.moveTo(-0.25, -0.5);
+    arrow.lineTo(0.25, -0.5);
+    arrow.lineTo(0.25, 0.1);
+    arrow.lineTo(0.5, 0.1);
+    arrow.lineTo(0, 0.6);
+    arrow.lineTo(-0.5, 0.1);
+    arrow.lineTo(-0.25, 0.1);
+    arrow.closePath();
+    const mesh = new THREE.Mesh(new THREE.ShapeGeometry(arrow), new THREE.MeshBasicMaterial({ color: "#7ee2a8", transparent: true, opacity: 0.7 }));
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.position.y = 0.02;
+    const sign = sheet(THREE, textTexture(THREE, ["🏖️ ↓"], { width: 256, height: 128, background: "#1f2a44", color: "#ffffff", font: "bold 70px sans-serif" }), 0.6, 0.3);
+    sign.position.set(0, 2.2, 0);
+    group.add(mesh, sign);
+    animated.push((dt, time) => (mesh.material.opacity = 0.45 + Math.sin(time * 3) * 0.25));
+  },
+
+  people({ THREE, group, thing, animated }) {
+    // Students (or bathers) standing or walking by, each with their own look
+    let seed = thing.seed || 1;
+    const random = () => ((seed = (seed * 9301 + 49297) % 233280) / 233280);
+    const pick = (choices) => choices[Math.floor(random() * choices.length)];
+    group.userData.outlines = [];
+    for (const [x, z] of thing.spots) {
+      const look = {
+        skin: pick(["#f3d2b3", "#e8b48f", "#c98d64", "#a86b45", "#7c4b2e"]),
+        hair: pick(["short", "long", "curly", "bun", "ponytail", "afro"]),
+        hair_colour: pick(["#1d140e", "#4a2c1a", "#8a5a2b", "#d8b062"]),
+        top: pick(["hoodie", "nova", "jacket", "shirt", "sweater"]),
+        top_colour: pick(["#2c4a8a", "#c8343a", "#2f7d5b", "#f2f0ea", "#e6a23c", "#7b4fc4"]),
+        legs: pick(["#3b5478", "#1e1f24", "#b59a72"]),
+        bag: thing.beach ? "none" : pick(["none", "backpack"]),
+        hat: thing.beach ? pick(["cap", "none"]) : "none",
+        face: pick(["smile", "calm", "grin"]),
+      };
+      const person = makeStudent(THREE, look);
+      const ox = x - thing.at[0];
+      const oz = z - thing.at[1];
+      person.group.position.set(ox, 0, oz);
+      person.group.rotation.y = random() * Math.PI * 2;
+      group.add(person.group);
+      const walking = !!thing.walking;
+      const phase = random() * 10;
+      if (!walking) group.userData.outlines.push((px, pz, m) => Math.hypot(px - x, pz - z) < 0.3 + m);
+      animated.push((dt, time) => {
+        if (walking) {
+          // Up and down the tunnel
+          const s = Math.sin(time * 0.25 + phase);
+          person.group.position.z = oz + s * 4;
+          person.group.rotation.y = Math.cos(time * 0.25 + phase) > 0 ? 0 : Math.PI;
+        }
+        person.animate(dt, time, walking);
+      });
+    }
+  },
+
+  fort({ THREE, group, box, cylinder, thing, animated }) {
+    // The fort of São Julião da Barra (the team's photo): long sloping stone walls on the left of
+    // the beach, a square tower with the lighthouse; at night its beam sweeps the bay
+    const stone = thing.day ? "#cfc6b4" : "#8f897e";
+    const wall = box(16, 4.2, 2.4, stone, { roughness: 0.95 });
+    wall.position.set(-3.5, 2.1, 0);
+    const bastion = box(4, 3.6, 7, stone, { roughness: 0.95 });
+    bastion.position.set(3.4, 1.8, -3.2);
+    bastion.rotation.y = 0.5;
+    const tower = box(2.2, 4.4, 2.2, thing.day ? "#ece6d6" : "#8a8478");
+    tower.position.set(-1.5, 6.4, -0.4);
+    const lantern = cylinder(0.55, 0.55, 1.0, "#f6f1dc", { emissive: thing.day ? "#000000" : "#ffe9a8", emissiveIntensity: 1.4, transparent: true, opacity: 0.85 }, 16);
+    lantern.position.set(-1.5, 9.1, -0.4);
+    const roof = cylinder(0.05, 0.7, 0.6, "#c8343a", {}, 16);
+    roof.position.set(-1.5, 9.9, -0.4);
+    group.add(wall, bastion, tower, lantern, roof);
+    // Battlements along the top of the wall
+    for (let x = -11; x < 4; x += 0.9) {
+      const merlon = box(0.5, 0.45, 2.4, stone, { roughness: 0.95 });
+      merlon.position.set(x, 4.42, 0);
+      group.add(merlon);
+    }
+    if (!thing.day) {
+      // The lighthouse beam: a long soft cone, turning
+      const pivot = new THREE.Group();
+      pivot.position.set(-1.5, 9.1, -0.4);
+      const cone = new THREE.Mesh(
+        new THREE.ConeGeometry(2.6, 40, 24, 1, true),
+        new THREE.MeshBasicMaterial({ color: "#fff3c4", transparent: true, opacity: 0.09, depthWrite: false, side: THREE.DoubleSide })
+      );
+      cone.rotation.z = Math.PI / 2;
+      cone.position.x = 20;
+      const beam = new THREE.SpotLight("#fff3c4", 40, 60, 0.15, 0.5, 1);
+      const aim = new THREE.Object3D();
+      aim.position.set(30, -6, 0);
+      pivot.add(cone, beam, aim);
+      beam.target = aim;
+      group.add(pivot);
+      animated.push((dt, time) => (pivot.rotation.y = time * 0.6));
+    }
+    // The stone walls, where the character cannot walk
+    const at = thing.at;
+    group.userData.outlines = [(x, z, m) => x < at[0] + 4.5 + m && z < at[1] + 1.3 + m];
+    focusOn(group, [-1.5, 8.2, 1.0], [0.4, 0.1, 1], 5, 5);
+  },
+
+  tiago_beach({ THREE, group, animated }) {
+    // Tiago, sitting on the sand by the wall, hood up, looking at the sea
+    const person = makeStudent(THREE, { skin: "#e8b48f", hair: "short", hair_colour: "#5a3a1a", top: "hoodie", top_colour: "#7a2f3a", legs: "#3b5478", face: "sleepy" }, { seated: true, onGround: true, seed: 2 });
+    person.group.rotation.y = Math.PI * 0.8;
+    group.add(person.group);
+    animated.push((dt, time) => person.animate(dt, time, false));
+  },
+
+  tunnel_portal({ THREE, group, box }) {
+    // The end of the tunnel on the beach (the team's photo): a concrete mouth with sloping walls,
+    // a glass balustrade on top, and the lit tunnel inside
+    const mouth = box(0.4, 3.0, 4.2, "#d8d1c4");
+    mouth.position.set(0, 1.5, 0);
+    const inside = box(0.02, 2.6, 3.0, "#ffd9a0", { emissive: "#ffcf8a", emissiveIntensity: 0.9 });
+    inside.position.set(0.21, 1.3, 0);
+    const top = box(1.2, 0.3, 4.6, "#cfc8bb");
+    top.position.set(-0.3, 3.15, 0);
+    const glass = box(0.03, 1.0, 4.6, "#bcd6e6", { transparent: true, opacity: 0.3 });
+    glass.position.set(0.25, 3.8, 0);
+    group.add(mouth, inside, top, glass);
+    for (const side of [-1, 1]) {
+      const slope = box(2.2, 0.25, 0.8, "#d8d1c4");
+      slope.position.set(0.9, 0.9, side * 2.5);
+      slope.rotation.z = 0.7;
+      group.add(slope);
+    }
+  },
+
+  beach_stairs({ THREE, group, box }) {
+    // Concrete steps up to the promenade, a handrail and a lamp
+    for (let i = 0; i < 8; i++) {
+      const step = box(0.4, 0.2 + i * 0.2, 2.2, "#d8d1c4");
+      step.position.set(i * 0.4, (0.2 + i * 0.2) / 2, 0);
+      group.add(step);
+    }
+    const rail = box(3.4, 0.05, 0.05, "#c9ccd2", { metalness: 0.7 });
+    rail.position.set(1.5, 1.6, 1.15);
+    rail.rotation.z = 0.43;
+    const pole = box(0.1, 4, 0.1, "#2b2d33");
+    pole.position.set(0, 2, -1.4);
+    const lamp = new THREE.PointLight("#ffd28a", 10, 10, 1.5);
+    lamp.position.set(0, 4, -1.4);
+    group.add(rail, pole, lamp);
+  },
+
+  towel({ THREE, group }) {
+    // A striped beach towel (where you slept)
+    const texture = canvasTexture(THREE, 128, 256, (g, w, h) => {
+      for (let y = 0; y < h; y += 32) {
+        g.fillStyle = (y / 32) % 2 ? "#f2b632" : "#2f6fb7";
+        g.fillRect(0, y, w, 32);
+      }
+    });
+    const cloth = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 1.8), new THREE.MeshStandardMaterial({ map: texture, roughness: 1 }));
+    cloth.rotation.x = -Math.PI / 2;
+    cloth.position.y = 0.012;
+    group.add(cloth);
+  },
+
+  seagull({ THREE, group, animated }) {
+    // A seagull standing on your student card, not moving
+    const white = new THREE.MeshStandardMaterial({ color: "#f6f6f4", roughness: 0.7 });
+    const grey = new THREE.MeshStandardMaterial({ color: "#9aa2ab", roughness: 0.7 });
+    const card = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.005, 0.11), new THREE.MeshStandardMaterial({ color: "#ffffff" }));
+    card.position.y = 0.01;
+    const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.006, 0.03), new THREE.MeshStandardMaterial({ color: "#1d2a44" }));
+    stripe.position.set(0, 0.012, -0.035);
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.16, 14, 10), white);
+    body.scale.set(1, 0.8, 1.6);
+    body.position.y = 0.3;
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.08, 12, 10), white);
+    head.position.set(0, 0.45, 0.2);
+    const beak = new THREE.Mesh(new THREE.ConeGeometry(0.02, 0.1, 8), new THREE.MeshStandardMaterial({ color: "#f2b632" }));
+    beak.rotation.x = Math.PI / 2;
+    beak.position.set(0, 0.44, 0.31);
+    const wings = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.06, 0.38), grey);
+    wings.position.set(0, 0.36, -0.03);
+    group.add(card, stripe, body, head, beak, wings);
+    for (const x of [-0.05, 0.05]) {
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.18, 6), new THREE.MeshStandardMaterial({ color: "#e8873a" }));
+      leg.position.set(x, 0.1, 0);
+      group.add(leg);
+    }
+    animated.push((dt, time) => {
+      head.rotation.y = Math.sin(time * 1.3) * 0.6;
+      head.position.y = 0.45 + Math.abs(Math.sin(time * 2.2)) * 0.02;
+    });
+  },
+
+  kiosk({ THREE, group, box, face }) {
+    // The beach kiosk, shutters down, its striped awning and the price of a bica
+    const body = box(2.2, 2.3, 1.6, "#2f6fb7", { roughness: 0.7 });
+    body.position.y = 1.15;
+    const shutter = box(1.8, 1.0, 0.02, "#c9ccd2", { metalness: 0.5 });
+    shutter.position.set(0, 1.4, 0.81);
+    const awning = box(2.4, 0.08, 0.9, "#f2f1ec");
+    awning.position.set(0, 2.35, 1.1);
+    awning.rotation.x = 0.25;
+    const sign = sheet(THREE, plateTexture(THREE, face, { background: "#1f1f24", accent: "#f2b632", color: "#ffffff" }), 0.8, 0.45);
+    sign.position.set(0, 1.4, 0.83);
+    group.add(body, shutter, awning, sign);
+    focusOn(group, [0, 1.4, 0.83], [0, 0, 1], 0.95, 0.55);
+  },
+
+  parasol({ THREE, group, cylinder }) {
+    const pole = cylinder(0.03, 0.03, 2.2, "#f2f1ec");
+    pole.position.y = 1.1;
+    const canopy = new THREE.Mesh(new THREE.ConeGeometry(1.2, 0.5, 12, 1, true), new THREE.MeshStandardMaterial({ color: "#e2563b", side: THREE.DoubleSide, roughness: 0.8 }));
+    canopy.position.y = 2.2;
+    group.add(pole, canopy);
+  },
+
+  // --- Auditorium B ---
+  projection_screen({ THREE, group, box, thing }) {
+    const frame = box(6.4, 3.7, 0.08, "#1b1c20");
+    frame.position.set(0, 3.7, 0.04);
+    const screen = sheet(THREE, desktopTexture(THREE, thing.on), 6.2, 3.5, { screen: true });
+    screen.position.set(0, 3.7, 0.09);
+    group.add(frame, screen);
+    if (thing.on) {
+      const glow = new THREE.PointLight("#9db4ff", 5, 10, 1.5);
+      glow.position.set(0, 3.7, 2);
+      group.add(glow);
+    }
+  },
+
+  professor({ THREE, group, animated }) {
+    // Prof. Marques, arms behind the lectern, waiting
+    const person = makeStudent(THREE, { skin: "#e8b48f", hair: "short", hair_colour: "#cfcfcf", face: "calm", top: "jacket", top_colour: "#4a4f5c", legs: "#2a2a30", glasses: "round" });
+    group.add(person.group);
+    animated.push((dt, time) => person.animate(dt, time, false));
+  },
+
+  projector_desk({ THREE, group, box, thing }) {
+    // A small table by the stage with the projector's cable, where you plug your laptop in
+    const top = box(1.0, 0.05, 0.6, "#2b2d33");
+    top.position.y = 0.78;
+    const leg = box(0.08, 0.78, 0.08, "#2b2d33");
+    leg.position.set(0, 0.39, 0);
+    group.add(top, leg);
+    const laptop = box(0.36, 0.02, 0.25, "#9aa0a8", { metalness: 0.6 });
+    laptop.position.set(0, 0.815, 0.05);
+    const lid = box(0.36, 0.24, 0.015, thing.on ? "#7dff9e" : "#9aa0a8", thing.on ? { emissive: "#2a5a3a", emissiveIntensity: 1 } : { metalness: 0.6 });
+    lid.position.set(0, 0.94, -0.07);
+    lid.rotation.x = -0.25;
+    const cable = box(0.02, 0.02, 0.8, "#111111");
+    cable.position.set(0.3, 0.8, -0.4);
+    group.add(laptop, lid, cable);
+  },
+
+  seat_rows({ THREE, group, box, thing }) {
+    // Rows of seats on risers, rising towards the back of the room (the front of the view)
+    const seatMaterial = new THREE.MeshStandardMaterial({ color: "#7a1f2b", roughness: 0.8 });
+    const per = Math.floor(thing.width / 0.62);
+    const seats = [];
+    const backs = [];
+    for (let r = 0; r < thing.rows; r++) {
+      const z = thing.from + r * thing.step;
+      const y = r * 0.24;
+      if (r > 0) {
+        const riser = box(thing.width + 0.4, y, thing.step, "#3e4256");
+        riser.position.set(0, y / 2, z);
+        group.add(riser);
+      }
+      for (let i = 0; i < per; i++) {
+        const x = -thing.width / 2 + (i + 0.5) * (thing.width / per);
+        seats.push([x, y + 0.45, z]);
+        backs.push([x, y + 0.75, z + 0.25]);
+      }
+    }
+    group.add(copies(THREE, new THREE.BoxGeometry(0.5, 0.1, 0.45), seatMaterial, seats));
+    group.add(copies(THREE, new THREE.BoxGeometry(0.5, 0.55, 0.08), seatMaterial, backs));
+    const at = thing.at;
+    const z1 = thing.from - 0.5;
+    const z2 = thing.from + (thing.rows - 1) * thing.step + 0.6;
+    group.userData.outlines = [(x, z, m) => x > at[0] - thing.width / 2 - 0.2 - m && x < at[0] + thing.width / 2 + 0.2 + m && z > at[1] + z1 - m && z < at[1] + z2 + m];
+  },
+
+  audience({ THREE, group, thing, animated }) {
+    // Students in the seats (the rows of seat_rows: from z = -1.2, every 1.35 m, 0.24 m higher)
+    let seed = thing.seed || 1;
+    const random = () => ((seed = (seed * 9301 + 49297) % 233280) / 233280);
+    const pick = (choices) => choices[Math.floor(random() * choices.length)];
+    for (let r = 0; r < 6; r++) {
+      for (let i = 0; i < 19; i++) {
+        if (random() > 0.32 || (r === 0 && (i === 5 || i === 15))) continue;
+        const person = makeStudent(THREE, {
+          skin: pick(["#f3d2b3", "#e8b48f", "#c98d64", "#a86b45", "#7c4b2e"]),
+          hair: pick(["short", "long", "curly", "bun", "ponytail", "afro", "buzz"]),
+          hair_colour: pick(["#1d140e", "#4a2c1a", "#8a5a2b", "#d8b062"]),
+          top: pick(["hoodie", "nova", "jacket", "shirt", "sweater"]),
+          top_colour: pick(["#2c4a8a", "#c8343a", "#2f7d5b", "#f2f0ea", "#e6a23c", "#7b4fc4"]),
+          face: pick(["smile", "calm", "grin", "sleepy"]),
+        }, { seated: true, seed: r * 19 + i });
+        person.group.position.set(-6 + (i + 0.5) * (12 / 19), r * 0.24, -1.2 + r * 1.35);
+        person.group.rotation.y = Math.PI;
+        group.add(person.group);
+        animated.push((dt, time) => person.animate(dt, time, false));
+      }
+    }
+  },
+
+  rita_seated({ THREE, group, animated }) {
+    const person = makeStudent(THREE, { skin: "#f3d2b3", hair: "long", hair_colour: "#4a2c1a", face: "grin", top: "sweater", top_colour: "#2f7d5b", legs: "#1e1f24" }, { seated: true, waving: true });
+    person.group.rotation.y = Math.PI;
+    group.add(person.group);
+    animated.push((dt, time) => person.animate(dt, time, false));
+  },
+
+  teresa_seated({ THREE, group, animated }) {
+    const person = makeStudent(THREE, { skin: "#e8b48f", hair: "ponytail", hair_colour: "#d8b062", face: "grin", top: "shirt", top_colour: "#e47aa8", legs: "#3b5478", glasses: "sun" }, { seated: true, seed: 4 });
+    person.group.rotation.y = Math.PI;
+    group.add(person.group);
+    animated.push((dt, time) => person.animate(dt, time, false));
+    focusOn(group, [0, 1.0, -0.2], [0, 0.15, -1], 1.4, 1.3);
+  },
+
+  tiago_standing({ THREE, group, animated }) {
+    // Tiago came: at the back, by the door, hood down
+    const person = makeStudent(THREE, { skin: "#e8b48f", hair: "short", hair_colour: "#5a3a1a", top: "hoodie", top_colour: "#7a2f3a", legs: "#3b5478", face: "calm" });
+    person.group.rotation.y = Math.PI;
+    group.add(person.group);
+    animated.push((dt, time) => person.animate(dt, time, false));
+  },
+
+  // --- The library at night (Level 2) ---
+  notice_board({ THREE, group, box, face }) {
+    // A cork board on the wall, the lab's notice pinned in the middle among other papers
+    const cork = box(1.4, 1.0, 0.04, "#b8895a", { roughness: 1 });
+    cork.position.set(0, 1.55, 0.02);
+    group.add(cork);
+    for (const [x, y, colour] of [[-0.5, 1.8, "#ffe766"], [0.5, 1.3, "#9fd3f2"], [0.48, 1.85, "#f29bc0"]]) {
+      const paper = box(0.22, 0.26, 0.005, colour);
+      paper.position.set(x, y, 0.045);
+      group.add(paper);
+    }
+    const notice = sheet(THREE, noticeTexture(THREE, face), 0.42, 0.595);
+    notice.position.set(0, 1.55, 0.05);
+    group.add(notice);
+    focusOn(group, [0, 1.55, 0.05], [0, 0, 1], 0.5, 0.68);
+  },
+
+  notebook({ THREE, group, box }) {
+    // Rita's notebook on the table, a pen across it
+    const cover = box(0.21, 0.02, 0.29, "#2f7d5b");
+    cover.position.y = 0.77;
+    const pen = box(0.14, 0.01, 0.01, "#1d3c8f");
+    pen.position.set(0.02, 0.785, 0.02);
+    pen.rotation.y = 0.6;
+    group.add(cover, pen);
   },
 };
 

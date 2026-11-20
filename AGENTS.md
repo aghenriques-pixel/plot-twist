@@ -1,6 +1,6 @@
-# AGENTS.md — Midnight at Nova (team project)
+# AGENTS.md — Git Out (team project)
 
-A 3D escape room in the browser (Nova SBE Intro to Programming): Level 1, "Submission at 23:59", a student has 16 minutes to submit the group project (specs/entrega-2359.md). Started as a Plot Twist solo project, now extended by a team of three. The story is in story.py, the rules in logic.py, the 3D rooms in world3d.py and components/scene3d.js.
+A 3D escape room in the browser (Nova SBE Intro to Programming), three levels of one night at Nova SBE: "Submission at 23:59" (specs/entrega-2359.md), "Locked in at Nova" and "Presentation at 9:00" (specs/levels-2-and-3.md). Started as a Plot Twist solo project, now extended by a team of three. The story is in story.py, the rules in logic.py, the 3D rooms in world3d.py and components/scene3d.js.
 
 ## Commands
 
@@ -11,15 +11,17 @@ A 3D escape room in the browser (Nova SBE Intro to Programming): Level 1, "Submi
 ## Structure
 
 - `app.py` — Streamlit screens only. Calls `logic` for rules, `db` for saving, `players` for who is playing.
-- `story.py` — story content only (scenes, items, actions, puzzles, hints, endings, music names). Plain data.
+- `story.py` — story content only (scenes, items, actions, puzzles, hints, endings, music names). Plain data. Levels 2 and 3 are in `story2.py` / `story3.py`, added to `story.py`'s dicts; `CARRIED` says what a level remembers from the ones before (`logic.carried`).
 - `logic.py` — the game rules (`apply_action`, the clock, hints); it re-exports `story.py` so other modules import from `logic`. Pure Python: no Streamlit, no database.
 - `world3d.py` — each 3D room as data (size, colours, things and which action or look each thing is); `world_view(state, role)` is what the browser draws.
 - `players.py` — player identity: a secret code in the link (`?jogador=...`) online, `"local"` offline.
 - `accounts.py` — username + password (salted PBKDF2 hash only) that own a player code; logging in puts that code in the link. The name shown comes from the database (`account_name`), never from the link; one account per player code; 5 wrong logins in 10 minutes lock that username (in memory).
+- `looks.py` — the student's look: parts, choices, prizes; `clean_look` checks what the browser sends. Saved per player in `db.looks`.
 - `browser_input.py` — checks what the browser sends (`clean_action`) before Python uses it.
 - `levels.py` — levels = chapters; a level opens when an ending in the previous level's `completes_with` was reached. Endings are recorded per player in `db.level_progress`.
 - `db.py` — saves and loads each player's progress. Every query filters by player.
-- `rooms.py` — cooperative rooms: codes, roles (agente acts, contacto sees clues), chat. Conflicts are decided by the database's unique rules (first saved wins).
+- `rooms.py` — cooperative rooms: codes, roles (agente = Player 1, contacto = Player 2; both act), chat. Conflicts are decided by the database's unique rules (first saved wins). Each clue has one `reader` in co-op (`logic.clue_reader`).
+- `presence.py` — where each student stands in a room (server memory, not the database); the browser sends `move`, checked by `browser_input.clean_move`.
 - `components/` — JavaScript/CSS of the fullscreen game (`scene_view.js`) and the 3D rooms (`scene3d.js`, with Three.js from `static/`). It only sends action ids (with typed codes), commands and chat text to Python; it never decides rules. It rebuilds only when `scene_key` changes, so co-op refreshes keep open bubbles.
 - `assets/` — the 2D character and the menu's night city (SVG). `static/` — Three.js (MIT), served once by Streamlit's static serving. `tests/` — pytest. `specs/` — one spec per feature. `docs/` — product brief and exam/walkthrough guide.
 

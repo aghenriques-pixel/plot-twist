@@ -8,13 +8,15 @@ import pytest
 from translations import UI_TEXT
 
 ROOT = Path(__file__).parent.parent
-OLD_NAMES = ("Forbidden Archive", "Arquivo Proibido")
+OLD_NAMES = ("Forbidden Archive", "Arquivo Proibido", "Midnight at Nova", "Meia-Noite na Nova")
 FILES_WITH_THE_NAME = ("app.py", "translations.py", "README.md", "AGENTS.md", "pyproject.toml", "Jogar.command")
 
 
 # Done when 1
 def test_the_game_has_its_new_name_in_both_languages():
-    assert UI_TEXT["game_title"] == {"en": "Midnight at Nova", "pt": "Meia-Noite na Nova"}
+    # Renamed again for the three levels of the night (specs/student-and-menu.md)
+    assert UI_TEXT["game_title"] == {"en": "Git Out", "pt": "Git Out"}
+    assert UI_TEXT["game_subtitle"] == {"en": "A night at Nova SBE", "pt": "Uma noite na Nova SBE"}
 
 
 @pytest.mark.parametrize("name", FILES_WITH_THE_NAME)

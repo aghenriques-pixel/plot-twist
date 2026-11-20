@@ -1,4 +1,4 @@
-# Midnight at Nova
+# Git Out — A night at Nova SBE
 
 A 3D escape room in the browser, at Nova SBE. **Level 1 — "Submission at 23:59":** it is 23:44 in Study Room B, the group project is due on GitHub at 23:59, the code is on Rita's pen drive locked in her locker, your laptop is at 3% and Tiago changed its password as a joke. Get out of the room, find Rita's card in the cafeteria, open her locker, hide from the security round, find a working socket on the terrace, survive the sprinklers, and `git push` before midnight. Your answer to Tiago decides one of the five endings.
 
@@ -8,7 +8,11 @@ A 3D escape room in the browser, at Nova SBE. **Level 1 — "Submission at 23:59
 
 **Against the clock:** the clock shows the real time, from 23:44 to 00:00. A wrong code, file or git command costs 30 seconds; a 💡 hint costs a minute. Two danger moments give you 10 seconds to decide.
 
-**Levels 2 and 3** are on the map as "Coming soon".
+**Level 2 — "Locked in at Nova"** (00:01 → 00:20): an email says your project is 94% identical to Group 7's, and the building locks for the night. Hide from the guard behind the big NOVA letters in the atrium, find out who logged in on PC 7 in the computer lab, print the proof, and get out through the tunnel under the Marginal to Carcavelos beach before the alarm. Tiago is on the beach — and what he says depends on your answer in Level 1.
+
+**Level 3 — "Presentation at 9:00"** (08:42 → 09:00): you wake up on the beach. Get your card back from a seagull, your laptop back from last night's guard, and prove to Prof. Marques in Auditorium B that the code is yours: with the printed log, with `git log`, or with Tiago's word (specs/levels-2-and-3.md). Each level remembers what happened in the ones before.
+
+**Your student:** in the menu, dress your own student — skin, hair, face, clothes, colours, a hat, glasses, a backpack. Some endings win prizes to wear (a graduation cap, Tiago's sleep mask, golden headphones). The look is saved per player (`looks.py`, specs/student-and-menu.md).
 
 **Notebook:** the 🎒 button opens a notebook from any scene: every item, every conversation, your decisions.
 
@@ -16,7 +20,7 @@ A 3D escape room in the browser, at Nova SBE. **Level 1 — "Submission at 23:59
 
 It starts on a main menu (**Play, How to Play, Settings, Exit**) over the terrace at night, has its own music for each place and for danger, made in the browser, and can be played in **English or Portuguese**.
 
-Play **alone**, or **with a friend in cooperative mode**: one player is in the building and acts, the other watches the security cameras from home and sees the clues. You only make the deadline by talking in the room's chat.
+Play **alone**, or **with a friend** (specs/coop-two-students.md): create a room and give your friend its code (or its link). You are two students in the same building, each with your own look, both walking and using things. Each of you can read clues the other cannot, so you only make it by talking in the room's chat. It works on one computer (two windows), on the same Wi-Fi (Streamlit's *Network URL*) and online.
 
 **Play online:** _(link do Streamlit Cloud — a preencher depois do deploy)_
 
@@ -53,12 +57,13 @@ The same tests run on GitHub Actions for every pull request and every push to `m
 
 | Part | File | What it does |
 |---|---|---|
-| Story | `story.py` | Level 1 — "Submission at 23:59" (specs/entrega-2359.md): scenes, items, actions, puzzles, hints, endings. Only data. |
+| Story | `story.py`, `story2.py`, `story3.py` | The three levels (specs/entrega-2359.md, specs/levels-2-and-3.md): scenes, items, actions, puzzles, hints, endings. Only data; `story.py` adds levels 2 and 3 to its dicts. |
 | Rules | `logic.py` | `apply_action(state, action_id, code, now=...)` decides what is allowed, including the clock (23:44 → 00:00), the penalties and the hints. Pure Python. |
 | Players | `players.py` | Online, each player is identified by a secret code in their link (`?jogador=...`). |
 | Accounts | `accounts.py` | A username and password that own a player code. Passwords are stored only as salted PBKDF2-SHA256 hashes. |
+| Your student | `looks.py` | Every part of the student and its choices, the prizes, and `clean_look`, which checks what the browser sends before it is saved. |
 | Levels | `levels.py` | Which chapter each level is, which endings complete it, and which levels are open (from the endings a player reached). |
-| Cooperative rooms | `rooms.py` | Create/join a room (`?sala=...`), roles (agente, contacto), the room chat. The room's game is a save under `sala_<CODE>`. |
+| Cooperative rooms | `rooms.py`, `presence.py` | Create/join a room (`?sala=...`), Player 1 and Player 2 (`agente`, `contacto`), the room chat. The room's game is a save under `sala_<CODE>`. `presence.py` keeps where each student stands, in the server's memory. |
 | Storage | `db.py` | Saves each player's progress. SQLite locally, hosted Postgres online. |
 | Screens | `app.py` | Streamlit pages: title screen, waiting room, the fullscreen game, and the **text mode** (the same game as plain buttons in the sidebar, closed by default). |
 | Fullscreen game | `components/scene_view.js`, `.css` | The whole game screen: top bar, the picture you click to walk, observe, talk and type codes, narration, endings, co-op chat. Sends actions, commands and chat messages to `app.py`; Python decides. |
@@ -73,13 +78,14 @@ The same tests run on GitHub Actions for every pull request and every push to `m
 - **Online:** a hosted Postgres database. Its connection string is the secret `DATABASE_URL`, set in the Streamlit Cloud app settings — never in this repository.
 - **Locally:** `data/game.db` (SQLite, ignored by git). Delete it to reset local progress. If `.streamlit/secrets.toml` holds a `DATABASE_URL`, the local app uses that database instead.
 - **Tests:** a temporary SQLite file per test.
-- Only player progress is stored (scene, items, decisions, the endings each player reached, accounts). The story is code in `story.py`.
+- Only player progress is stored (scene, items, decisions, the endings each player reached, accounts, the student's look). The story is code in `story.py`.
 
 ## Limits
 
 - **Accounts are simple:** no e-mail and no password reset; a forgotten password cannot be recovered. Without an account, whoever has a player's link can continue that game, and losing the link loses the save.
 - **Voices depend on the browser:** they use the speech voices installed on the device, so they sound different on each computer, and some browsers have none.
-- **Cooperative mode refreshes every 2 seconds** (polling, as the course guide recommends for Streamlit), so the other player's moves and messages appear with a short delay. A room holds exactly two players; room codes can be guessed with enough tries.
+- **Cooperative mode refreshes every second** (polling, as the course guide recommends for Streamlit), so your friend's student walks about a second behind them, and their actions and messages appear with a short delay. A room holds exactly two players, who are always in the same place; room codes can be guessed with enough tries.
+- **Offline co-op** gives each browser its own player code in its link: a player who opens the room's invite link again, without their own code, is a new player (and the room is full).
 - **Sleeping app:** the free host sleeps when unused and the free database pauses after inactivity. Open the link a few minutes before a demo.
 - **If the database is unavailable**, the game gives up after 10 seconds and shows a message instead of crashing; nothing is lost.
 - **Some networks (e.g. university or company Wi-Fi) block Postgres connections.** The deployed app is not affected, because it runs on Streamlit's servers. To check the connection from a laptop, run `uv run python scripts/check_db.py` (it never prints the password).

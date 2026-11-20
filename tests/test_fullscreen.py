@@ -13,7 +13,7 @@ APP_PATH = str(Path(__file__).parent.parent / "app.py")
 # Words and letters that only appear in Portuguese (names like Tomás and Júlia are fine)
 PORTUGUESE = re.compile(r"[ãõç]|\b(não|uma|está|tens|para|com|você|porta|caixa|sala|jogo)\b", re.IGNORECASE)
 # Names in the game that stay in Portuguese: the coffees on the menu of a Portuguese cafeteria
-NAMES = re.compile(r"Meia de leite|Galão")
+NAMES = re.compile(r"Meia de leite|Galão|São Julião")  # and a real place (specs/levels-2-and-3.md)
 
 
 def visible_texts():

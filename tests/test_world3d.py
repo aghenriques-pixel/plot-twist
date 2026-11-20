@@ -53,7 +53,7 @@ def test_every_spot_and_look_index_points_to_the_right_one(role):
     for state in states():
         view = world_view(state, role)
         assert view is not None, state["scene"]
-        spots = [] if role == "contacto" or is_finished(state) else scene_hotspots(state)
+        spots = [] if is_finished(state) else scene_hotspots(state)
         looks = [] if is_finished(state) else scene_looks(state, role)
         for thing in view["things"]:
             if thing.get("spot") is not None:
@@ -191,12 +191,12 @@ def test_clues_are_dark_for_the_agent_and_their_words_are_never_sent():
     assert not any(t["dark"] for t in solo["things"])
 
 
-def test_the_contact_watches_through_a_camera_and_cannot_act():
+def test_the_contact_walks_and_acts_like_the_agent():
+    # Changed for specs/coop-two-students.md: the contact had a security camera and could not act
     view = world_view(new_game(now=T0), "contacto")
 
-    assert view["camera"] == "cctv"
-    assert all(t.get("spot") is None for t in view["things"])
-    assert view["free"] == []
+    assert view["camera"] == "follow"
+    assert any(t.get("spot") is not None for t in view["things"])
 
 
 def test_rita_locker_hangs_open_once_emptied():

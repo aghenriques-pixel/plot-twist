@@ -1,4 +1,4 @@
-"""Screens for Midnight at Nova. Rules are in logic.py, storage in db.py, rooms in rooms.py,
+"""Screens for Git Out. Rules are in logic.py, storage in db.py, rooms in rooms.py,
 texts in two languages in translations.py.
 
 The game itself — main menu included — is drawn fullscreen by the scene_view component
@@ -18,16 +18,19 @@ from pathlib import Path
 import streamlit as st
 
 from accounts import AccountError, account_name, create_account, log_in
-from browser_input import clean_action
+from browser_input import clean_action, clean_move
 from db import (
     DEFAULT_DB_PATH,
     StorageError,
     endings_reached,
     load_game,
+    load_look,
     record_ending,
     save_game,
+    save_look,
 )
 from levels import COMING_SOON, level_for_chapter, level_status, next_chapter
+from looks import DEFAULT_LOOK, PARTS, PRIZES, clean_look
 from logic import (
     ACTIONS,
     TIME_UP_ACTION,
@@ -38,6 +41,7 @@ from logic import (
     apply_action,
     available_actions,
     can_act,
+    carried,
     chapter_of,
     clock_label,
     countdown,
@@ -45,6 +49,7 @@ from logic import (
     is_finished,
     is_valid_state,
     journey,
+    memory_of,
     new_game,
     notebook,
     scene_hotspots,
@@ -56,7 +61,8 @@ from logic import (
     seconds_left,
     take_hint,
 )
-from players import new_player_id, player_from_link
+import presence
+from players import LOCAL_PLAYER, is_valid_player_id, new_player_id, player_from_link
 from rooms import (
     RoomError,
     create_room,
@@ -90,7 +96,9 @@ DB_PATH = TEST_DB or DATABASE_URL or DEFAULT_DB_PATH
 ONLINE = bool(DATABASE_URL) or os.environ.get("PLOT_TWIST_ONLINE") == "1"
 # Cooperative mode: how often each screen asks the database for the other player's changes
 POLL_SECONDS = 2
-ROLE_AVATARS = {"agente": "🕵️", "contacto": "📡"}
+# A co-op room refreshes every second, so the other student is seen walking (specs/coop-two-students.md)
+ROOM_REFRESH_SECONDS = 1
+ROLE_AVATARS = {"agente": "🎒", "contacto": "🎧"}
 ASSETS_DIR = Path(__file__).parent / "assets"
 ART_DIR = ASSETS_DIR / "scenes"
 COMPONENT_DIR = Path(__file__).parent / "components"
@@ -143,6 +151,26 @@ def say(text):
 PLAYER = player_from_link(st.query_params.get("jogador"), ONLINE)
 if ONLINE and st.query_params.get("jogador") != PLAYER:
     st.query_params["jogador"] = PLAYER
+# Offline, a browser that entered co-op has its own code in its link (give_own_code)
+if not ONLINE and is_valid_player_id(st.query_params.get("jogador")):
+    PLAYER = st.query_params.get("jogador")
+
+
+def give_own_code():
+    """Offline everyone is the player "local", so a browser entering co-op gets its own code in its
+    link (two windows, or friends on the same Wi-Fi, are then two players). Its student comes along."""
+    global PLAYER
+    if PLAYER != LOCAL_PLAYER:
+        return
+    code = new_player_id()
+    try:
+        look = load_look(DB_PATH, LOCAL_PLAYER)
+        if look:
+            save_look(DB_PATH, code, look)
+    except StorageError:
+        st.session_state.db_error = True
+    PLAYER = code
+    st.query_params["jogador"] = code
 
 if "game" not in st.session_state:
     st.session_state.game = None
@@ -167,6 +195,8 @@ if "game" not in st.session_state:
     st.session_state.run_token = None
     # Seconds the last move cost on the countdown (the browser shows "−30 s")
     st.session_state.time_lost = 0
+    # The menu says "Saved!" once after the student's look was saved
+    st.session_state.look_saved = False
 
 # Older links carried the account name; it is no longer trusted or needed
 if "conta" in st.query_params:
@@ -174,14 +204,15 @@ if "conta" in st.query_params:
 
 # Cooperative room from the link (?sala=CODE), used only if this player is a member of it
 ROOM, ROLE = None, None
-if ONLINE and st.query_params.get("sala"):
+if st.query_params.get("sala"):
     try:
         ROLE = room_role(DB_PATH, st.query_params.get("sala"), PLAYER)
     except StorageError:
         st.error(t("db_down"))
         st.stop()
     if not ROLE:
-        # An invite link (?sala=CODE): join as the contact, or say why not
+        # An invite link (?sala=CODE): join as Player 2, or say why not
+        give_own_code()
         try:
             ROLE = join_room(DB_PATH, st.query_params.get("sala"), PLAYER)
         except RoomError as error:
@@ -205,8 +236,13 @@ def load_saved():
     return saved if saved is not None and is_valid_state(saved) else None
 
 
-def start_new_game(chapter=None):
-    game = new_game(chapter or st.session_state.pending_chapter)
+def start_new_game(chapter=None, memory=None):
+    """A fresh game of a level. memory: what it remembers from the levels before (logic.carried);
+    without it, what this player's endings tell (specs/levels-2-and-3.md)."""
+    chapter = chapter or st.session_state.pending_chapter
+    if memory is None:
+        memory = carried(chapter, endings=player_endings())
+    game = new_game(chapter, carried=memory)
     try:
         save_game(DB_PATH, game, SAVE_KEY)
     except StorageError:
@@ -252,12 +288,17 @@ def open_level(number):
         ask_new_game(level["chapter"])
 
 
-def player_levels():
+def player_endings():
+    """The endings this player has reached (the level map, the prizes for their student)."""
     try:
-        return level_status(endings_reached(DB_PATH, PLAYER))
+        return endings_reached(DB_PATH, PLAYER)
     except StorageError:
         st.session_state.db_error = True
-        return level_status(set())
+        return set()
+
+
+def player_levels():
+    return level_status(player_endings())
 
 
 def record_progress(game):
@@ -268,6 +309,28 @@ def record_progress(game):
             record_ending(DB_PATH, player, game["scene"])
     except StorageError:
         st.session_state.db_error = True
+
+
+def my_look():
+    """This player's student (looks.py): saved in the database, or the default student."""
+    try:
+        return load_look(DB_PATH, PLAYER) or DEFAULT_LOOK
+    except StorageError:
+        st.session_state.db_error = True
+        return DEFAULT_LOOK
+
+
+def save_my_look(value):
+    """The look sent by the menu: checked (only known choices, prizes only once won), then saved."""
+    st.session_state.menu_screen = "look"
+    # Checked before it is saved: anything can arrive from a browser
+    look = clean_look(value, player_endings())
+    try:
+        save_look(DB_PATH, PLAYER, look)
+    except StorageError:
+        st.session_state.db_error = True
+        return
+    st.session_state.look_saved = True
 
 
 def cancel_new_game():
@@ -288,7 +351,7 @@ def choose(action_id, code=None, code_key=None, came_from=None):
     came_from: where the character walked for a choice (the tunnel, the box), to walk back if refused."""
     if not can_act(ROLE):
         # Checked here, where the action happens, not only by hiding buttons
-        st.session_state.message = (False, "Only the agent can act. Help them through the chat.")
+        st.session_state.message = (False, "You cannot act in this room.")
         return
     if code_key is not None:
         code = st.session_state.get(code_key, "")
@@ -380,7 +443,8 @@ def restart_level():
     """Start the current level again (only the agente in a room). Nothing to restart at an ending."""
     game = st.session_state.game
     if game and not is_finished(game) and can_act(ROLE):
-        start_new_game(chapter_of(game))
+        # The same level again, with what it brought from the levels before
+        start_new_game(chapter_of(game), memory=memory_of(game))
 
 
 def following_chapter(game):
@@ -392,9 +456,11 @@ def following_chapter(game):
 
 def continue_to_next_level():
     """At an ending that completes a level the story goes on (the finished game is replaced)."""
-    chapter = following_chapter(st.session_state.game)
+    game = st.session_state.game
+    chapter = following_chapter(game)
     if chapter and can_act(ROLE):
-        start_new_game(chapter)
+        # Tiago's answers and what is still in your pocket go on to the next level
+        start_new_game(chapter, memory=carried(chapter, previous=game, endings=player_endings()))
 
 
 def set_language(lang):
@@ -474,10 +540,12 @@ def run_command(command):
         start_new_game()
     elif name == "cancel_restart":
         cancel_new_game()
-    elif name == "create_room" and ONLINE:
+    elif name == "create_room":
         create_room_clicked()
-    elif name == "join_room" and ONLINE:
+    elif name == "join_room":
         join_code(command.get("code", ""))
+    elif name == "save_look":
+        save_my_look(command.get("look"))
     elif name == "set_language":
         set_language(command.get("lang"))
     elif name == "create_account" and ONLINE:
@@ -495,6 +563,7 @@ def run_command(command):
 
 
 def create_room_clicked():
+    give_own_code()
     try:
         st.query_params["sala"] = create_room(DB_PATH, PLAYER)
     except RoomError as error:
@@ -507,6 +576,7 @@ def create_room_clicked():
 
 
 def join_code(code):
+    give_own_code()
     try:
         join_room(DB_PATH, code, PLAYER)
     except RoomError as error:
@@ -586,6 +656,24 @@ def current_message():
 
 def role_name(role):
     return t(f"role_{role}")
+
+
+def partner_data(game, role):
+    """Co-op: the other student — their look, their name, and where they stand in this place
+    (presence.py), or None before they have moved here. Solo: None."""
+    if not ROOM or not role:
+        return None
+    other = "contacto" if role == "agente" else "agente"
+    try:
+        player = room_members(DB_PATH, ROOM).get(other)
+        look = load_look(DB_PATH, player) if player else None
+    except StorageError:
+        look = None
+    return {
+        "look": look or DEFAULT_LOOK,
+        "name": role_name(other),
+        "at": presence.partner(ROOM, role, room_of(game), time.time()),
+    }
 
 
 def chat_data():
@@ -729,7 +817,6 @@ def view_data(game, role, message, chat):
     """Everything the fullscreen game needs, as plain data. The puzzle codes are never included."""
     scene = SCENES[game["scene"]]
     finished = is_finished(game)
-    watching = role == "contacto"
     subtitle = t("level_n", n=chapter_of(game))
     if ROOM:
         subtitle += f" · {t('room_n', room=ROOM)} · {role_name(role)}"
@@ -740,15 +827,15 @@ def view_data(game, role, message, chat):
         # The clock 23:44 → 00:00 (None for a level without one); Python counts, the browser shows
         "countdown": countdown_data(game, role),
         "background": picture(game),
-        "character": None if finished or watching else (ASSETS_DIR / "character.svg").read_text(encoding="utf-8"),
-        "walk": None if finished or watching else scene["walk"],
+        "character": None if finished else (ASSETS_DIR / "character.svg").read_text(encoding="utf-8"),
+        "walk": None if finished else scene["walk"],
         "x": character_x(game),
-        "spots": [] if finished or watching else [translated_spot(spot) for spot in scene_hotspots(game)],
+        "spots": [] if finished else [translated_spot(spot) for spot in scene_hotspots(game)],
         "looks": [translated_spot(look) for look in scene_looks(game, role)],
-        # Co-op: dark patches over the clues in the agent's picture (only the contacto reads them)
+        # Co-op: dark patches over the clues the other player reads
         "shadows": scene_shadows(game, role),
         # The place as a 3D room (world3d.py), or None: then the 2D picture is drawn
-        "world": world_view(game, role),
+        "world": world_view(game, role, look=my_look()),
         "hud": {
             "title": say(scene["title"]),
             "subtitle": subtitle,
@@ -758,8 +845,11 @@ def view_data(game, role, message, chat):
         },
         # At an ending the card over the picture tells the story; the narration only keeps the last result
         "narration": "" if finished else say(scene_text(game)),
-        "message": None if watching else message,
-        "hint": t("agent_hint") if role == "agente" and not finished else None,
+        "message": message,
+        "hint": t("agent_hint") if role and not finished else None,
+        # Co-op: the other student (their look, name and where they stand), and who this player is
+        "partner": partner_data(game, role),
+        "role": role,
         "clues": None,
         "ending": ending_data(game) if finished else None,
         "chat": chat,
@@ -787,17 +877,19 @@ def view_data(game, role, message, chat):
         "can_restart": not finished and can_act(role),
         "notebook": notebook_data(game),
         # A danger scene: a clock in the picture; when it ends, the browser sends the timeout action
-        "danger": None if finished or watching or "danger" not in scene else dict(scene["danger"]),
+        "danger": None if finished or "danger" not in scene else dict(scene["danger"]),
+        # Co-op: only Player 1's browser sends a danger's timeout, so it is sent once
+        "sends_timeout": role != "contacto",
         "voice_lang": "pt-PT" if LANG == "pt" else "en-GB",
         # A refused action: the character says it and, after a choice, walks back
-        "speech": message["text"] if message and not message["ok"] and not watching else None,
-        "walk_back_from": None if watching else st.session_state.walk_back_from,
+        "speech": message["text"] if message and not message["ok"] else None,
+        "walk_back_from": st.session_state.walk_back_from,
         "dialogue": None,
         # At the laptop (3D): Tiago's post-it on its screen and Rita's next to the keyboard
         "laptop_notes": laptop_notes(game),
     }
     dialogue = st.session_state.dialogue
-    if dialogue and not watching:
+    if dialogue:
         data["dialogue"] = {
             "background": dialogue["background"],
             "phone": say(dialogue["phone"]) if dialogue.get("phone") else None,
@@ -806,14 +898,6 @@ def view_data(game, role, message, chat):
                 for line in dialogue["lines"]
             ],
         }
-    if watching and not finished:
-        clues = [look for look in scene_looks(game, "contacto") if look.get("clue")]
-        data["clues"] = {
-            "title": t("clues_title"),
-            "empty": t("clues_empty"),
-            "items": [{"label": say(look["label"]), "text": say(look["text"])} for look in clues],
-        }
-        data["narration"] = f"{t('contact_intro')} {say(scene_text(game))}"
     # The turn changes with every action, so the same refusal twice still walks back; co-op
     # refreshes keep the same key, so an open conversation is not drawn again
     data["scene_key"] = scene_key(
@@ -829,6 +913,10 @@ def handle_result(result, game=None):
     command = getattr(result, "command", None)
     command = command if isinstance(command, dict) else None
     chat = getattr(result, "chat", None)
+    # Co-op: where this player's student stands, for the other player (no rerun: it is not progress)
+    move = clean_move(getattr(result, "move", None))
+    if move and ROOM and ROLE:
+        presence.report(ROOM, ROLE, move, time.time())
     if action and game:
         st.session_state.character = {"scene": game["scene"], "x": action["x"]}
         choose(action["id"], action["code"], came_from=action["from"])
@@ -851,6 +939,7 @@ def show_fullscreen(game, role=None):
         on_action_change=lambda: None,
         on_command_change=lambda: None,
         on_chat_change=lambda: None,
+        on_move_change=lambda: None,
     )
     handle_result(result, game)
 
@@ -883,10 +972,13 @@ def menu_levels():
 def menu_data(can_continue):
     labels = {key: t(key) for key, value in UI_TEXT.items() if isinstance(value["en"], str) and "{" not in value["en"]}
     account = current_account()
+    look = my_look()
+    endings = player_endings()
     menu = {
         "levels": menu_levels(),
         "account": t("logged_in_as", name=account) if account else None,
         "title": t("game_title"),
+        "subtitle": t("game_subtitle"),
         "tagline": t("tagline"),
         "labels": labels,
         "rules": UI_TEXT["how_to_play_rules"][LANG],
@@ -897,10 +989,16 @@ def menu_data(can_continue):
         "language": LANG,
         "background": svg_data_uri(ART_DIR / "c2_cidade.svg"),
         # Behind the menu, the terrace of the library at night in 3D (the picture above if 3D cannot be drawn)
-        "world": menu_world(),
+        "world": menu_world(look),
         "screen": st.session_state.menu_screen,
+        # Your student: the saved look, every choice of every part, and the prizes this player won
+        "look": look,
+        "parts": PARTS,
+        "prizes": {prize: {"won": ending in endings, "how": t(f"prize_{prize}")} for prize, ending in PRIZES.items()},
+        "look_saved": st.session_state.look_saved,
     }
     st.session_state.menu_screen = "main"
+    st.session_state.look_saved = False
     return {"mode": "menu", "menu": menu, "scene_key": scene_key("menu", menu)}
 
 
@@ -976,27 +1074,6 @@ def show_text_mode(game, role=None):
             show_text_chat()
 
 
-def show_contact_text_mode(game):
-    scene = SCENES[game["scene"]]
-    with st.sidebar:
-        text_mode_header()
-        st.title(say(scene["title"]))
-        st.caption(t("contact_intro"))
-        st.write(say(scene_text(game)))
-        inventory = ", ".join(f"{ITEM_ICONS[item]} {say(ITEMS[item])}" for item in game["inventory"]) or t("empty")
-        st.markdown(f"**{t('agents_inventory')}:** {inventory}")
-        for label in decision_labels(game):
-            st.caption(f"{t('decision')}: {say(label)}")
-        if is_finished(game):
-            st.subheader(t("the_end"))
-            st.markdown(f"**{t('your_path')}:** " + " · ".join(say(step) for step in journey(game)))
-        else:
-            clues = [f"**{say(look['label'])}** — {say(look['text'])}" for look in scene_looks(game, "contacto") if look.get("clue")]
-            st.markdown(f"**{t('clues_title')}**\n\n" + ("\n\n".join(clues) or f"_{t('clues_empty')}_"))
-        st.button(t("leave_room"), key="sair_sala", on_click=leave_room)
-        show_text_chat()
-
-
 def show_text_chat():
     st.subheader(t("room_chat"))
     try:
@@ -1043,9 +1120,6 @@ def show_menu_text_mode(saved, problem):
             st.markdown("\n".join(f"- {rule}" for rule in UI_TEXT["how_to_play_rules"][LANG]))
         show_account_text_mode()
         st.subheader(t("coop"))
-        if not ONLINE:
-            st.caption(t("coop_offline"))
-            return
         st.write(t("coop_text"))
         st.button(t("create_room"), key="criar_sala", on_click=create_room_clicked)
         st.text_input(t("room_code"), key="codigo_sala", max_chars=6, placeholder=t("room_code_placeholder"))
@@ -1128,7 +1202,7 @@ def show_waiting_room():
     st.button(t("leave_room"), key="sair_sala", on_click=leave_room)
 
 
-@st.fragment(run_every=POLL_SECONDS)
+@st.fragment(run_every=ROOM_REFRESH_SECONDS)
 def show_room_game():
     """Both players: the room's game, reloaded from the database every few seconds."""
     try:
@@ -1157,10 +1231,7 @@ def show_room():
         show_waiting_room()
         return
     st.session_state.game = game
-    if ROLE == "agente":
-        show_text_mode(game, ROLE)
-    else:
-        show_contact_text_mode(game)
+    show_text_mode(game, ROLE)
     show_room_game()
 
 

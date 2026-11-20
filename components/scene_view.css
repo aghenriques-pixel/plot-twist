@@ -1194,3 +1194,69 @@ button.chip:hover { border-color: var(--warm); }
   .card3d .card-icon { font-size: 28px; }
   .card3d.placed { width: 120px; }
 }
+
+/* --- The name, and the menu beside your student (specs/student-and-menu.md) ------------- */
+.game-name { display: flex; align-items: center; justify-content: center; gap: 12px; }
+.logo-branch { width: 0.62em; height: 0.75em; color: #ff7b54; fill: #ffd36e; flex: none; }
+.game-subtitle { margin: -2px 0 12px; color: #ffd36e; font: italic 17px/1.3 Georgia, serif; letter-spacing: 0.06em; }
+/* Wide screens: the panel on the left, the student on the terrace on the right */
+@media (min-width: 900px) and (min-aspect-ratio: 1/1) {
+  .menu-mode[data-screen="main"], .menu-mode[data-screen="look"] { align-items: flex-start; padding-left: 6vw; }
+  .menu-mode[data-screen="main"] .menu-panel { width: min(420px, 40vw); text-align: left; }
+  .menu-mode[data-screen="main"] .game-name { justify-content: flex-start; }
+  .menu-mode[data-screen="look"] .menu-panel { width: min(470px, 44vw); text-align: left; }
+}
+/* Tall screens (a phone): the panel at the bottom, the student above it */
+@media (max-aspect-ratio: 1/1) {
+  .menu-mode[data-screen="look"] { justify-content: flex-end; }
+  .menu-mode[data-screen="look"] .menu-panel { max-height: 58vh; border-radius: 20px 20px 0 0; }
+}
+.look-rows { display: grid; gap: 4px; margin: 6px 0 8px; }
+.look-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 5px 4px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+.look-part { font: 14px/1.2 sans-serif; color: rgba(255, 244, 220, 0.85); }
+.look-picker { display: flex; align-items: center; gap: 6px; }
+.look-choice { min-width: 150px; text-align: center; font: 14px/1.2 sans-serif; color: #fff4dc; }
+.look-arrow, .look-dot { cursor: pointer; border: 1px solid rgba(255, 255, 255, 0.3); color: #fff4dc; }
+.look-arrow { width: 30px; height: 30px; border-radius: 50%; background: rgba(255, 255, 255, 0.08); font: bold 18px/1 sans-serif; }
+.look-arrow:hover { background: rgba(255, 211, 110, 0.25); }
+.look-dots { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+.look-dot { width: 24px; height: 24px; border-radius: 50%; padding: 0; box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.25); }
+.look-dot.on { outline: 3px solid #ffd36e; outline-offset: 2px; }
+.look-note { min-height: 1.2em; margin: 4px 0; font: 13px/1.35 sans-serif; color: #ffd36e; }
+.look-actions { display: flex; gap: 8px; }
+.look-actions .menu-item { margin: 4px 0; }
+.look-actions .menu-item:disabled { opacity: 0.45; cursor: not-allowed; }
+.look-saved { margin: 4px 0; font: bold 14px/1.3 sans-serif; color: #7ee2a8; animation: fade-in 0.4s ease-out; }
+@media (max-width: 640px) {
+  .look-choice { min-width: 110px; font-size: 13px; }
+  .look-dot { width: 22px; height: 22px; }
+}
+
+/* --- Co-op: your friend's name over their student (specs/coop-two-students.md) ---------- */
+.partner-name {
+  position: absolute; z-index: 4; transform: translate(-50%, -100%); pointer-events: none;
+  padding: 3px 10px; border-radius: 999px; white-space: nowrap;
+  background: rgba(16, 10, 40, 0.78); border: 1px solid rgba(126, 226, 168, 0.6);
+  color: #b9f6ca; font: bold 12px/1.3 sans-serif; letter-spacing: 0.03em;
+}
+
+/* --- Levels 2 and 3: the new items as the real things (specs/levels-2-and-3.md) --------- */
+.real.notebook { width: 230px; padding: 16px 18px; border-radius: 6px 14px 14px 6px; background: repeating-linear-gradient(#fbf7ea 0 26px, #c9d8ef 26px 27px); border-left: 14px solid #2f7d5b; color: #1d2a44; box-shadow: 0 14px 30px rgba(0,0,0,.45); text-align: left; }
+.notebook-title { font: italic bold 17px/1.4 'Segoe Print', 'Bradley Hand', cursive; color: #c8343a; margin-bottom: 6px; }
+.notebook-code { display: block; font: 13px/27px 'Courier New', monospace; white-space: pre; }
+.notebook-sign { margin-top: 6px; text-align: right; font: italic 16px/1.4 'Segoe Print', 'Bradley Hand', cursive; }
+.real.print { width: 270px; padding: 16px 16px 22px; background: #ffffff; color: #111827; border-radius: 3px; box-shadow: 0 14px 30px rgba(0,0,0,.45); text-align: left; transform: rotate(-2deg); }
+.print-title { font: bold 14px/1.4 sans-serif; border-bottom: 1px solid #d1d5db; padding-bottom: 6px; margin-bottom: 8px; }
+.print-line { display: block; font: 12px/1.7 'Courier New', monospace; white-space: pre; }
+.print-line:nth-child(3), .print-line:nth-child(4) { background: rgba(255, 214, 90, .5); }
+.real.key { position: relative; width: 190px; height: 120px; }
+.key-ring { position: absolute; left: 10px; top: 30px; width: 54px; height: 54px; border-radius: 50%; border: 12px solid #d7b24a; box-sizing: border-box; }
+.key-blade { position: absolute; left: 60px; top: 51px; width: 110px; height: 12px; background: linear-gradient(90deg, #d7b24a, #b8902e); clip-path: polygon(0 0, 100% 0, 100% 100%, 85% 100%, 85% 160%, 72% 100%, 60% 100%, 60% 170%, 48% 100%, 0 100%); }
+.key-tag { position: absolute; left: 0; top: 92px; padding: 3px 8px; background: #c8343a; color: #fff; font: bold 12px/1.3 sans-serif; border-radius: 4px; transform: rotate(-6deg); }
+.real.laptop_item { position: relative; width: 220px; height: 150px; }
+.laptop-lid { height: 110px; border-radius: 8px 8px 0 0; background: linear-gradient(135deg, #1d3c8f, #c8343a); border: 6px solid #9aa0a8; display: grid; place-items: center; font-size: 46px; }
+.laptop-base { height: 12px; margin: 0 -14px; background: #9aa0a8; border-radius: 0 0 10px 10px; }
+.laptop-tag { margin-top: 8px; font: 12px/1.3 sans-serif; color: #fff4dc; }
+/* Looking at a thing that is also used (PC 7): its action, with the E key */
+.inspect3d .inspect-act { background: linear-gradient(90deg, #e63946, #ff7b54); border-color: transparent; color: #fff; font-weight: bold; }
+.inspect3d .inspect-act kbd { padding: 0 6px; margin-right: 2px; border-radius: 4px; background: rgba(255, 255, 255, 0.25); font: bold 12px/1.4 sans-serif; }

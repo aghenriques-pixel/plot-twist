@@ -30,6 +30,8 @@ BRUNO = "bruno_bbbbbbbbbbbbbbbbbbbbbb"
 CARLA = "carla_cccccccccccccccccccccc"
 # Level 1 "Submission at 23:59": the clues only the contact can read
 CLUES = {"Whiteboard", "Note on the floor", "Emergency plan", "Menu board"}
+# Levels 2 and 3 (specs/levels-2-and-3.md)
+CLUES |= {"Plaque under the letters", "Notice board", "IT whiteboard"}
 # Chapter 2 adds four clue looks (specs/chapter-2.md)
 # Added (specs/level-3.md): the clues of level 3
 
@@ -134,11 +136,11 @@ def test_every_clue_look_is_marked():
     assert marked == CLUES
 
 
-# Done when 4: only the agent acts
-def test_only_the_agent_and_solo_players_can_act():
+# Done when 4: who acts. Changed for specs/coop-two-students.md: both students act now
+def test_solo_players_and_both_students_can_act():
     assert can_act(None)
     assert can_act("agente")
-    assert not can_act("contacto")
+    assert can_act("contacto")
 
 
 # Done when 5: chat

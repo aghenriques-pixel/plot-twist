@@ -5,9 +5,12 @@
 Every query filters by `player`, so one player can never read or change another's save.
 """
 
+import json
 import sqlite3
 from contextlib import contextmanager
 from pathlib import Path
+
+from looks import PRIZES, clean_look
 
 DEFAULT_DB_PATH = Path(__file__).parent / "data" / "game.db"
 # Seconds to wait for a hosted database before giving up (the app then shows a message)
@@ -30,6 +33,8 @@ TABLES = [
     "CREATE TABLE IF NOT EXISTS level_progress (player TEXT NOT NULL, ending TEXT NOT NULL, PRIMARY KEY (player, ending))",
     # Accounts (accounts.py): only a salted hash of the password is stored
     "CREATE TABLE IF NOT EXISTS accounts (username TEXT PRIMARY KEY, salt TEXT NOT NULL, hash TEXT NOT NULL, player TEXT NOT NULL)",
+    # What each player's student looks like (looks.py): one row per player, a JSON of known choices
+    "CREATE TABLE IF NOT EXISTS looks (player TEXT PRIMARY KEY, look TEXT NOT NULL)",
 ]
 
 
@@ -166,3 +171,26 @@ def endings_reached(target, player):
         return set()
     with transaction(target) as db:
         return {ending for (ending,) in db.run("SELECT ending FROM level_progress WHERE player = ?", (player,))}
+
+
+def save_look(target, player, look):
+    """Replace this player's look (already checked by looks.clean_look)."""
+    with transaction(target) as db:
+        db.run("DELETE FROM looks WHERE player = ?", (player,))
+        db.run("INSERT INTO looks (player, look) VALUES (?, ?)", (player, json.dumps(look, sort_keys=True)))
+
+
+def load_look(target, player):
+    """This player's look, checked again (a row could be from an older version), or None.
+    A prize in it stays: it was checked when it was saved, and an ending is never taken away."""
+    if not is_postgres(target) and not Path(target).exists():
+        return None
+    with transaction(target) as db:
+        row = db.run("SELECT look FROM looks WHERE player = ?", (player,)).fetchone()
+    if row is None:
+        return None
+    try:
+        stored = json.loads(row[0])
+    except ValueError:
+        stored = None
+    return clean_look(stored, endings=set(PRIZES.values()))

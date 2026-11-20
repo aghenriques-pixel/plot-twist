@@ -20,6 +20,8 @@ How an action works (logic.apply_action):
   lock                  how a code is typed in 3D: "padlock", "keypad", "login" or "wifi"
 A look ("looks") has a "text" (the 2D picture and the text mode), a "face" (what is written on the
 real thing, shown close up in 3D) and maybe a "remark" (what the character says while looking).
+A clue ("clue": True) is read by one player in co-op: its "reader", "agente" (Player 1) or
+"contacto" (Player 2); the other sees it dark.
 Names of decisions that start with "_" are progress the player never sees as a decision.
 """
 
@@ -113,7 +115,7 @@ SCENES = {
                          "sign": "— Tiago"},
             },
             {
-                "label": "Whiteboard", "clue": True, "x": 560, "y": 70, "w": 200, "h": 110, "stand": 650,
+                "label": "Whiteboard", "clue": True, "reader": "contacto", "x": 560, "y": 70, "w": 200, "h": 110, "stand": 650,
                 "text": "Someone left a Python exercise on the board:  x = 4  ·  y = x * 3 + 1  ·  print(y)",
                 "face": {"kind": "whiteboard", "title": "Exercise", "_lines": ["x = 4", "y = x * 3 + 1", "print(y)"]},
             },
@@ -147,14 +149,14 @@ SCENES = {
         },
         "looks": [
             {
-                "label": "Note on the floor", "clue": True, "x": 250, "y": 320, "w": 70, "h": 40, "stand": 285,
+                "label": "Note on the floor", "clue": True, "reader": "agente", "x": 250, "y": 320, "w": 70, "h": 40, "stand": 285,
                 "text": "A crumpled note: “Rita, your locker PIN is your student card number backwards. "
                 "DON'T LOSE THE CARD! — Mum”",
                 "face": {"kind": "note", "text": "Rita, your locker PIN is your student card number backwards.",
                          "shout": "DON'T LOSE THE CARD!", "sign": "— Mum ♥"},
             },
             {
-                "label": "Emergency plan", "clue": True, "x": 470, "y": 90, "w": 80, "h": 90, "stand": 510,
+                "label": "Emergency plan", "clue": True, "reader": "contacto", "x": 470, "y": 90, "w": 80, "h": 90, "stand": 510,
                 "text": "“You are here ●. Exit to the terrace: Door 3.14.”",
                 "face": {"kind": "plan", "title": "EMERGENCY PLAN", "here": "You are here", "exit": "Exit to the terrace",
                          "door": "Door 3.14", "stairs": "Stairs", "lockers": "Lockers"},
@@ -194,7 +196,7 @@ SCENES = {
         },
         "looks": [
             {
-                "label": "Menu board", "clue": True, "x": 300, "y": 70, "w": 180, "h": 100, "stand": 390,
+                "label": "Menu board", "clue": True, "reader": "agente", "x": 300, "y": 70, "w": 180, "h": 100, "stand": 390,
                 "text": "“Bica €0.70 · Meia de leite €1.10 · Galão €1.20 — Terrace Wi-Fi password: the cheapest "
                 "coffee + its price, no comma.”",
                 "face": {"kind": "menu", "title": "MENU", "_coffees": ["Bica", "Meia de leite", "Galão"],
@@ -584,3 +586,34 @@ SCENE_MUSIC = {
 LEVEL_MUSIC = {1: "archive"}
 # Endings where the submission fails
 DEFEATS = {"final_meia_noite", "final_afogado", "final_seguranca"}
+
+# --- Levels 2 and 3 (specs/levels-2-and-3.md): each in its own file, added to the dicts above ----
+
+import story2  # noqa: E402
+import story3  # noqa: E402
+
+for _level in (story2, story3):
+    CHAPTER_STARTS[_level.CHAPTER] = _level.START
+    COUNTDOWN[_level.CHAPTER] = _level.COUNTDOWN
+    ITEMS.update(_level.ITEMS)
+    ITEM_DETAILS.update(_level.ITEM_DETAILS)
+    ITEM_FACES.update(_level.ITEM_FACES)
+    ITEM_ICONS.update(_level.ITEM_ICONS)
+    DECISION_LABELS.update(_level.DECISION_LABELS)
+    SCENES.update(_level.SCENES)
+    ACTIONS.update(_level.ACTIONS)
+    HINTS.extend(_level.HINTS)
+    SCENE_MUSIC.update(_level.SCENE_MUSIC)
+    LEVEL_MUSIC[_level.CHAPTER] = _level.LEVEL_MUSIC
+    DEFEATS |= _level.DEFEATS
+
+# The ending when a level's clock runs out
+TIME_UP_ENDINGS = {1: TIME_UP_ENDING, story2.CHAPTER: story2.TIME_UP_ENDING, story3.CHAPTER: story3.TIME_UP_ENDING}
+
+# What a level remembers from the levels before it (logic.carried): Tiago's answers, and what is
+# still in your pocket. A level opened without that memory starts with Tiago left out.
+CARRIED = {
+    2: {"decisions": ("tiago",), "items": ()},
+    3: {"decisions": ("tiago", "tiago9"), "items": ("impressao", "caderno_rita")},
+}
+CARRIED_DEFAULTS = {2: {"tiago": "excluido"}, 3: {"tiago": "excluido"}}

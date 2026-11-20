@@ -71,8 +71,9 @@ def test_both_players_see_the_same_scene_with_their_role(db):
 
     assert agent.title[0].value == "Study Room B"
     assert contact.title[0].value == "Study Room B"
+    # Both students act (specs/coop-two-students.md; before, only the agent had buttons)
     assert "apanhar_casaco" in button_keys(agent)
-    assert "apanhar_casaco" not in button_keys(contact)
+    assert "apanhar_casaco" in button_keys(contact)
 
 
 def test_clues_are_only_on_the_contact_screen(db):
