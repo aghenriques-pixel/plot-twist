@@ -430,7 +430,7 @@ def apply_action(state, action_id, code=None, roll=None, now=None):
 
     if "rejects" in action:
         return refuse(state, action, action["rejects"], now)
-    if "requires" in action and action["requires"] not in state["inventory"]:
+    if "requires" in action and not has_items(state, action["requires"]):
         return False, copy_state(state), action["blocked_message"]
     if "needs_decision" in action and action["needs_decision"] not in state["decisions"]:
         return refuse(state, action, action.get("decision_message", action.get("blocked_message")), now)

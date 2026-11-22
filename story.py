@@ -8,7 +8,7 @@ How an action works (logic.apply_action):
   label / say           its button / the line the player says (a choice in a conversation)
   talk                  groups choices into one conversation with that character or thing
   gives                 an item, or a tuple of items
-  requires              an item it needs (blocked_message otherwise)
+  requires              an item it needs, or a tuple of items (blocked_message otherwise)
   code                  what must be typed (wrong_code_message otherwise)
   decides               (name, value) remembered for later
   needs_decision        a decision it needs (decision_message otherwise)
@@ -37,6 +37,7 @@ TIME_UP_ENDING = "final_meia_noite"
 ITEMS = {
     "cartao_jogador": "Your student card",
     "casaco": "Coat",
+    "portatil_l1": "Your laptop",
     "cartao_rita": "Rita's student card",
     "pen_drive": "Rita's pen drive",
     "carregador": "Charger",
@@ -46,6 +47,7 @@ ITEMS = {
 ITEM_DETAILS = {
     "cartao_jogador": "Opens the doors after 11 p.m.",
     "casaco": "Waterproof. Bought in the sales.",
+    "portatil_l1": "Dead: 0%. It needs the charger and a socket that works.",
     "cartao_rita": "Rita Almeida — no. 48213.",
     "pen_drive": "Four files with very similar names…",
     "carregador": "USB-C. Same as yours.",
@@ -57,6 +59,7 @@ ITEM_DETAILS = {
 ITEM_FACES = {
     "cartao_jogador": {"kind": "card", "name": "Student", "_number": "52731", "note": "Opens the doors after 11 p.m."},
     "casaco": {"kind": "coat", "tag": "Waterproof. Bought in the sales."},
+    "portatil_l1": {"kind": "laptop_item", "tag": "Dead: 0%. It needs the charger and a socket that works."},
     "cartao_rita": {"kind": "card", "_name": "Rita Almeida", "_number": "48213", "note": "Opens the doors after 11 p.m."},
     "pen_drive": {"kind": "usb", "_label": "RITA", "tag": "4 files"},
     "carregador": {"kind": "charger", "_label": "USB-C", "tag": "Same as yours."},
@@ -67,6 +70,7 @@ ITEM_FACES = {
 ITEM_ICONS = {
     "cartao_jogador": "💳",
     "casaco": "🧥",
+    "portatil_l1": "💻",
     "cartao_rita": "🪪",
     "pen_drive": "💾",
     "carregador": "🔌",
@@ -87,13 +91,12 @@ SCENES = {
         "title": "Study Room B",
         "walk": WALK,
         "text": (
-            "Study Room B, 23:44. Tiago is asleep on top of a Finance textbook. Your laptop is at 3% "
-            "and shows a login screen."
+            "Study Room B, 23:44. Tiago is asleep on top of a Finance textbook. Your laptop is dead: "
+            "not even 1% left."
         ),
         "text_after": {
             "casaco": (
-                "Study Room B. Tiago is asleep again, or pretending to be. Your laptop is no use until "
-                "you find a socket that works."
+                "Study Room B. Tiago is asleep again, or pretending to be."
             ),
         },
         "looks": [
@@ -108,9 +111,9 @@ SCENES = {
             },
             {
                 "label": "Laptop", "x": 210, "y": 240, "w": 100, "h": 60, "stand": 260,
-                "text": "3%. A login screen, with a post-it stuck on it: “Changed your password 😜 It's the "
-                "answer to the exercise on the board. — Tiago”",
-                "face": {"kind": "laptop", "_battery": "3%", "login": "Password", "low": "Low battery",
+                "text": "Dead: a black screen and an empty battery. It won't even turn on without a charger. A "
+                "post-it stuck on it: “Changed your password 😜 It's the answer to the exercise on the board. — Tiago”",
+                "face": {"kind": "laptop", "_battery": "0%", "_dead": True, "login": "Password", "low": "No battery",
                          "postit": "Changed your password 😜 It's the answer to the exercise on the board.",
                          "sign": "— Tiago"},
             },
@@ -163,10 +166,10 @@ SCENES = {
             },
             {
                 "label": "Snack machine", "x": 600, "y": 120, "w": 80, "h": 200, "stand": 640,
-                "text": "Sold out of everything except one sad bag of crisps. Big enough to hide behind.",
+                "text": "Sold out of everything except one sad bag of crisps.",
                 "face": {"kind": "snacks", "sold": "SOLD OUT"},
                 # What the character thinks aloud while looking at it
-                "remark": "Sold out of everything except one sad bag of crisps. Big enough to hide behind.",
+                "remark": "Sold out of everything except one sad bag of crisps.",
             },
         ],
     },
@@ -185,7 +188,7 @@ SCENES = {
         },
     },
     "cafetaria": {
-        "title": "Cafeteria (closed)",
+        "title": "Cafeteria — 1st floor (closed)",
         "walk": WALK,
         "text": (
             "The chairs are upside down on the tables. Only the coffee machine is lit. On a table, an empty "
@@ -295,6 +298,13 @@ ACTIONS = {
         "message": "You put your coat on. In the pocket: your student card.",
         "hotspot": {"x": 40, "y": 190, "w": 70, "h": 120, "stand": 90},
     },
+    "apanhar_portatil": {
+        "scene": "sala_estudo",
+        "label": "Take your laptop",
+        "gives": "portatil_l1",
+        "message": "You put the dead laptop in your bag. It needs Rita's charger — and a socket that works.",
+        "hotspot": {"x": 210, "y": 240, "w": 100, "h": 60, "stand": 260},
+    },
     "tiago_incluido": {
         "scene": "sala_estudo",
         "talk": "tiago",
@@ -344,9 +354,9 @@ ACTIONS = {
     },
     "ir_cafetaria": {
         "scene": "corredor",
-        "label": "Go to the cafeteria",
+        "label": "Go up to the cafeteria (1st floor)",
         "goes_to": "cafetaria",
-        "message": "You take the big staircase up to the cafeteria.",
+        "message": "You take the big staircase up to the 1st floor, to the cafeteria.",
         "hotspot": {"x": 360, "y": 110, "w": 90, "h": 200, "stand": 400},
     },
     "abrir_terraco": {
@@ -371,10 +381,10 @@ ACTIONS = {
     "esconder_maquina": {
         "scene": "corredor_ronda",
         "talk": "seguranca",
-        "say": "Hide behind the snack machine",
+        "say": "Hide behind the staircase",
         "decides": ("ronda", "escondido"),
         "goes_to": "corredor",
-        "message": "You squeeze behind the snack machine. The torch passes… and the footsteps fade away.",
+        "message": "You crouch in the dark behind the staircase. The torch passes over your head… and the footsteps fade away.",
     },
     "correr_sala": {
         "scene": "corredor_ronda",
@@ -401,7 +411,7 @@ ACTIONS = {
     # The first time back, the security guard is doing his round
     "voltar_corredor_ronda": {
         "scene": "cafetaria",
-        "label": "Back to the corridor",
+        "label": "Back down to the corridor",
         "only_without_decision": "ronda",
         "goes_to": "corredor_ronda",
         "message": "As you reach the corridor, you hear footsteps.",
@@ -409,7 +419,7 @@ ACTIONS = {
     },
     "voltar_corredor": {
         "scene": "cafetaria",
-        "label": "Back to the corridor",
+        "label": "Back down to the corridor",
         "only_if": ("ronda", "escondido"),
         "goes_to": "corredor",
         "message": "The corridor is quiet again.",
@@ -419,10 +429,10 @@ ACTIONS = {
     "ligar_portatil": {
         "scene": "terraco",
         "label": "Plug in your laptop",
-        "requires": "carregador",
-        "blocked_message": "Your laptop is at 3% and you have no charger.",
+        "requires": ("portatil_l1", "carregador"),
+        "blocked_message": "You need your laptop (in Study Room B) and the charger (in Rita's locker).",
         "goes_to": "terraco_rega",
-        "message": "The laptop starts charging…",
+        "message": "The laptop starts charging… and comes back to life.",
         "hotspot": {"x": 330, "y": 200, "w": 160, "h": 120, "stand": 400},
     },
     "voltar_dentro": {
@@ -468,10 +478,20 @@ ACTIONS = {
         "message": "Welcome.",
         "hotspot": {"x": 330, "y": 200, "w": 160, "h": 100, "stand": 400},
     },
+    "inserir_pen": {
+        "scene": "portatil",
+        "label": "Plug in Rita's pen drive",
+        "only_if": ("_portatil", "desbloqueado"),
+        "requires": "pen_drive",
+        "blocked_message": "You need Rita's pen drive, from her locker.",
+        "decides": ("_pen", "inserida"),
+        "message": "Ding! The pen drive opens: four files with very similar names…",
+        "hotspot": {"x": 470, "y": 230, "w": 70, "h": 50, "stand": 500},
+    },
     "ficheiro_final": {
         "scene": "portatil",
         "talk": "pen",
-        "only_if": ("_portatil", "desbloqueado"),
+        "only_if": ("_pen", "inserida"),
         "only_without_decision": "_ficheiro",
         "say": "trabalho_final.py",
         "rejects": "3 tests failed.",
@@ -480,7 +500,7 @@ ACTIONS = {
     "ficheiro_final_final": {
         "scene": "portatil",
         "talk": "pen",
-        "only_if": ("_portatil", "desbloqueado"),
+        "only_if": ("_pen", "inserida"),
         "only_without_decision": "_ficheiro",
         "say": "trabalho_final_FINAL.py",
         "rejects": "SyntaxError on line 1.",
@@ -489,7 +509,7 @@ ACTIONS = {
     "ficheiro_final_mesmo": {
         "scene": "portatil",
         "talk": "pen",
-        "only_if": ("_portatil", "desbloqueado"),
+        "only_if": ("_pen", "inserida"),
         "only_without_decision": "_ficheiro",
         "say": "trabalho_final_FINAL_mesmo.py",
         "rejects": "That's the one for Marketing.",
@@ -498,7 +518,7 @@ ACTIONS = {
     "ficheiro_v3": {
         "scene": "portatil",
         "talk": "pen",
-        "only_if": ("_portatil", "desbloqueado"),
+        "only_if": ("_pen", "inserida"),
         "only_without_decision": "_ficheiro",
         "say": "trabalho_final_v3.py",
         "decides": ("_ficheiro", "v3"),
@@ -553,21 +573,24 @@ ACTIONS = {
 # Each can ask for: scene, has (an item), lacks (an item), decided / undecided (a decision's name).
 HINTS = [
     {"scene": "sala_estudo", "lacks": "cartao_jogador", "text": "Students always keep their card in their coat."},
+    {"scene": "sala_estudo", "lacks": "portatil_l1", "text": "Take your laptop with you: you will charge it somewhere."},
     {"scene": "sala_estudo", "text": "Rita's locker is in the corridor. The door opens with your card."},
     {"scene": "corredor", "lacks": "cartao_rita", "undecided": "conversa_rita",
      "text": "Look at the floor, by the locker. And if the card is not here, ask its owner."},
     {"scene": "corredor", "lacks": "cartao_rita", "text": "Rita left her card in the cafeteria."},
     {"scene": "corredor", "lacks": "pen_drive", "text": "Read the number on Rita's card from back to front."},
     {"scene": "corredor", "text": "The emergency plan shows the terrace door's number. Without the dot."},
-    {"scene": "corredor_ronda", "text": "Is there anything big enough to hide behind?"},
+    {"scene": "corredor_ronda", "text": "He is coming down the stairs. What about the dark space behind them?"},
     {"scene": "cafetaria", "lacks": "cartao_rita", "text": "Look on the tables."},
     {"scene": "cafetaria", "text": "Read the menu board before you go: you will need it later."},
+    {"scene": "terraco", "lacks": "portatil_l1", "text": "Your laptop is still on your desk in Study Room B."},
     {"scene": "terraco", "lacks": "carregador", "text": "Your laptop needs the charger from Rita's locker."},
     {"scene": "terraco", "text": "Remember the sign by the door… and what you are wearing."},
     {"scene": "terraco_rega", "text": "What are you wearing?"},
     # There is no way back from the laptop, so its hints repeat the clue the player may have missed
     {"scene": "portatil", "undecided": "_portatil",
      "text": "Tiago's exercise on the board: x = 4, then y = x * 3 + 1. Work it out line by line."},
+    {"scene": "portatil", "undecided": "_pen", "text": "The code is on Rita's pen drive: plug it in."},
     {"scene": "portatil", "undecided": "_ficheiro", "text": "Rita said which version is the good one: the one that passes the tests."},
     {"scene": "portatil", "undecided": "_wifi",
      "text": "The menu: Bica €0.70 · Meia de leite €1.10 · Galão €1.20. The cheapest one, its name and its price, no comma."},

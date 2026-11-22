@@ -236,6 +236,39 @@ STORY_PT.update(
     }
 )
 
+# --- Level 1: the dead laptop, the cafeteria upstairs, the staircase (specs/level1-laptop-and-notes.md)
+STORY_PT.update({
+    "Your laptop": "O teu portátil",
+    "Dead: 0%. It needs the charger and a socket that works.": "Sem bateria: 0%. Precisa do carregador e de uma tomada que funcione.",
+    "Study Room B, 23:44. Tiago is asleep on top of a Finance textbook. Your laptop is dead: not even 1% left.":
+        "Sala de estudo B, 23:44. O Tiago está a dormir em cima de um livro de Finanças. O teu portátil está morto: nem 1% de bateria.",
+    "Study Room B. Tiago is asleep again, or pretending to be.": "Sala de estudo B. O Tiago voltou a adormecer, ou finge que sim.",
+    "Dead: a black screen and an empty battery. It won't even turn on without a charger. A post-it stuck on it: “Changed your password 😜 It's the answer to the exercise on the board. — Tiago”":
+        "Sem bateria: ecrã preto e a pilha vazia. Nem liga sem carregador. Tem um post-it colado: “Mudei a tua password 😜 É a resposta ao exercício do quadro. — Tiago”",
+    "No battery": "Sem bateria",
+    "Take your laptop": "Levar o teu portátil",
+    "You put the dead laptop in your bag. It needs Rita's charger — and a socket that works.":
+        "Metes o portátil sem bateria na mochila. Precisa do carregador da Rita — e de uma tomada que funcione.",
+    "You need your laptop (in Study Room B) and the charger (in Rita's locker).":
+        "Precisas do teu portátil (na sala de estudo B) e do carregador (no cacifo da Rita).",
+    "The laptop starts charging… and comes back to life.": "O portátil começa a carregar… e volta à vida.",
+    "Plug in Rita's pen drive": "Ligar a pen da Rita",
+    "You need Rita's pen drive, from her locker.": "Precisas da pen da Rita, que está no cacifo dela.",
+    "Ding! The pen drive opens: four files with very similar names…": "Ding! A pen abre: quatro ficheiros com nomes muito parecidos…",
+    "Cafeteria — 1st floor (closed)": "Cafetaria — 1.º piso (fechada)",
+    "Go up to the cafeteria (1st floor)": "Subir à cafetaria (1.º piso)",
+    "You take the big staircase up to the 1st floor, to the cafeteria.": "Sobes a escadaria grande até ao 1.º piso, à cafetaria.",
+    "Back down to the corridor": "Descer para o corredor",
+    "Sold out of everything except one sad bag of crisps.": "Esgotada de tudo menos de um triste pacote de batatas fritas.",
+    "Hide behind the staircase": "Esconder-te atrás das escadas",
+    "You crouch in the dark behind the staircase. The torch passes over your head… and the footsteps fade away.":
+        "Agachas-te no escuro atrás das escadas. A lanterna passa-te por cima da cabeça… e os passos afastam-se.",
+    "He is coming down the stairs. What about the dark space behind them?": "Ele vem a descer as escadas. E o espaço escuro atrás delas?",
+    "Take your laptop with you: you will charge it somewhere.": "Leva o portátil contigo: vais carregá-lo noutro sítio.",
+    "Your laptop is still on your desk in Study Room B.": "O teu portátil ficou na tua mesa, na sala de estudo B.",
+    "The code is on Rita's pen drive: plug it in.": "O código está na pen da Rita: liga-a.",
+})
+
 # --- Levels 2 and 3 (story2.py, story3.py; specs/levels-2-and-3.md) -----------------------------
 STORY_PT.update({
     # Level 2 — the atrium
@@ -689,6 +722,7 @@ UI_TEXT = {
     "lap_login": {"en": "Log in", "pt": "Entrar"},
     "lap_usb": {"en": "RITA (E:) — pen drive", "pt": "RITA (E:) — pen drive"},
     "lap_open_hint": {"en": "Click a file to run its tests", "pt": "Clica num ficheiro para correr os testes"},
+    "lap_plug_hint": {"en": "No USB device. The code is on Rita's pen drive.", "pt": "Nenhum dispositivo USB. O código está na pen da Rita."},
     "lap_tests": {"en": "Running the tests…", "pt": "A correr os testes…"},
     "lap_wifi": {"en": "Wi-Fi networks", "pt": "Redes Wi-Fi"},
     "lap_connect": {"en": "Connect", "pt": "Ligar"},

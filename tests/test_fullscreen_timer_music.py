@@ -100,7 +100,7 @@ def test_no_reachable_state_is_a_dead_end(chapter):
 # Done when 2 (the new level): the laptop's hints repeat the clues there is no way back to
 def test_the_laptop_hints_repeat_the_clues():
     assert "x * 3 + 1" in hint_for({"scene": "portatil", "inventory": [], "decisions": {}})
-    assert "Bica €0.70" in hint_for({"scene": "portatil", "inventory": [], "decisions": {"_portatil": "x", "_ficheiro": "v3"}})
+    assert "Bica €0.70" in hint_for({"scene": "portatil", "inventory": [], "decisions": {"_portatil": "x", "_pen": "x", "_ficheiro": "v3"}})
 
 
 # Done when 3

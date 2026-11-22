@@ -695,13 +695,16 @@ function phoneOverlay(dialogue, data) {
   phone.append(head, list);
   overlay.append(phone, next);
   let index = -1;
+  const close = () => {
+    overlay.classList.add("closing");
+    setTimeout(() => overlay.remove(), 400);
+  };
   function nextLine() {
     index += 1;
-    if (index >= dialogue.lines.length) {
-      overlay.classList.add("closing");
-      setTimeout(() => overlay.remove(), 400);
-      return;
-    }
+    if (index >= dialogue.lines.length) return close();
+    // The answers arrive by themselves, a moment later ("typing…"): no key to press
+    // (specs/level1-laptop-and-notes.md); the button then closes the phone
+    if (index + 1 < dialogue.lines.length) setTimeout(() => overlay.isConnected && index < dialogue.lines.length - 1 && nextLine(), 1300);
     const line = dialogue.lines[index];
     const mine = line.speaker === "you";
     const bubble = el("div", mine ? "phone-bubble mine" : "phone-bubble");
@@ -716,7 +719,7 @@ function phoneOverlay(dialogue, data) {
     }
     Sound.click();
   }
-  next.onclick = () => nextLine();
+  next.onclick = () => (index >= dialogue.lines.length - 1 ? close() : nextLine());
   setTimeout(nextLine, 250);
   return overlay;
 }
@@ -1458,6 +1461,7 @@ function openLaptop(stage, data, setTriggerValue) {
   const state = data.world.laptop;
   const spots = data.spots;
   const login = spots.find((s) => s.lock === "login");
+  const plug = spots.find((s) => s.action === "inserir_pen");
   const pen = spots.find((s) => s.talk === "pen");
   const wifi = spots.find((s) => s.lock === "wifi");
   const terminal = spots.find((s) => s.talk === "terminal");
@@ -1510,6 +1514,17 @@ function openLaptop(stage, data, setTriggerValue) {
       if (tiago) lid.append(realThing({ kind: "postit", text: tiago.postit, sign: tiago.sign }, "screen-note"));
       if (message && !message.ok) toast(message.text, false);
       setTimeout(() => input.focus(), 50);
+    } else if (plug) {
+      // Logged in: the desktop is empty until Rita's pen drive goes in the USB port
+      const w = windowBox(`🔌 USB`, "small");
+      w.append(el("p", "laptop-help", L.lap_plug_hint));
+      const go = el("button", "laptop-button", `💾 ${plug.label}`);
+      go.onclick = () => {
+        Sound.click();
+        act(plug.action, plug);
+      };
+      w.append(go);
+      if (message) toast(message.text, message.ok);
     } else if (pen) {
       // The pen drive: four files; clicking one runs its tests
       const w = windowBox(`📁 ${L.lap_usb}`);
