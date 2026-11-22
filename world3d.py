@@ -73,7 +73,8 @@ ROOMS_3D = {
             {"kind": "whiteboard", "wall": "back", "at": [5.2, -5.5], "plain": True},
             {"kind": "lectern", "at": [5.7, -4.5]},
             at_desk(2, -0.62, "tiago_sleeping", talk="tiago"),
-            at_desk(2, -0.33, "laptop", look="Laptop"),
+            # Your laptop, dead: look at it, and take it (it goes once taken)
+            at_desk(2, -0.33, "laptop", look="Laptop", action="apanhar_portatil", only_while_offered=True),
             at_desk(2, -0.25, "phone", look="Phone"),
             {"kind": "chair_coat", "at": on_arc(12.0, -0.14, 0.75), "turn": -0.14, "stand": on_arc(12.0, -0.14, 1.5),
              "action": "apanhar_casaco", "stays_empty": True},
@@ -209,7 +210,7 @@ ROOMS_3D = {
         "camera": "close",
         "add": [
             {"kind": "laptop_open", "at": [2.4, -4.0], "stand": [2.4, -2.8], "screen": True,
-             "actions": ["entrar_portatil", "talk:pen", "ligar_wifi", "talk:terminal"]},
+             "actions": ["entrar_portatil", "inserir_pen", "talk:pen", "ligar_wifi", "talk:terminal"]},
         ],
     },
 }
@@ -414,7 +415,8 @@ ROOMS_3D["l2_biblioteca"] = library_room()
 CHOICES = {
     "tiago_incluido": {"icon": "🤝", "at": None},
     "tiago_excluido": {"icon": "🙅", "at": None},
-    "esconder_maquina": {"icon": "🫣", "at": [-0.95, -5.2]},
+    # Behind the staircase the guard comes down (specs/level1-laptop-and-notes.md)
+    "esconder_maquina": {"icon": "🫣", "at": [0.6, -4.7]},
     "correr_sala": {"icon": "🏃", "at": [-8.1, -1.6]},
     "ficar_parado_ronda": {"icon": "🧍", "at": None},
     "tapar_casaco": {"icon": "🧥", "at": None},
@@ -592,6 +594,7 @@ def laptop_view(state):
     decided = state["decisions"]
     return {
         "unlocked": "_portatil" in decided,
+        "pen": "_pen" in decided,
         "file": "_ficheiro" in decided,
         "wifi": "_wifi" in decided,
         "git": [step for step in ("_git_add", "_git_commit") if step in decided],

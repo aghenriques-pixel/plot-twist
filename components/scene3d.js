@@ -744,7 +744,8 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
   }
 
   // At the laptop its screen opens (log in, the files, the Wi-Fi, the terminal)
-  const laptopSteps = (spot) => world.laptop && (spot.lock === "login" || spot.lock === "wifi" || spot.talk === "pen" || spot.talk === "terminal");
+  const laptopSteps = (spot) =>
+    world.laptop && (spot.lock === "login" || spot.action === "inserir_pen" || spot.lock === "wifi" || spot.talk === "pen" || spot.talk === "terminal");
   function useSpot(spot) {
     if (laptopSteps(spot)) return openLaptop(stage, data, setTriggerValue);
     if (spot.talk) return hero && spot.options.every((o) => world.choices?.[o.action]) ? openChoices(spot) : ui.openTalk(spot);
@@ -2287,6 +2288,20 @@ function laptopTexture(THREE, face) {
     g.fillStyle = sky;
     g.fillRect(0, 0, w, h);
     if (!face) return;
+    if (face._dead) {
+      // No battery at all: a black screen and an empty battery, nothing else
+      g.fillStyle = "#050507";
+      g.fillRect(0, 0, w, h);
+      g.strokeStyle = "#c8343a";
+      g.lineWidth = 12;
+      g.strokeRect(w / 2 - 110, h / 2 - 55, 200, 110);
+      g.fillStyle = "#c8343a";
+      g.fillRect(w / 2 + 96, h / 2 - 22, 20, 44);
+      g.font = `700 44px ${PRINT}`;
+      g.textAlign = "center";
+      g.fillText(face._battery, w / 2 - 10, h / 2 + 100 + 40);
+      return;
+    }
     g.textAlign = "center";
     // The user's picture and the password field
     const cx = w * 0.33;

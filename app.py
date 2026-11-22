@@ -859,7 +859,7 @@ def view_data(game, role, message, chat):
                 "talk_leave", "keypad_try", "cancel", "close", "dialogue_continue", "danger_hurry", "restart_level",
                 "restart_confirm", "yes", "no", "your_time", "best_time", "toggle_text", "toggle_fullscreen", "key_hint",
                 "hint_button", "free_actions", "inspect_back", "lock_open", "lap_user", "lap_login", "lap_usb",
-                "lap_open_hint", "lap_tests", "lap_wifi", "lap_connect", "lap_secured", "lap_no_signal",
+                "lap_open_hint", "lap_plug_hint", "lap_tests", "lap_wifi", "lap_connect", "lap_secured", "lap_no_signal",
                 "lap_connected", "lap_offline", "lap_type", "lap_not_found", "clues_zoom",
                 "toggle_view", "key_hint_3d",
             )

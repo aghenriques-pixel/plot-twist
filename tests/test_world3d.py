@@ -22,7 +22,7 @@ def play(state, *steps):
     return state
 
 
-START = ["apanhar_casaco", "tiago_excluido", "ir_corredor"]
+START = ["apanhar_portatil", "apanhar_casaco", "tiago_excluido", "ir_corredor"]  # changed (specs/level1-laptop-and-notes.md): take the laptop, plug in the pen drive
 CARD = ["ir_cafetaria", "apanhar_cartao_rita", "voltar_corredor_ronda", "esconder_maquina"]
 TERRACE = [("abrir_cacifo", "31284"), ("abrir_terraco", "314")]
 LAPTOP = ["ligar_portatil", "tapar_casaco"]
@@ -39,6 +39,7 @@ def states():
     yield play(s, *START, *CARD, *TERRACE, "ligar_portatil")
     yield play(s, *START, *CARD, *TERRACE, *LAPTOP)
     yield play(s, *START, *CARD, *TERRACE, *LAPTOP, ("entrar_portatil", "13"))
+    yield play(s, *START, *CARD, *TERRACE, *LAPTOP, ("entrar_portatil", "13"), "inserir_pen")
     yield play(s, *START, "ir_cafetaria", "voltar_corredor_ronda", "correr_sala")
 
 
@@ -145,6 +146,10 @@ def test_the_laptop_offers_one_step_at_a_time():
 
     state = play(state, ("entrar_portatil", "13"))
     laptop = next(t for t in world_view(state)["things"] if t["kind"] == "laptop_open")
+    assert scene_hotspots(state)[laptop["spot"]]["action"] == "inserir_pen"
+
+    state = play(state, "inserir_pen")
+    laptop = next(t for t in world_view(state)["things"] if t["kind"] == "laptop_open")
     assert scene_hotspots(state)[laptop["spot"]]["talk"] == "pen"
 
 
@@ -238,11 +243,11 @@ def test_the_rows_of_desks_leave_the_aisles_free():
 
 def test_the_laptop_screen_knows_what_is_done():
     state = play(new_game(now=T0), *START, *CARD, *TERRACE, *LAPTOP)
-    assert world_view(state)["laptop"] == {"unlocked": False, "file": False, "wifi": False, "git": []}
+    assert world_view(state)["laptop"] == {"unlocked": False, "pen": False, "file": False, "wifi": False, "git": []}
 
-    state = play(state, ("entrar_portatil", "13"), "ficheiro_v3", ("ligar_wifi", "bica070"), "git_add")
+    state = play(state, ("entrar_portatil", "13"), "inserir_pen", "ficheiro_v3", ("ligar_wifi", "bica070"), "git_add")
 
-    assert world_view(state)["laptop"] == {"unlocked": True, "file": True, "wifi": True, "git": ["_git_add"]}
+    assert world_view(state)["laptop"] == {"unlocked": True, "pen": True, "file": True, "wifi": True, "git": ["_git_add"]}
     assert world_view(play(new_game(now=T0), *START))["laptop"] is None
 
 
@@ -274,9 +279,11 @@ def test_choosing_to_hide_or_run_points_to_its_place():
 
     choices = world_view(round_)["choices"]
 
-    machine = next(t for t in ROOMS_3D["corredor"]["things"] if t["kind"] == "snack_machine")
+    # Changed (specs/level1-laptop-and-notes.md): behind the staircase, not the snack machine
+    stairs = next(t for t in ROOMS_3D["corredor"]["things"] if t["kind"] == "staircase")
     door = next(t for t in ROOMS_3D["corredor"]["things"] if t.get("action") == "voltar_sala")
-    assert choices["esconder_maquina"]["at"][0] == pytest.approx(machine["at"][0], abs=1.2)
+    assert choices["esconder_maquina"]["at"][0] == pytest.approx(stairs["at"][0], abs=0.5)
+    assert choices["esconder_maquina"]["at"][1] < stairs["at"][1] - 4.5
     assert choices["correr_sala"]["at"] == door["stand"]
     assert choices["ficar_parado_ronda"]["at"] is None
 

@@ -40,11 +40,11 @@ def start():
 
 
 # The right path, scene by scene (section 9 of the proposal)
-TO_CORRIDOR = ["apanhar_casaco", "tiago_excluido", "ir_corredor"]
+TO_CORRIDOR = ["apanhar_portatil", "apanhar_casaco", "tiago_excluido", "ir_corredor"]  # changed (specs/level1-laptop-and-notes.md): take the laptop, plug in the pen drive
 TO_CAFETERIA = ["mensagem_rita", "ir_cafetaria", "apanhar_cartao_rita", "voltar_corredor_ronda", "esconder_maquina"]
 TO_TERRACE = [("abrir_cacifo", "31284"), ("abrir_terraco", "314")]
 TO_LAPTOP = ["ligar_portatil", "tapar_casaco"]
-SUBMIT = [("entrar_portatil", "13"), "ficheiro_v3", ("ligar_wifi", "bica070"), "git_add", "git_commit", "git_push"]
+SUBMIT = [("entrar_portatil", "13"), "inserir_pen", "ficheiro_v3", ("ligar_wifi", "bica070"), "git_add", "git_commit", "git_push"]
 RIGHT_PATH = TO_CORRIDOR + TO_CAFETERIA + TO_TERRACE + TO_LAPTOP + SUBMIT
 
 
@@ -68,7 +68,7 @@ def test_the_right_path_submits_on_time():
 
 
 def test_telling_tiago_he_is_on_the_project_gives_the_secret_ending():
-    path = ["apanhar_casaco", "tiago_incluido"] + RIGHT_PATH[2:]
+    path = ["apanhar_portatil", "apanhar_casaco", "tiago_incluido"] + RIGHT_PATH[3:]
 
     state = play(start(), *path)
 
@@ -77,7 +77,7 @@ def test_telling_tiago_he_is_on_the_project_gives_the_secret_ending():
 
 
 def test_not_answering_tiago_still_submits():
-    path = ["apanhar_casaco"] + RIGHT_PATH[2:]
+    path = ["apanhar_portatil", "apanhar_casaco"] + RIGHT_PATH[3:]
 
     assert play(start(), *path)["scene"] == "final_entregue"
 
@@ -148,12 +148,34 @@ def test_a_danger_ends_when_its_clock_runs_out():
 
 
 def test_the_laptop_needs_the_charger():
+    # Changed (specs/level1-laptop-and-notes.md): you carry the dead laptop and need the charger too
     state = play(start(), *TO_CORRIDOR, ("abrir_terraco", "314"))
 
-    accepted, _, message = apply_action(state, "ligar_portatil", now=T0)
+    accepted, after, message = apply_action(state, "ligar_portatil", now=T0)
 
-    assert not accepted
-    assert message == "Your laptop is at 3% and you have no charger."
+    assert not accepted and after["scene"] == "terraco"
+    assert message == "You need your laptop (in Study Room B) and the charger (in Rita's locker)."
+
+
+def test_the_laptop_must_be_taken_from_study_room_b():
+    without_laptop = [step for step in TO_CORRIDOR if step != "apanhar_portatil"]
+    state = play(start(), *without_laptop, *TO_CAFETERIA, *TO_TERRACE)
+
+    accepted, after, _ = apply_action(state, "ligar_portatil", now=T0)
+
+    assert not accepted and after["scene"] == "terraco"
+    assert "portatil_l1" not in after["inventory"]
+
+
+def test_the_files_appear_only_once_the_pen_drive_is_in():
+    state = play(start(), *TO_CORRIDOR, *TO_CAFETERIA, *TO_TERRACE, *TO_LAPTOP, ("entrar_portatil", "13"))
+
+    assert "ficheiro_v3" not in available_actions(state)
+    assert "ficheiro_v3" in available_actions(play(state, "inserir_pen"))
+
+
+def test_hiding_from_the_guard_is_behind_the_staircase():
+    assert ACTIONS["esconder_maquina"]["say"] == "Hide behind the staircase"
 
 
 def test_without_covering_the_laptop_the_sprinklers_drown_it():
@@ -172,6 +194,8 @@ def test_on_the_laptop_each_step_appears_after_the_one_before():
 
     assert offered() == {"entrar_portatil"}
     state = play(state, ("entrar_portatil", "13"))
+    assert offered() == {"inserir_pen"}
+    state = play(state, "inserir_pen")
     assert offered() == {"ficheiro_final", "ficheiro_final_final", "ficheiro_final_mesmo", "ficheiro_v3"}
     state = play(state, "ficheiro_v3")
     assert offered() == {"ligar_wifi"}
@@ -181,7 +205,7 @@ def test_on_the_laptop_each_step_appears_after_the_one_before():
 
 @pytest.mark.parametrize("wrong", ["ficheiro_final", "ficheiro_final_final", "ficheiro_final_mesmo"])
 def test_only_v3_moves_on(wrong):
-    state = play(start(), *TO_CORRIDOR, *TO_CAFETERIA, *TO_TERRACE, *TO_LAPTOP, ("entrar_portatil", "13"))
+    state = play(start(), *TO_CORRIDOR, *TO_CAFETERIA, *TO_TERRACE, *TO_LAPTOP, ("entrar_portatil", "13"), "inserir_pen")
 
     accepted, after, _ = apply_action(state, wrong, now=T0)
 
@@ -191,7 +215,7 @@ def test_only_v3_moves_on(wrong):
 
 
 def test_git_push_before_git_add_is_rejected():
-    state = play(start(), *TO_CORRIDOR, *TO_CAFETERIA, *TO_TERRACE, *TO_LAPTOP, *SUBMIT[:3])
+    state = play(start(), *TO_CORRIDOR, *TO_CAFETERIA, *TO_TERRACE, *TO_LAPTOP, *SUBMIT[:4])
 
     accepted, after, message = apply_action(state, "git_push", now=T0)
     assert not accepted
@@ -202,7 +226,7 @@ def test_git_push_before_git_add_is_rejected():
 
 
 def test_the_wifi_password_ignores_case_and_the_comma():
-    state = play(start(), *TO_CORRIDOR, *TO_CAFETERIA, *TO_TERRACE, *TO_LAPTOP, ("entrar_portatil", "13"), "ficheiro_v3")
+    state = play(start(), *TO_CORRIDOR, *TO_CAFETERIA, *TO_TERRACE, *TO_LAPTOP, ("entrar_portatil", "13"), "inserir_pen", "ficheiro_v3")
 
     assert play(state, ("ligar_wifi", "Bica 0,70"))["decisions"]["_wifi"] == "ligado"
 
@@ -257,7 +281,7 @@ def test_a_wrong_code_costs_30_seconds():
 
 
 def test_a_wrong_file_and_git_in_the_wrong_order_cost_30_seconds():
-    state = play(start(), *TO_CORRIDOR, *TO_CAFETERIA, *TO_TERRACE, *TO_LAPTOP, ("entrar_portatil", "13"))
+    state = play(start(), *TO_CORRIDOR, *TO_CAFETERIA, *TO_TERRACE, *TO_LAPTOP, ("entrar_portatil", "13"), "inserir_pen")
 
     _, after, _ = apply_action(state, "ficheiro_final", now=T0)
     assert seconds_left(after, T0) == seconds_left(state, T0) - 30
@@ -348,7 +372,7 @@ def test_a_hint_costs_one_minute_and_fits_the_moment():
         (TO_CORRIDOR + TO_CAFETERIA + TO_TERRACE[:1], "The emergency plan shows the terrace door's number. Without the dot."),
         # No way back from the laptop: its hints repeat the clues
         (TO_CORRIDOR + TO_CAFETERIA + TO_TERRACE + TO_LAPTOP, "Tiago's exercise on the board: x = 4, then y = x * 3 + 1. Work it out line by line."),
-        (TO_CORRIDOR + TO_CAFETERIA + TO_TERRACE + TO_LAPTOP + SUBMIT[:2], "The menu: Bica €0.70 · Meia de leite €1.10 · Galão €1.20. The cheapest one, its name and its price, no comma."),
+        (TO_CORRIDOR + TO_CAFETERIA + TO_TERRACE + TO_LAPTOP + SUBMIT[:3], "The menu: Bica €0.70 · Meia de leite €1.10 · Galão €1.20. The cheapest one, its name and its price, no comma."),
     ],
 )
 def test_hints_follow_the_progress(steps, expected):
