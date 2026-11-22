@@ -81,6 +81,8 @@ def test_every_spot_can_be_used_in_3d():
             continue
         view = world_view(state)
         linked = {thing["spot"] for thing in view["things"] if thing.get("spot") is not None}
+        # A thing's other actions offered at the same time (the laptop: standing up; specs/laptop-way-back.md)
+        linked |= {index for thing in view["things"] for index in thing.get("also", [])}
         assert linked | set(view["free"]) == set(range(len(scene_hotspots(state)))), state["scene"]
 
 

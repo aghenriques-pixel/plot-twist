@@ -431,8 +431,18 @@ ACTIONS = {
         "label": "Plug in your laptop",
         "requires": ("portatil_l1", "carregador"),
         "blocked_message": "You need your laptop (in Study Room B) and the charger (in Rita's locker).",
+        "only_without_decision": "_rega",
         "goes_to": "terraco_rega",
         "message": "The laptop starts charging… and comes back to life.",
+        "hotspot": {"x": 330, "y": 200, "w": 160, "h": 120, "stand": 400},
+    },
+    # Back at the laptop after leaving it: the sprinklers have stopped (specs/laptop-way-back.md)
+    "voltar_portatil": {
+        "scene": "terraco",
+        "label": "Back to your laptop",
+        "only_if": ("_rega", "feita"),
+        "goes_to": "portatil",
+        "message": "You sit back down at your laptop. It is still charging.",
         "hotspot": {"x": 330, "y": 200, "w": 160, "h": 120, "stand": 400},
     },
     "voltar_dentro": {
@@ -449,6 +459,7 @@ ACTIONS = {
         "say": "Cover the laptop with your coat",
         "requires": "casaco",
         "blocked_message": "You have nothing to cover it with!",
+        "decides": ("_rega", "feita"),
         "goes_to": "portatil",
         "message": "You throw your coat over the laptop. You are soaked; the laptop is not.",
     },
@@ -477,6 +488,13 @@ ACTIONS = {
         "decides": ("_portatil", "desbloqueado"),
         "message": "Welcome.",
         "hotspot": {"x": 330, "y": 200, "w": 160, "h": 100, "stand": 400},
+    },
+    "sair_portatil": {
+        "scene": "portatil",
+        "label": "Stand up from the laptop",
+        "goes_to": "terraco",
+        "message": "You leave the laptop charging on the table.",
+        "hotspot": {"x": 0, "y": 120, "w": 45, "h": 240, "stand": 30, "edge": "left"},
     },
     "inserir_pen": {
         "scene": "portatil",
@@ -587,7 +605,7 @@ HINTS = [
     {"scene": "terraco", "lacks": "carregador", "text": "Your laptop needs the charger from Rita's locker."},
     {"scene": "terraco", "text": "Remember the sign by the door… and what you are wearing."},
     {"scene": "terraco_rega", "text": "What are you wearing?"},
-    # There is no way back from the laptop, so its hints repeat the clue the player may have missed
+    # The laptop's hints repeat the clue the player may have missed (they can also go back for it)
     {"scene": "portatil", "undecided": "_portatil",
      "text": "Tiago's exercise on the board: x = 4, then y = x * 3 + 1. Work it out line by line."},
     {"scene": "portatil", "undecided": "_pen", "text": "The code is on Rita's pen drive: plug it in."},

@@ -185,7 +185,7 @@ ROOMS_3D = {
             {"kind": "picnic_table", "at": [2.4, -4.0]},
             {"kind": "picnic_table", "at": [0.6, 0.4], "turn": -0.3},
             {"kind": "picnic_table", "at": [-3.2, -2.0], "turn": 0.2},
-            {"kind": "socket_post", "at": [3.75, -4.8], "stand": [2.4, -2.8], "action": "ligar_portatil"},
+            {"kind": "socket_post", "at": [3.75, -4.8], "stand": [2.4, -2.8], "actions": ["ligar_portatil", "voltar_portatil"]},
             {"kind": "sprinkler", "at": [0.8, -2.6]},
             {"kind": "sprinkler", "at": [4.2, -2.2]},
             {"kind": "sprinkler", "at": [2.0, -6.0]},
@@ -210,7 +210,8 @@ ROOMS_3D = {
         "camera": "close",
         "add": [
             {"kind": "laptop_open", "at": [2.4, -4.0], "stand": [2.4, -2.8], "screen": True,
-             "actions": ["entrar_portatil", "inserir_pen", "talk:pen", "ligar_wifi", "talk:terminal"]},
+             # Standing up comes last: it is a button on the laptop's screen (scene_view.js openLaptop)
+             "actions": ["entrar_portatil", "inserir_pen", "talk:pen", "ligar_wifi", "talk:terminal", "sair_portatil"]},
         ],
     },
 }
@@ -540,8 +541,12 @@ def world_view(state, role=None, look=None):
         names = thing.get("actions") or ([action] if action else []) + ([f"talk:{thing['talk']}"] if "talk" in thing else [])
         chosen = next((name for name in names if name in spot_index), None)
         view["spot"] = spot_index.get(chosen) if chosen else None
-        if view["spot"] is not None:
-            linked.add(view["spot"])
+        # Every action of the thing that is offered belongs to it, not to the buttons over the view
+        # (the laptop: its current step, and standing up, which is a button on its screen)
+        also = [spot_index[name] for name in names if name in spot_index and spot_index[name] != view["spot"]]
+        if also:
+            view["also"] = also
+        linked.update(spot_index[name] for name in names if name in spot_index)
         label = thing.get("look")
         view["look"] = look_index.get(label) if label else None
         if label:
