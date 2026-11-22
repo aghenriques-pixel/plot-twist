@@ -1465,6 +1465,7 @@ function openLaptop(stage, data, setTriggerValue) {
   const pen = spots.find((s) => s.talk === "pen");
   const wifi = spots.find((s) => s.lock === "wifi");
   const terminal = spots.find((s) => s.talk === "terminal");
+  const leave = spots.find((s) => s.action === "sair_portatil");
   const act = (id, spot, code) => setTriggerValue("action", { id, x: spot.stand, code });
   const message = data.message && !data.message.hint ? data.message : null;
 
@@ -1600,6 +1601,16 @@ function openLaptop(stage, data, setTriggerValue) {
     lid.append(screen);
     machine.append(lid, el("div", "laptop-base"));
     overlay.append(machine);
+    // Stand up: back to the terrace, the laptop keeps charging (specs/laptop-way-back.md)
+    if (leave) {
+      const up = el("button", "choice laptop-leave", `⏏ ${leave.label}`);
+      up.onclick = (event) => {
+        event.stopPropagation();
+        Sound.click();
+        act(leave.action, leave);
+      };
+      overlay.append(up);
+    }
     // Rita's post-it, next to the keyboard
     const rita = data.laptop_notes?.rita;
     if (rita) overlay.append(realThing(rita, "side-note"));

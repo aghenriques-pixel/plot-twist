@@ -190,7 +190,8 @@ def test_on_the_laptop_each_step_appears_after_the_one_before():
     state = play(start(), *TO_CORRIDOR, *TO_CAFETERIA, *TO_TERRACE, *TO_LAPTOP)
 
     def offered():
-        return set(available_actions(state))
+        # You can always stand up from the laptop (changed: specs/laptop-way-back.md)
+        return set(available_actions(state)) - {"sair_portatil"}
 
     assert offered() == {"entrar_portatil"}
     state = play(state, ("entrar_portatil", "13"))
@@ -437,3 +438,20 @@ def test_each_code_says_how_it_is_typed_in_3d():
 
     assert locks == {"abrir_cacifo": "padlock", "abrir_terraco": "keypad"}
     assert ACTIONS["entrar_portatil"]["lock"] == "login" and ACTIONS["ligar_wifi"]["lock"] == "wifi"
+
+
+# --- specs/laptop-way-back.md --------------------------------------------------------------------
+
+
+def test_you_can_leave_the_laptop_and_come_back_without_the_sprinklers():
+    state = play(start(), *TO_CORRIDOR, *TO_CAFETERIA, *TO_TERRACE, *TO_LAPTOP, ("entrar_portatil", "13"))
+
+    state = play(state, "sair_portatil")
+    assert state["scene"] == "terraco"
+    assert "ligar_portatil" not in available_actions(state)
+
+    state = play(state, "voltar_dentro", "voltar_sala")
+    assert state["scene"] == "sala_estudo"
+    state = play(state, "ir_corredor", ("abrir_terraco", "314"), "voltar_portatil")
+    assert state["scene"] == "portatil"
+    assert "inserir_pen" in available_actions(state)  # still logged in
