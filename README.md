@@ -1,6 +1,13 @@
 # Git Out — A night at Nova SBE
 
-A 3D escape room in the browser, at Nova SBE. **Level 1 — "Submission at 23:59":** it is 23:44 in Study Room B, the group project is due on GitHub at 23:59, the code is on Rita's pen drive locked in her locker, your laptop is at 3% and Tiago changed its password as a joke. Get out of the room, find Rita's card in the cafeteria, open her locker, hide from the security round, find a working socket on the terrace, survive the sprinklers, and `git push` before midnight. Your answer to Tiago decides one of the five endings.
+A 3D escape room in the browser, set during one night at Nova SBE, in three levels. **Level 1 — "Submission at 23:59":** it is 23:44 in Study Room B, the group project is due on Moodle at 23:59, the code is on Rita's pen drive locked in her locker, your laptop is dead and Tiago changed its password as a joke. Get out of the room, find Rita's card in the cafeteria, open her locker, hide from the security round, find a working socket on the terrace, survive the sprinklers, and `git push` before midnight. Your answer to Tiago decides one of the five endings.
+
+## Objectives
+
+- **A game that is fun to play and teaches a little Git on the way:** the puzzles are about real student life at Nova SBE (a deadline, a plagiarism report, a presentation), and the answers use `git add`, `git commit`, `git push` and `git log`.
+- **Practise what the course teaches:** Python for all the rules (`logic.py`, pure functions tested with pytest), Streamlit for the app, a database for each player's progress, and a team workflow with specs, branches, pull requests, reviews and tests on GitHub Actions.
+- **Play alone or with a friend:** a cooperative mode where two students walk the building separately and must talk in the chat, because each can read clues the other cannot.
+- **Keep the rules in Python and the story as data:** the browser only draws the 3D rooms and sends what the player clicked; Python decides everything, so every rule can be tested.
 
 **All in 3D, third person:** the rooms are drawn from photos of Nova SBE (the amphitheatre classroom, floor 0 of the library with the "STATE YOUR MIND AND MIND YOUR STEP" staircase, floor 1 of the library for the cafeteria, the library seen from the terrace). Walk with WASD or the arrows, or click; E uses the nearest thing.
 
@@ -8,21 +15,17 @@ A 3D escape room in the browser, at Nova SBE. **Level 1 — "Submission at 23:59
 
 **Against the clock:** the clock shows the real time, from 23:44 to 00:00. A wrong code, file or git command costs 30 seconds; a 💡 hint costs a minute. Two danger moments give you 10 seconds to decide.
 
-**Level 2 — "Locked in at Nova"** (00:01 → 00:20): an email says your project is 94% identical to Group 7's, and the building locks for the night. Hide from the guard behind the big NOVA letters in the atrium, find out who logged in on PC 7 in the computer lab, print the proof, and get out through the tunnel under the Marginal to Carcavelos beach before the alarm. Tiago is on the beach — and what he says depends on your answer in Level 1.
+**Level 2 — "94%"** (00:01 → 00:30): an email says your project is 94% identical to Group 7's, and yours is marked as the copy. Find out who logged in on PC 7 in the computer lab, hide from the guard, go through the tunnel to Carcavelos beach to get the password out of Tiago, and send the proof from a campus computer before the alarm at 00:30. What Tiago says depends on your answer in Level 1.
 
-**Level 3 — "Presentation at 9:00"** (08:42 → 09:00): you wake up on the beach. Get your card back from a seagull, your laptop back from last night's guard, and prove to Prof. Marques in Auditorium B that the code is yours: with the printed log, with `git log`, or with Tiago's word (specs/levels-2-and-3.md). Each level remembers what happened in the ones before.
+**Level 3 — "Presentation at 9:00"** (08:42 → 09:00): you wake up on the beach. Get your card back from a seagull, your laptop back from last night's guard, put the right slides on the big screen, run `git log` in front of everyone, and prove to Prof. Marques in Auditorium B that the code is yours: with the git history, the printed log from Level 2, or Tiago's word (specs/levels-2-and-3.md, specs/urgent-fixes.md). Each level remembers what happened in the ones before.
 
 **Your student:** in the menu, dress your own student — skin, hair, face, clothes, colours, a hat, glasses, a backpack. Some endings win prizes to wear (a graduation cap, Tiago's sleep mask, golden headphones). The look is saved per player (`looks.py`, specs/student-and-menu.md).
 
 **Notebook:** the 🎒 button opens a notebook from any scene: every item, every conversation, your decisions.
 
-**Accounts (online):** create an account with a username and password to keep your levels when you come back, on any device.
+It starts on a main menu (**Play, Your student, How to Play, Settings, Exit**) over the terrace at night, has its own music for each place and for danger, made in the browser (the 🔊 / 🔇 button or the key M turns the sound off at any moment), and can be played in **English or Portuguese**.
 
-It starts on a main menu (**Play, How to Play, Settings, Exit**) over the terrace at night, has its own music for each place and for danger, made in the browser, and can be played in **English or Portuguese**.
-
-Play **alone**, or **with a friend** (specs/coop-two-students.md): create a room and give your friend its code (or its link). You are two students in the same building, each with your own look, both walking and using things. Each of you can read clues the other cannot, so you only make it by talking in the room's chat. It works on one computer (two windows), on the same Wi-Fi (Streamlit's *Network URL*) and online.
-
-**Play online:** _(link do Streamlit Cloud — a preencher depois do deploy)_
+Play **alone**, or **with a friend** (specs/coop-two-students.md): create a room and give your friend its code (or its link). You are two students in the same building, each with your own look, both walking and using things, each in your own place (specs/coop-separate-places.md): items, decisions and the clock are shared. Each of you can read clues the other cannot, so you only make it by talking in the room's chat. It works on one computer (two windows), on the same Wi-Fi (Streamlit's *Network URL*) and online.
 
 Started as a *Plot Twist* solo project and extended by the team (Nova SBE, Introduction to Programming, 2026).
 
@@ -30,20 +33,36 @@ Started as a *Plot Twist* solo project and extended by the team (Nova SBE, Intro
 
 | Name | Student number |
 |---|---|
-| _(nome)_ | _(número)_ |
-| _(nome)_ | _(número)_ |
-| _(nome)_ | _(número)_ |
+| Martim Froes | 46988 |
+| Afonso Henriques | 72986 |
+| Manuel Menéres | 78595 |
 
-## Run it locally
+## Install and run it locally
 
-Needs [uv](https://docs.astral.sh/uv/) (it installs the right Python by itself).
+Needs [Git](https://git-scm.com/) and [uv](https://docs.astral.sh/uv/) (uv installs the right Python, 3.12, by itself). The same commands work on Windows (PowerShell or Git Bash), macOS and Linux.
 
-```bash
-uv sync
-uv run streamlit run app.py
-```
+1. Get the code:
 
-The game opens at http://localhost:8501. On a Mac you can also double-click `Jogar.command`.
+   ```bash
+   git clone https://github.com/aghenriques-pixel/plot-twist.git
+   cd plot-twist
+   ```
+
+2. Install the dependencies (Streamlit, psycopg, pytest):
+
+   ```bash
+   uv sync
+   ```
+
+3. Start the game:
+
+   ```bash
+   uv run streamlit run app.py
+   ```
+
+The game opens in the browser at http://localhost:8501 (stop it with Ctrl+C in the terminal). On a Mac you can also double-click `Jogar.command`. No database is needed locally: progress is saved in `data/game.db`.
+
+**How to play:** click **Play**, choose Level 1 on the map, walk with WASD or the arrows (or click the floor), and press E or click a thing to use it. Levels 2 and 3 open when you complete the one before. To play with a friend, click **Create a room** on the map and send them the code.
 
 ## Run the tests
 
@@ -82,9 +101,8 @@ The same tests run on GitHub Actions for every pull request and every push to `m
 
 ## Limits
 
-- **Accounts are simple:** no e-mail and no password reset; a forgotten password cannot be recovered. Without an account, whoever has a player's link can continue that game, and losing the link loses the save.
-- **Voices depend on the browser:** they use the speech voices installed on the device, so they sound different on each computer, and some browsers have none.
-- **Cooperative mode refreshes every second** (polling, as the course guide recommends for Streamlit), so your friend's student walks about a second behind them, and their actions and messages appear with a short delay. A room holds exactly two players, who are always in the same place; room codes can be guessed with enough tries.
+- **No accounts in the menu:** online, a player is the secret code in their link, so whoever has the link can continue that game, and losing the link loses the save. (`accounts.py` still exists for the text mode, but the menu only offers playing alone or with a friend.)
+- **Cooperative mode refreshes every second** (polling, as the course guide recommends for Streamlit), so your friend's student walks about a second behind them, and their actions and messages appear with a short delay. A room holds exactly two players, who share items and decisions (one ending ends the game for both); room codes can be guessed with enough tries.
 - **Offline co-op** gives each browser its own player code in its link: a player who opens the room's invite link again, without their own code, is a new player (and the room is full).
 - **Sleeping app:** the free host sleeps when unused and the free database pauses after inactivity. Open the link a few minutes before a demo.
 - **If the database is unavailable**, the game gives up after 10 seconds and shows a message instead of crashing; nothing is lost.
