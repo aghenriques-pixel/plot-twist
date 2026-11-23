@@ -27,6 +27,6 @@ The new story ("Submission at 23:59", PR #20) replaced the Ministry of Truth, bu
 
 ## Done when
 1. `UI_TEXT["game_title"]` is "Midnight at Nova" / "Meia-Noite na Nova", and the old name appears nowhere in the code, `README.md`, `AGENTS.md`, `pyproject.toml` or `Jogar.command`.
-2. Every file path named in `AGENTS.md` and `README.md` exists (`tests/test_docs.py`).
+2. Every file path named in `AGENTS.md` and `README.md` exists (`tests/test_docs.py`). A path that `.gitignore` lists (`.streamlit/secrets.toml`) counts as existing. *Test changed:* the secrets file exists only on computers that have the secret, never in GitHub Actions, so the test failed there on every pull request since this one (#21 to #25).
 3. `uv run pytest` passes.
 4. Checked in the app: the menu and the browser tab show the new name, in both languages.
