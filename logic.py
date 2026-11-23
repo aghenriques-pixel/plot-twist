@@ -479,3 +479,47 @@ def copy_state(state):
         "inventory": list(state["inventory"]),
         "decisions": dict(state.get("decisions", {})),
     }
+
+
+# --- Co-op: two students, one shared game, two places (specs/coop-separate-places.md) -------------
+
+# Player 2's place, while it differs from Player 1's ("scene"). Internal: never shown (it starts with _)
+SECOND_PLACE = "_cena_p2"
+
+
+def player_scene(state, role):
+    """Where this player is: Player 2 (the contacto) may be somewhere else; everyone else is at "scene"."""
+    if role == "contacto" and not is_finished(state):
+        return state["decisions"].get(SECOND_PLACE, state["scene"])
+    return state["scene"]
+
+
+def as_player(state, role):
+    """The shared game as this player sees it: their own place. Solo (role None): the state itself."""
+    scene = player_scene(state, role)
+    if scene == state["scene"]:
+        return state
+    seen = copy_state(state)
+    seen["scene"] = scene
+    return seen
+
+
+def apply_as(state, role, action_id, code=None, roll=None, now=None):
+    """apply_action from where this player is: only they move; items, decisions and the clock are
+    shared; an ending ends the game for both. Never modifies `state`."""
+    if role is None:
+        return apply_action(state, action_id, code, roll, now)
+    accepted, after, message = apply_action(as_player(state, role), action_id, code, roll, now)
+    merged = copy_state(after)
+    if is_finished(after):
+        merged["decisions"].pop(SECOND_PLACE, None)
+        return accepted, merged, message
+    if role == "contacto":
+        # Player 1 stays where they were; Player 2's place is the one the action led to
+        merged["scene"] = state["scene"]
+        merged["decisions"][SECOND_PLACE] = after["scene"]
+    else:
+        merged["decisions"][SECOND_PLACE] = player_scene(state, "contacto")
+    if merged["decisions"][SECOND_PLACE] == merged["scene"]:
+        del merged["decisions"][SECOND_PLACE]
+    return accepted, merged, message

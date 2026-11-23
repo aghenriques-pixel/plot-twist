@@ -20,6 +20,7 @@ A 3D escape room in the browser (Nova SBE Intro to Programming), three levels of
 - `browser_input.py` — checks what the browser sends (`clean_action`) before Python uses it.
 - `levels.py` — levels = chapters; a level opens when an ending in the previous level's `completes_with` was reached. Endings are recorded per player in `db.level_progress`.
 - `db.py` — saves and loads each player's progress. Every query filters by player.
+- Co-op places (specs/coop-separate-places.md): the room shares one game; `scene` is Player 1's place and `_cena_p2` Player 2's while it differs. Actions go through `logic.apply_as(state, role, ...)` and screens show `logic.as_player(state, role)`; an ending ends the game for both.
 - `rooms.py` — cooperative rooms: codes, roles (agente = Player 1, contacto = Player 2; both act), chat. Conflicts are decided by the database's unique rules (first saved wins). Each clue has one `reader` in co-op (`logic.clue_reader`).
 - `presence.py` — where each student stands in a room (server memory, not the database); the browser sends `move`, checked by `browser_input.clean_move`.
 - `components/` — JavaScript/CSS of the fullscreen game (`scene_view.js`) and the 3D rooms (`scene3d.js`, with Three.js from `static/`). It only sends action ids (with typed codes), commands and chat text to Python; it never decides rules. It rebuilds only when `scene_key` changes, so co-op refreshes keep open bubbles.
