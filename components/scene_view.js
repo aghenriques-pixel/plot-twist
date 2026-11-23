@@ -417,9 +417,11 @@ export default function render({ data, parentElement, setTriggerValue }) {
     // A co-op refresh: the same screen, with new chat messages and the friend's new position
     updateChat(existing, data.chat);
     globalThis.__gitOutPartnerAt = data.partner?.at || null;
+    globalThis.__gitOutPartnerHere = !!data.partner && data.partner.here !== false;
     return;
   }
   globalThis.__gitOutPartnerAt = data.partner?.at || null;
+  globalThis.__gitOutPartnerHere = !!data.partner && data.partner.here !== false;
   existing?.remove();
   stopSpeaking();
   // Which place (and which run of it) was on the screen before this one: a 3D room uses it to

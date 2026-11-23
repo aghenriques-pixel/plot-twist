@@ -38,7 +38,9 @@ from logic import (
     ITEM_ICONS,
     ITEMS,
     SCENES,
-    apply_action,
+    SECOND_PLACE,
+    apply_as,
+    as_player,
     available_actions,
     can_act,
     carried,
@@ -362,7 +364,8 @@ def choose(action_id, code=None, code_key=None, came_from=None):
     # Chance: some actions have a lucky outcome; the roll is only used by those.
     # The clock: Python checks the time itself (a wrong answer costs time even when refused)
     now = time.time()
-    accepted, game, message = apply_action(before, action_id, code, random.random(), now=now)
+    # Co-op: from where this student is; only they move (specs/coop-separate-places.md)
+    accepted, game, message = apply_as(before, ROLE, action_id, code, random.random(), now=now)
     if accepted or game != before:
         try:
             save_game(DB_PATH, game, SAVE_KEY)
@@ -376,7 +379,7 @@ def choose(action_id, code=None, code_key=None, came_from=None):
         if accepted and action.get("reply"):
             # The other character answers over the picture as it was
             st.session_state.dialogue = {
-                "background": picture(before),
+                "background": picture(as_player(before, ROLE)),
                 # Text messages are shown on the phone itself
                 "phone": action.get("conversation_title"),
                 "lines": [{"who": "you", "text": action["say"]}] + [{"who": who, "text": line} for who, line in action["reply"]],
@@ -401,7 +404,12 @@ def ask_hint():
     if not game or not can_act(ROLE):
         return
     now = time.time()
-    hinted, text = take_hint(game, now)
+    # The hint for where this student is; the shared game keeps both places (an ending ends both)
+    hinted, text = take_hint(as_player(game, ROLE), now)
+    if is_finished(hinted):
+        hinted["decisions"].pop(SECOND_PLACE, None)
+    else:
+        hinted = {**hinted, "scene": game["scene"]}
     try:
         save_game(DB_PATH, hinted, SAVE_KEY)
     except StorageError:
@@ -669,10 +677,15 @@ def partner_data(game, role):
         look = load_look(DB_PATH, player) if player else None
     except StorageError:
         look = None
+    # Each student can be somewhere else (specs/coop-separate-places.md): the game says whether
+    # they are in the same place; only then is the other one drawn
+    shared = st.session_state.get("game") or game
+    here = room_of(as_player(shared, "agente")) == room_of(as_player(shared, "contacto"))
     return {
         "look": look or DEFAULT_LOOK,
         "name": role_name(other),
-        "at": presence.partner(ROOM, role, room_of(game), time.time()),
+        "here": here,
+        "at": presence.partner(ROOM, role, room_of(game), time.time()) if here else None,
     }
 
 
@@ -912,8 +925,9 @@ def view_data(game, role, message, chat):
         "notebook": notebook_data(game),
         # A danger scene: a clock in the picture; when it ends, the browser sends the timeout action
         "danger": None if finished or "danger" not in scene else dict(scene["danger"]),
-        # Co-op: only Player 1's browser sends a danger's timeout, so it is sent once
-        "sends_timeout": role != "contacto",
+        # Co-op: a danger's timeout is sent once: by whoever is in it, Player 1's browser if both are
+        "sends_timeout": role != "contacto" or not st.session_state.game
+        or as_player(st.session_state.game, "agente")["scene"] != game["scene"],
         "voice_lang": "pt-PT" if LANG == "pt" else "en-GB",
         # A refused action: the character says it and, after a choice, walks back
         "speech": message["text"] if message and not message["ok"] else None,
@@ -1249,7 +1263,7 @@ def show_room_game():
     if game is None:
         return
     st.session_state.game = game
-    show_fullscreen(game, ROLE)
+    show_fullscreen(as_player(game, ROLE), ROLE)
 
 
 def show_room():
@@ -1267,7 +1281,7 @@ def show_room():
         show_waiting_room()
         return
     st.session_state.game = game
-    show_text_mode(game, ROLE)
+    show_text_mode(as_player(game, ROLE), ROLE)
     show_room_game()
 
 

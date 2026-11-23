@@ -590,6 +590,13 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
   const partnerTarget = new THREE.Vector3();
   function placePartner(dt, time) {
     if (!partner) return;
+    // In another place of the building (co-op, specs/coop-separate-places.md): not drawn here
+    const shown = globalThis.__gitOutPartnerHere !== false;
+    partner.group.visible = shown;
+    if (!shown) {
+      partner.tag.style.visibility = "hidden";
+      return;
+    }
     const at = globalThis.__gitOutPartnerAt;
     const p = partner.group.position;
     let walking = false;
