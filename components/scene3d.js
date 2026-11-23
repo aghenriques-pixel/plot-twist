@@ -730,7 +730,7 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
   // --- The nearest usable thing, and using it ---
   let nearest = null;
   const ui = interactions(stage, data, setTriggerValue, { heroSays, walkTo: null });
-  const busy = () => !!stage.querySelector(".bubble, .dialogue, .ending, .notebook, .confirm, .inspect3d, .lock3d, .laptop3d");
+  const busy = () => !!stage.querySelector(".bubble, .dialogue, .ending, .intro-email, .notebook, .confirm, .inspect3d, .lock3d, .laptop3d");
 
   function findNearest() {
     if (!hero) return null;
@@ -748,6 +748,8 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
     world.laptop && (spot.lock === "login" || spot.action === "inserir_pen" || spot.lock === "wifi" || spot.talk === "pen" || spot.talk === "terminal");
   function useSpot(spot) {
     if (laptopSteps(spot)) return openLaptop(stage, data, setTriggerValue);
+    // Level 2: your laptop on the table opens the email; its "Start" closes it
+    if (data.intro && spot.action === data.intro.action) return (stage.closest(".game") || stage).append(introEmail(data.intro, setTriggerValue));
     if (spot.talk) return hero && spot.options.every((o) => world.choices?.[o.action]) ? openChoices(spot) : ui.openTalk(spot);
     if (spot.code_prompt) return ui.openKeypad(spot);
     setTriggerValue("action", { id: spot.action, x: spot.stand });
@@ -843,11 +845,16 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
     // The line over the speaker, unless cards float in the room too (then it stays at the top,
     // where no card covers it)
     if (choosing.anchor && !choosing.floating.length) placeOver(choosing.line, choosing.anchor);
+    // The cards stand on their places but never go down under the narration (--narr: how much of
+    // the picture it covers on wide screens)
+    const height = stage.clientHeight || 1;
+    const narr = parseFloat(getComputedStyle(stage).getPropertyValue("--narr")) || 0;
+    const lowest = Math.min(92, ((height - narr - 16) / height) * 100);
     for (const { element, point } of choosing.floating) {
       // Over its place, but always whole on the screen (a door at the edge of the view)
       projected.copy(point).project(camera);
       const left = Math.min(88, Math.max(12, ((projected.x + 1) / 2) * 100));
-      const top = Math.min(92, Math.max(52, ((1 - projected.y) / 2) * 100));
+      const top = Math.min(lowest, Math.max(Math.min(52, lowest), ((1 - projected.y) / 2) * 100));
       element.style.left = `${left}%`;
       element.style.top = `${top}%`;
     }
@@ -924,6 +931,21 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
       act.onclick = (event) => {
         event.stopPropagation();
         Sound.click();
+        // A password typed at the screen you are looking at (PC 7): the camera stays on it and the
+        // password box opens in the middle; closing the box goes back to the room
+        if (item.spot.lock === "login" && !laptopSteps(item.spot)) {
+          stage.querySelectorAll(".inspect3d, .inspect-thought").forEach((node) => node.remove());
+          useSpot(item.spot);
+          const box = stage.querySelector(".bubble");
+          if (!box) return stopInspecting();
+          const watch = new MutationObserver(() => {
+            if (box.isConnected) return;
+            watch.disconnect();
+            stopInspecting();
+          });
+          watch.observe(stage, { childList: true });
+          return;
+        }
         stopInspecting();
         useSpot(item.spot);
       };
@@ -940,9 +962,17 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
   }
   function stopInspecting() {
     if (!inspecting) return;
+    // A notice that is read by looking at it (Study Room B: the terrace socket): Python is told
+    // when you look away from it
+    const read = inspecting.item.thing?.read_action;
+    if (read && !inspecting.item.readSent) {
+      inspecting.item.readSent = true;
+      setTriggerValue("action", { id: read, x: 0 });
+    }
     inspecting = null;
     if (hero) hero.group.visible = true;
-    stage.querySelectorAll(".inspect3d, .inspect-thought").forEach((node) => node.remove());
+    // ...and a password box opened over that screen (PC 7) goes with it
+    stage.querySelectorAll(".inspect3d, .inspect-thought, .bubble.bubble-center").forEach((node) => node.remove());
   }
 
   function walkTo(point, then, speed = WALK_SPEED) {
@@ -1108,8 +1138,15 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
   const projected = new THREE.Vector3();
   function placeOver(element, point) {
     projected.copy(point).project(camera);
-    element.style.left = `${((projected.x + 1) / 2) * 100}%`;
-    element.style.top = `${((1 - projected.y) / 2) * 100}%`;
+    // Over its thing, but never under the top bar (the stairs up to the cafeteria: their label went
+    // up there) nor under the narration at the bottom
+    const height = stage.clientHeight || 1;
+    const narr = parseFloat(getComputedStyle(stage).getPropertyValue("--narr")) || 0;
+    const highest = ((84 + element.offsetHeight) / height) * 100;
+    const lowest = ((height - narr - 8) / height) * 100;
+    const top = Math.min(lowest, Math.max(highest, ((1 - projected.y) / 2) * 100));
+    element.style.left = `${Math.min(94, Math.max(6, ((projected.x + 1) / 2) * 100))}%`;
+    element.style.top = `${top}%`;
     element.style.visibility = projected.z < 1 ? "visible" : "hidden";
   }
 
@@ -2510,12 +2547,17 @@ function planTexture(THREE, face) {
     g.fill();
     g.fillStyle = "#ffffff";
     g.fillRect(732, 170, 16, 80);
-    rounded(g, 470, 520, 250, 90, 12);
+    // The door's code, in a box wide enough for "Door code: 3.14" (the words shrink to fit if needed)
+    rounded(g, 380, 520, 340, 90, 12);
     g.fillStyle = "#0f8a4a";
     g.fill();
     g.fillStyle = "#ffffff";
-    g.font = `800 46px ${PRINT}`;
-    g.fillText(face.door, 595, 580);
+    let size = 46;
+    do {
+      g.font = `800 ${size}px ${PRINT}`;
+      size -= 2;
+    } while (g.measureText(face.door).width > 310 && size > 20);
+    g.fillText(face.door, 550, 580);
     g.fillStyle = "#0f8a4a";
     g.font = `700 32px ${PRINT}`;
     g.fillText(`➜ ${face.exit}`, w / 2, 700);
@@ -2643,8 +2685,9 @@ function signTexture(THREE, face) {
     g.font = `800 52px ${PRINT}`;
     g.fillText(face.title, w / 2, 280);
     g.fillStyle = "#1a1a1a";
-    g.font = `600 46px ${PRINT}`;
-    g.fillText(face.text, w / 2, 360);
+    // The words wrap inside the border ("They can come on at any moment" is too long for one line)
+    g.font = `600 40px ${PRINT}`;
+    writeText(g, face.text, w / 2, 345, w - 90, 48);
   });
 }
 
@@ -3007,6 +3050,13 @@ const THINGS = {
       note.position.set(0.095, 0.115, 0.003);
       note.rotation.z = -0.06;
       lid.add(note);
+      // Rita's post-it on top of it: where the charger is (the first thing to do)
+      if (face.charger_note) {
+        const first = sheet(THREE, postItTexture(THREE, face.charger_note, face.charger_sign), 0.12, 0.12);
+        first.position.set(-0.085, 0.13, 0.004);
+        first.rotation.z = 0.07;
+        lid.add(first);
+      }
     }
     group.add(base, lid);
     const n = new THREE.Vector3(0, Math.sin(0.25), Math.cos(0.25));
@@ -4227,22 +4277,72 @@ const THINGS = {
   },
 
   tunnel_portal({ THREE, group, box }) {
-    // The end of the tunnel on the beach (the team's photo): a concrete mouth with sloping walls,
-    // a glass balustrade on top, and the lit tunnel inside
-    const mouth = box(0.4, 3.0, 4.2, "#d8d1c4");
-    mouth.position.set(0, 1.5, 0);
-    const inside = box(0.02, 2.6, 3.0, "#ffd9a0", { emissive: "#ffcf8a", emissiveIntensity: 0.9 });
-    inside.position.set(0.21, 1.3, 0);
-    const top = box(1.2, 0.3, 4.6, "#cfc8bb");
-    top.position.set(-0.3, 3.15, 0);
-    const glass = box(0.03, 1.0, 4.6, "#bcd6e6", { transparent: true, opacity: 0.3 });
-    glass.position.set(0.25, 3.8, 0);
-    group.add(mouth, inside, top, glass);
+    // The way back under the Marginal (the team's photo): a long concrete sea wall with the road on
+    // top, and in it the mouth of the underpass, the tunnel going back inside, lit by its LED strip,
+    // all the way to a warm glow at the far end. Its front faces the beach (+x here).
+    const concrete = "#d8d1c4";
+    const H = 3.4, W = 12, OPEN = 3.0, HIGH = 2.6, T = 0.6, DEEP = 8;
     for (const side of [-1, 1]) {
-      const slope = box(2.2, 0.25, 0.8, "#d8d1c4");
-      slope.position.set(0.9, 0.9, side * 2.5);
-      slope.rotation.z = 0.7;
-      group.add(slope);
+      const piece = box(T, H, (W - OPEN) / 2, concrete);
+      piece.position.set(0, H / 2, side * (OPEN / 2 + (W - OPEN) / 4));
+      group.add(piece);
+    }
+    const lintel = box(T, H - HIGH, OPEN, concrete);
+    lintel.position.set(0, HIGH + (H - HIGH) / 2, 0);
+    // A darker frame round the mouth, so the opening reads from far away
+    const frame = box(0.08, 0.22, OPEN + 0.44, "#8d877c");
+    frame.position.set(T / 2 + 0.02, HIGH + 0.11, 0);
+    group.add(lintel, frame);
+    for (const side of [-1, 1]) {
+      const post = box(0.08, HIGH, 0.22, "#8d877c");
+      post.position.set(T / 2 + 0.02, HIGH / 2, side * (OPEN / 2 + 0.11));
+      group.add(post);
+    }
+    // Inside: floor, sloping walls, ceiling, the LED strip and the far end
+    const x = -T / 2 - DEEP / 2;
+    const floor = box(DEEP, 0.05, OPEN, "#a9a296");
+    floor.position.set(x, 0.03, 0);
+    const ceiling = box(DEEP, 0.1, OPEN, "#b9b2a5");
+    ceiling.position.set(x, HIGH, 0);
+    const strip = box(DEEP, 0.03, 0.14, "#fff4d6", { emissive: "#fff1cc", emissiveIntensity: 1.4 });
+    strip.position.set(x, HIGH - 0.07, 0);
+    const end = box(0.05, HIGH, OPEN, "#ffe2b0", { emissive: "#ffd08a", emissiveIntensity: 0.7 });
+    end.position.set(-T / 2 - DEEP, HIGH / 2, 0);
+    group.add(floor, ceiling, strip, end);
+    const murals = ["#e63946", "#f2c14e", "#2a9d8f", "#3d5a80"];
+    for (const side of [-1, 1]) {
+      const wall = box(DEEP, HIGH, 0.1, "#cfc8bb");
+      wall.position.set(x, HIGH / 2, side * OPEN / 2);
+      group.add(wall);
+      // Patches of the murals on the walls inside
+      murals.forEach((colour, i) => {
+        const patch = box(1.1, 1.0 + (i % 2) * 0.4, 0.02, colour);
+        patch.position.set(-T / 2 - 1.2 - i * 1.7, 1.1, side * (OPEN / 2 - 0.07));
+        group.add(patch);
+      });
+    }
+    const glow = new THREE.PointLight("#ffd9a0", 6, 9, 1.6);
+    glow.position.set(-2.2, HIGH - 0.4, 0);
+    group.add(glow);
+    // The sign over the mouth
+    const sign = sheet(THREE, textTexture(THREE, ["↖ CAMPUS · NOVA SBE"], { width: 512, height: 96, background: "#1f3f6e", color: "#ffffff", font: "bold 46px sans-serif" }), 1.9, 0.36, { glow: 0.6 });
+    sign.rotation.y = Math.PI / 2;
+    sign.position.set(T / 2 + 0.03, HIGH + 0.45, 0);
+    group.add(sign);
+    // The road on top: a concrete cap, the glass balustrade and two street lamps
+    const cap = box(T + 0.4, 0.16, W, "#cfc8bb");
+    cap.position.set(0, H + 0.08, 0);
+    const glass = box(0.04, 0.9, W, "#bcd6e6", { transparent: true, opacity: 0.3 });
+    glass.position.set(T / 2, H + 0.6, 0);
+    group.add(cap, glass);
+    for (const side of [-1, 1]) {
+      const pole = box(0.09, 2.4, 0.09, "#2b2d33");
+      pole.position.set(0, H + 1.2, side * 4.2);
+      const head = box(0.5, 0.1, 0.22, "#2b2d33");
+      head.position.set(0.2, H + 2.4, side * 4.2);
+      const lamp = new THREE.PointLight("#ffd28a", 7, 9, 1.5);
+      lamp.position.set(0.5, H + 2.2, side * 4.2);
+      group.add(pole, head, lamp);
     }
   },
 
@@ -4458,6 +4558,100 @@ const THINGS = {
     notice.position.set(0, 1.55, 0.05);
     group.add(notice);
     focusOn(group, [0, 1.55, 0.05], [0, 0, 1], 0.5, 0.68);
+  },
+
+  email_laptop({ THREE, group, box, thing, animated }) {
+    // Your laptop open on the café table: "NEW EMAIL" blinking in red until you read it
+    const texture = thing.unread
+      ? textTexture(THREE, ["📧 NEW EMAIL", "(1)"], { width: 384, height: 256, background: "#7a0f16", color: "#ffffff", font: "bold 44px sans-serif" })
+      : textTexture(THREE, ["Plagiarism Check", "94%"], { width: 384, height: 256, background: "#f4f5f8", color: "#c8343a", font: "bold 40px sans-serif" });
+    const screenMaterial = new THREE.MeshStandardMaterial({ map: texture, emissive: "#ffffff", emissiveMap: texture, emissiveIntensity: 0.9 });
+    const base = box(0.38, 0.02, 0.27, "#9aa0a8", { metalness: 0.6, roughness: 0.3 });
+    base.position.set(0, 0.77, 0.05);
+    const lid = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.26, 0.015), [
+      ...Array(4).fill(new THREE.MeshStandardMaterial({ color: "#9aa0a8" })),
+      screenMaterial,
+      new THREE.MeshStandardMaterial({ color: "#9aa0a8" }),
+    ]);
+    lid.position.set(0, 0.9, -0.08);
+    lid.rotation.x = -0.25;
+    // Turned towards the student, who starts on the near side of the table
+    group.rotation.y = Math.PI;
+    const glow = new THREE.PointLight(thing.unread ? "#ff4d5a" : "#9fc4ff", 2.0, 3, 2);
+    glow.position.set(0, 1.1, -0.3);
+    group.add(base, lid, glow);
+    if (thing.unread) {
+      animated.push((dt, time) => {
+        const on = Math.sin(time * 6) > 0;
+        screenMaterial.emissiveIntensity = on ? 1.3 : 0.25;
+        glow.intensity = on ? 3.0 : 0.4;
+      });
+    }
+  },
+
+  finance_book({ THREE, group, box, animated }) {
+    // Tiago's thick Finance textbook standing up on PC 7's desk, facing the chair: its title big
+    // enough to read from across the room, and a big shiny drool stain with a drip down the cover
+    const W = 0.34, H = 0.46, D = 0.08;
+    const pages = box(W - 0.02, H - 0.02, D - 0.01, "#f3efe3");
+    pages.position.set(0, 0.78 + H / 2, -0.005);
+    const back = box(W, H, 0.012, "#173f60");
+    back.position.set(0, 0.78 + H / 2, -D / 2);
+    const spine = box(0.012, H, D, "#173f60");
+    spine.position.set(-W / 2, 0.78 + H / 2, 0);
+    const cover = sheet(THREE, canvasTexture(THREE, 512, 700, (g, w, h) => {
+      g.fillStyle = "#1f5c8a";
+      g.fillRect(0, 0, w, h);
+      g.fillStyle = "#ffd86b";
+      g.fillRect(0, 70, w, 10);
+      g.fillRect(0, 250, w, 10);
+      g.textAlign = "center";
+      g.font = "900 104px sans-serif";
+      g.fillText("FINANCE", w / 2, 205);
+      g.font = "600 34px sans-serif";
+      g.fillStyle = "#cfe3f2";
+      g.fillText("Corporate Finance · 12th ed.", w / 2, 320);
+      // The drool: a big wet stain with a bright rim, and a drip running down to the bottom edge
+      const stain = g.createRadialGradient(w * 0.52, h * 0.62, 10, w * 0.52, h * 0.62, 170);
+      stain.addColorStop(0, "rgba(190,230,255,0.85)");
+      stain.addColorStop(0.7, "rgba(150,205,240,0.7)");
+      stain.addColorStop(1, "rgba(150,205,240,0)");
+      g.fillStyle = stain;
+      g.beginPath();
+      g.ellipse(w * 0.52, h * 0.62, 175, 120, -0.2, 0, Math.PI * 2);
+      g.fill();
+      g.fillStyle = "rgba(170,220,250,0.85)";
+      g.beginPath();
+      g.moveTo(w * 0.55 - 16, h * 0.7);
+      g.quadraticCurveTo(w * 0.55 - 14, h * 0.88, w * 0.55, h * 0.96);
+      g.quadraticCurveTo(w * 0.55 + 14, h * 0.88, w * 0.55 + 16, h * 0.7);
+      g.fill();
+      g.beginPath();
+      g.arc(w * 0.55, h * 0.965, 18, 0, Math.PI * 2);
+      g.fill();
+      // Highlights: it shines
+      g.fillStyle = "rgba(255,255,255,0.9)";
+      g.beginPath();
+      g.ellipse(w * 0.44, h * 0.57, 46, 14, -0.4, 0, Math.PI * 2);
+      g.fill();
+      g.beginPath();
+      g.ellipse(w * 0.6, h * 0.66, 20, 7, -0.4, 0, Math.PI * 2);
+      g.fill();
+    }), W, H, { glow: 0.35, roughness: 0.25 });
+    cover.position.set(0, 0.78 + H / 2, D / 2 + 0.002);
+    // Leaning back a little against the monitor stand, facing the chair (+z)
+    const book = new THREE.Group();
+    book.add(pages, back, spine, cover);
+    book.rotation.x = -0.12;
+    book.rotation.y = -0.35;
+    group.add(book);
+    // A drop of drool that gleams now and then, so the eye goes to it
+    const shine = new THREE.PointLight("#bfe6ff", 0, 0.9, 2);
+    shine.position.set(0.03, 0.78 + H * 0.4, D / 2 + 0.12);
+    group.add(shine);
+    animated.push((dt, time) => {
+      shine.intensity = 0.6 + 0.6 * Math.max(0, Math.sin(time * 2.2));
+    });
   },
 
   notebook({ THREE, group, box }) {

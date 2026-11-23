@@ -58,6 +58,7 @@ from logic import (
     scene_shadows,
     scene_music,
     scene_text,
+    time_is_up,
     seconds_left,
     take_hint,
 )
@@ -273,19 +274,12 @@ def ask_new_game(chapter=1):
 
 
 def open_level(number):
-    """A level on the map: continue its unfinished game, or start it."""
+    """A level on the map always starts from zero: a new game, a new clock (an old unfinished game
+    of it, its clock long past midnight, ended at the first click). "Continue" resumes instead."""
     level = next((s for s in player_levels() if s["number"] == number), None)
     if not level or not level["unlocked"]:
         return
-    try:
-        saved = load_saved()
-    except StorageError:
-        st.session_state.db_error = True
-        return
-    if saved and not is_finished(saved) and chapter_of(saved) == level["chapter"]:
-        resume_game()
-    else:
-        ask_new_game(level["chapter"])
+    start_new_game(level["chapter"])
 
 
 def player_endings():
@@ -339,10 +333,16 @@ def cancel_new_game():
 
 def resume_game():
     try:
-        st.session_state.game = load_saved()
+        saved = load_saved()
     except StorageError:
         st.session_state.db_error = True
         return
+    # A saved game whose clock ran out while you were away starts again from zero, instead of
+    # ending at the first click
+    if saved and not is_finished(saved) and time_is_up(saved, time.time()):
+        start_new_game(chapter_of(saved))
+        return
+    st.session_state.game = saved
     st.session_state.message = None
 
 
@@ -722,7 +722,12 @@ def ending_data(game):
         buttons.append({"name": "menu", "label": t("leave_room"), "primary": False})
     else:
         buttons.append({"name": "map", "label": t("map"), "primary": False})
+        buttons.append({"name": "menu", "label": t("back_to_menu"), "primary": False})
+    # A won level opens with congratulations (and what you achieved, when the ending says it)
+    completed = game["scene"] in level_for_chapter(chapter_of(game))["completes_with"]
+    congrats = {"title": t("congrats_title"), "text": say(scene["congrats"]) if scene.get("congrats") else ""} if completed else None
     return {
+        "congrats": congrats,
         "kicker": t("ending_kicker", n=chapter_of(game)),
         "title": say(scene["title"]),
         "text": say(scene["text"]),
@@ -813,6 +818,28 @@ def laptop_notes(game):
     return notes
 
 
+def intro_data(game, role):
+    """The email that opens a level (Level 2), translated, while its action is still offered; else None.
+    Only the one who acts can close it (co-op: the other student just reads it)."""
+    intro = SCENES[game["scene"]].get("intro")
+    action = (intro or {}).get("action", "ler_email")
+    if not intro or is_finished(game) or action not in available_actions(game):
+        return None
+    return {
+        "icon": intro.get("icon", "📧"),
+        # Shown at once (Level 1's briefing), not only when its thing is used (Level 2's laptop)
+        "auto": intro.get("auto", False),
+        "sender": say(intro["sender"]),
+        "subject": say(intro["subject"]),
+        "big": intro["big"],
+        "lines": [say(line) for line in intro["lines"]],
+        "warn": intro.get("warn"),
+        "goal": say(intro["goal"]),
+        "button": say(intro["button"]),
+        "action": action if can_act(role) else None,
+    }
+
+
 def view_data(game, role, message, chat):
     """Everything the fullscreen game needs, as plain data. The puzzle codes are never included."""
     scene = SCENES[game["scene"]]
@@ -860,7 +887,7 @@ def view_data(game, role, message, chat):
                 "restart_confirm", "yes", "no", "your_time", "best_time", "toggle_text", "toggle_fullscreen", "key_hint",
                 "hint_button", "free_actions", "inspect_back", "lock_open", "lap_user", "lap_login", "lap_usb",
                 "lap_open_hint", "lap_plug_hint", "lap_tests", "lap_wifi", "lap_connect", "lap_secured", "lap_no_signal",
-                "lap_connected", "lap_offline", "lap_type", "lap_not_found", "clues_zoom",
+                "lap_connected", "lap_offline", "lap_wifi_hint", "lap_type", "lap_not_found", "clues_zoom",
                 "toggle_view", "key_hint_3d",
             )
         },
@@ -887,6 +914,8 @@ def view_data(game, role, message, chat):
         "dialogue": None,
         # At the laptop (3D): Tiago's post-it on its screen and Rita's next to the keyboard
         "laptop_notes": laptop_notes(game),
+        # Level 2 opens with a big email over everything, until "Start" (the action ler_email)
+        "intro": intro_data(game, role),
     }
     dialogue = st.session_state.dialogue
     if dialogue:

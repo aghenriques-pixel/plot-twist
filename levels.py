@@ -6,8 +6,8 @@ No Streamlit and no database here: level_status works from the set of endings a 
 LEVELS = [
     # completes_with: endings that complete the level (the story only continues from these)
     {"number": 1, "chapter": 1, "completes_with": {"final_entregue", "final_tiago"}},
-    # Level 2 is completed by getting out, with or without the proof (specs/levels-2-and-3.md)
-    {"number": 2, "chapter": 2, "completes_with": {"final_l2_praia", "final_l2_sem_prova"}},
+    # Level 2 is completed by sending the proof (specs/level-2-94.md)
+    {"number": 2, "chapter": 2, "completes_with": {"final_l2_praia"}},
     {"number": 3, "chapter": 3, "completes_with": {"final_apresentacao", "final_l3_tiago"}},
 ]
 # Levels still being written: shown on the map, locked ("Coming soon")
@@ -15,7 +15,7 @@ COMING_SOON = []
 
 ENDINGS_BY_CHAPTER = {
     1: {"final_entregue", "final_tiago", "final_meia_noite", "final_afogado", "final_seguranca"},
-    2: {"final_l2_praia", "final_l2_sem_prova", "final_l2_apanhado", "final_l2_alarme"},
+    2: {"final_l2_praia", "final_l2_apanhado", "final_l2_alarme"},
     3: {"final_apresentacao", "final_l3_tiago", "final_l3_atrasado", "final_l3_force", "final_l3_zero"},
 }
 

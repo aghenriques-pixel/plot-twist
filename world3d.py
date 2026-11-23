@@ -74,11 +74,12 @@ ROOMS_3D = {
             {"kind": "lectern", "at": [5.7, -4.5]},
             at_desk(2, -0.62, "tiago_sleeping", talk="tiago"),
             # Your laptop, dead: look at it, and take it (it goes once taken)
-            at_desk(2, -0.33, "laptop", look="Laptop", action="apanhar_portatil", only_while_offered=True),
+            at_desk(2, -0.33, "laptop", look="Laptop", action="apanhar_portatil", gone_with="portatil_l1"),
             at_desk(2, -0.25, "phone", look="Phone"),
             {"kind": "chair_coat", "at": on_arc(12.0, -0.14, 0.75), "turn": -0.14, "stand": on_arc(12.0, -0.14, 1.5),
              "action": "apanhar_casaco", "stays_empty": True},
-            {"kind": "notice", "wall": "left", "at": [-7.0, 0.6], "stand": [-6.0, 0.6], "look": "Notice on the wall"},
+            {"kind": "notice", "wall": "left", "at": [-7.0, 0.6], "stand": [-6.0, 0.6], "look": "Notice on the wall",
+             "read_action": "ler_aviso"},
             {"kind": "door", "wall": "left", "at": [-7.0, 2.6], "stand": [-6.1, 2.6], "action": "ir_corredor"},
             {"kind": "exit_sign", "wall": "left", "at": [-7.0, 2.6]},
         ],
@@ -173,7 +174,7 @@ ROOMS_3D = {
         "style": {"outdoor": True, "floor": "tiles", "palette": {**NOVA, "floor": "#b49a72"}},
         "things": [
             {"kind": "facade", "wall": "back", "at": [0.0, -7.0], "door": -6.0},
-            {"kind": "door", "wall": "back", "at": [-6.0, -7.0], "stand": [-6.0, -6.0], "action": "voltar_dentro", "glass": True},
+            {"kind": "door", "wall": "back", "at": [-6.0, -7.0], "stand": [-6.0, -6.0], "actions": ["voltar_dentro", "voltar_dentro_portatil"], "glass": True},
             {"kind": "sign_post", "at": [-4.7, -6.3], "stand": [-4.7, -5.3], "look": "Sign by the door"},
             {"kind": "walkway", "at": [6.6, -2.4], "width": 4.6, "length": 9.2},
             {"kind": "column", "at": [4.6, -3.4], "round": True, "height": 4.2},
@@ -230,17 +231,22 @@ ATRIUM_THINGS = [
      "height": 4.6},
     {"kind": "glass_doors", "wall": "left", "at": [-11.0, 3.0], "stand": [-10.0, 3.0], "look": "Main doors",
      "actions": ["voltar_tunel_l3"]},
-    {"kind": "door", "keypad": True, "wall": "right", "at": [11.0, -3.6], "stand": [10.1, -3.6], "action": "abrir_lab"},
+    {"kind": "door", "keypad": True, "wall": "right", "at": [11.0, -3.6], "stand": [10.1, -3.6], "actions": ["abrir_lab", "abrir_lab2"]},
     {"kind": "exit_sign", "wall": "right", "at": [11.0, -3.6]},
+    # Level 2: IT's notice next to the lab door (the door code)
+    {"kind": "notice_board", "wall": "right", "at": [11.0, -1.4], "stand": [10.0, -1.4], "look": "Notice on the lab door"},
     {"kind": "door", "keypad": True, "staff": True, "wall": "back", "at": [8.6, -8.0], "stand": [8.6, -7.0], "action": "abrir_servico"},
-    {"kind": "security_desk", "at": [6.6, 1.0], "turn": -1.571, "stand": [5.2, 1.0], "action": "apanhar_chave",
-     "talk": "seguranca3"},
+    {"kind": "security_desk", "at": [6.6, 1.0], "turn": -1.571, "stand": [5.2, 1.0],
+     "actions": ["apanhar_chave", "desbloquear_portatil", "talk:seguranca3"]},
     {"kind": "planter", "at": [-6.8, 5.2]},
     {"kind": "planter", "at": [-4.2, -5.6]},
     {"kind": "planter", "at": [6.4, -5.4]},
     {"kind": "planter", "at": [8.8, 5.6], "small": True},
     {"kind": "round_table", "at": [-4.6, 3.6], "chairs": 3},
     {"kind": "phone_spot", "at": [-4.45, 3.75], "y": 0.75, "stand": [-4.6, 5.5], "look": "Your phone"},
+    # Level 2: your laptop on the same table, "NEW EMAIL" blinking; using it opens the email
+    {"kind": "email_laptop", "at": [-4.6, 3.75], "stand": [-3.5, 4.3], "action": "ler_email", "look": "Your laptop",
+     "stays_empty": True},
     {"kind": "round_table", "at": [3.0, 4.6], "chairs": 3},
     {"kind": "round_table", "at": [-1.8, 5.8], "chairs": 2},
 ]
@@ -249,9 +255,9 @@ ROOMS_3D.update({
     "l2_atrio": {
         "size": [22, 16],
         "height": 8.4,
-        "start": [-9.6, 5.6],
+        # Level 2 starts right next to your laptop on the café table
+        "start": [-3.1, 4.8],
         "arrive": {
-            "l2_biblioteca": {"at": [-7.4, 0.8], "turn": 0.0},
             "l2_lab": {"at": [8.2, -2.6], "turn": -1.571},
             "l2_tunel": {"at": [8.6, -5.0], "turn": 0.0},
         },
@@ -289,11 +295,13 @@ ROOMS_3D.update({
         "things": [
             *[
                 {"kind": "pc_desk", "at": [x, z], "number": 1 + row * 4 + col, "on": 1 + row * 4 + col == 7,
-                 **({"stand": [x, z + 1.3], "look": "PC 7", "action": "entrar_pc7"} if 1 + row * 4 + col == 7 else {})}
+                 **({"stand": [x, z + 1.3], "look": "PC 7", "actions": ["entrar_pc7", "talk:email"]} if 1 + row * 4 + col == 7 else {})}
                 for row, z in enumerate((-2.4, 0.0, 2.4))
                 for col, x in enumerate((-3.0, -0.8, 1.4, 3.6))
             ],
             # Stand beside the printer, so the character does not hide it from the camera
+            # Tiago's Finance book on PC 7's desk (the password: the book + 7)
+            {"kind": "finance_book", "at": [2.0, 0.1], "stand": [2.0, 1.3], "look": "The book next to the keyboard"},
             {"kind": "printer", "at": [5.2, -3.9], "stand": [4.0, -3.4], "action": "imprimir"},
             {"kind": "whiteboard", "wall": "back", "at": [-1.6, -5.0], "stand": [-1.6, -3.9], "look": "IT whiteboard"},
             {"kind": "server_rack", "at": [5.4, 3.6]},
@@ -307,14 +315,13 @@ ROOMS_3D.update({
         "size": [7, 34],
         "height": 3.2,
         "start": [0.0, 15.0],
-        "arrive": {"l2_atrio": {"at": [0.0, 15.0], "turn": 3.1416}},
+        "arrive": {"l2_atrio": {"at": [0.0, 15.0], "turn": 3.1416}, "l2_praia": {"at": [0.0, -14.2], "turn": 0.0}},
         "dim": True,
         "style": {"floor": "concrete", "ceiling": "concrete", "lights": "strips", "murals": True, "far": "sea",
                   "palette": {**NOVA, "wall": "#cfc8bb", "floor": "#a9a296"}},
         "things": [
             {"kind": "gate", "wall": "back", "at": [0.0, -17.0], "stand": [0.0, -15.9], "action": "abrir_portao"},
             {"kind": "mural_panel", "wall": "left", "at": [-3.5, 6.0], "stand": [-2.5, 6.0], "look": "Murals"},
-            {"kind": "fisherman", "at": [1.9, -12.5], "stand": [1.0, -10.8], "look": "A shadow at the far end"},
             {"kind": "door", "wall": "right", "at": [3.5, 13.0], "stand": [2.6, 13.0], "action": "voltar_atrio_tunel", "staff": True},
         ],
     },
@@ -337,14 +344,20 @@ ROOMS_3D.update({
     "l2_praia": {
         "size": [26, 18],
         "height": 6.0,
-        "start": [10.4, 5.6],
-        "arrive": {"l2_tunel": {"at": [10.4, 5.6], "turn": -1.571}},
+        "start": [8.8, 5.6],
+        "arrive": {"l2_tunel": {"at": [8.8, 5.6], "turn": -1.571}},
         "style": {"outdoor": True, "beach": True, "floor": "sand", "palette": {**NOVA, "floor": "#d9c49a"}},
         "things": [
-            {"kind": "fort", "at": [-9.0, -6.2], "stand": [-5.6, -3.2], "look": "The lighthouse"},
-            {"kind": "tiago_beach", "at": [-6.6, -4.2], "stand": [-5.4, -2.8], "actions": ["talk:tiago_triste", "talk:tiago_zangado"]},
-            {"kind": "tunnel_portal", "at": [12.4, 5.6], "turn": 3.1416},
-            {"kind": "beach_stairs", "at": [10.0, -2.4], "stand": [9.0, -2.4], "actions": ["ir_casa", "ir_casa_sem"]},
+            # The lighthouse's ring well away from Tiago's (they used to overlap: E always talked to Tiago)
+            {"kind": "fort", "at": [-9.0, -6.2], "stand": [-9.4, -2.2], "look": "The lighthouse"},
+            {"kind": "tiago_beach", "at": [-6.6, -4.2], "stand": [-5.4, -2.8],
+             "actions": ["talk:tiago_triste", "talk:tiago_zangado", "talk:tiago_depois"]},
+            {"kind": "tunnel_portal", "at": [12.4, 5.6], "turn": 3.1416, "stand": [10.8, 5.6], "action": "voltar_tunel_l2"},
+            # A fisherman at the water's edge (he used to be a shadow in the tunnel)
+            {"kind": "fisherman", "at": [2.4, -6.6], "turn": 3.1416, "stand": [2.4, -4.9], "look": "A fisherman"},
+            # The beach at night: the kiosk shut, a parasol left closed
+            {"kind": "kiosk", "at": [5.6, -3.2]},
+            {"kind": "parasol", "at": [-1.6, 3.4]},
         ],
     },
     "l3_praia": {
@@ -359,8 +372,11 @@ ROOMS_3D.update({
             {"kind": "phone_spot", "at": [-4.0, -2.6], "y": 0.03, "stand": [-4.0, -1.6], "look": "Your phone"},
             {"kind": "seagull", "at": [-1.4, -0.6], "stand": [-1.4, 0.6], "talk": "gaivota"},
             {"kind": "kiosk", "at": [5.6, -3.2], "stand": [5.6, -1.6], "look": "Kiosk"},
-            {"kind": "parasol", "at": [1.8, -4.6]},
-            {"kind": "parasol", "at": [-1.6, 5.0]},
+            # The fisherman from last night, by the water, with his bucket of sardines
+            {"kind": "fisherman", "at": [2.6, -6.8], "turn": 3.1416, "stand": [2.6, -5.0], "talk": "pescador3"},
+            {"kind": "parasol", "at": [-3.2, -5.8]},
+            # In a corner, not between the camera and you (by the seagull it filled half the screen)
+            {"kind": "parasol", "at": [-8.0, 6.4]},
             {"kind": "people", "at": [0.0, 0.0], "spots": [[3.4, 2.6], [7.6, 1.2], [-0.6, -6.4]], "seed": 11, "beach": True},
             {"kind": "tunnel_portal", "at": [12.4, 5.6], "turn": 3.1416, "stand": [10.6, 5.6], "action": "ir_tunel_l3"},
         ],
@@ -378,7 +394,7 @@ ROOMS_3D.update({
             {"kind": "projection_screen", "wall": "back", "at": [1.0, -8.0]},
             {"kind": "lectern", "at": [-3.6, -5.6]},
             {"kind": "professor", "at": [-3.6, -6.3], "stand": [-3.6, -4.0], "talk": "professor"},
-            {"kind": "projector_desk", "at": [1.6, -5.2], "stand": [1.6, -3.9], "actions": ["ligar_projetor", "talk:terminal3"]},
+            {"kind": "projector_desk", "at": [1.6, -5.2], "stand": [1.6, -3.9], "actions": ["talk:hdmi", "talk:slides", "talk:terminal3"]},
             {"kind": "seat_rows", "at": [1.0, 0.0], "rows": 6, "from": -1.2, "step": 1.35, "width": 12.0},
             {"kind": "audience", "at": [1.0, 0.0], "seed": 5},
             {"kind": "rita_seated", "at": [-2.4, -1.2]},
@@ -390,26 +406,6 @@ ROOMS_3D.update({
 })
 
 
-def library_room():
-    """Level 2's library: Level 1's cafeteria room (the library's 1st floor) in the dark, its door
-    leading back to the atrium, the notice board on the wall and Rita's notebook on a table."""
-    room = dict(ROOMS_3D["cafetaria"])
-    things = []
-    for thing in room["things"]:
-        if thing["kind"] == "rita_card":
-            continue
-        if thing["kind"] == "door":
-            thing = {**thing, "actions": ["voltar_atrio_ronda", "voltar_atrio"]}
-        things.append({key: value for key, value in thing.items() if key != "look"} if thing.get("look") else thing)
-    things += [
-        {"kind": "notice_board", "wall": "right", "at": [8.0, -2.6], "stand": [7.0, -2.6], "look": "Notice board"},
-        {"kind": "notebook", "at": [-2.8, -2.4], "stand": [-2.8, -1.2], "action": "apanhar_caderno", "only_while_offered": True},
-    ]
-    # You come up the stairs a few steps into the room (not on the door's ring: E would take you back)
-    return {**room, "things": things, "dim": True, "start": [-5.2, 3.0], "arrive": {"l2_atrio": {"at": [-5.2, 3.0], "turn": 1.571}}}
-
-
-ROOMS_3D["l2_biblioteca"] = library_room()
 
 # The options of a conversation, drawn as cards in 3D: an icon, and where it happens in the room
 # (None: right where you stand). Choosing a place makes the character run there first.
@@ -428,10 +424,29 @@ CHOICES = {
     "esconder_mesa": {"icon": "🪑", "at": [-4.6, 5.5]},
     "correr_escadas": {"icon": "🏃", "at": [-7.4, -1.2]},
     "ficar_parado_l2": {"icon": "🧍", "at": None},
-    "tiago_vem_a": {"icon": "🤝", "at": None},
-    "tiago_nao_a": {"icon": "🚶", "at": None},
-    "tiago_vem_b": {"icon": "🤝", "at": None},
-    "tiago_nao_b": {"icon": "🚶", "at": None},
+    "anexar_historico": {"icon": "📄", "at": None},
+    "anexar_juro": {"icon": "💬", "at": None},
+    "anexar_gato": {"icon": "🐱", "at": None},
+    "pedir_senha_vem_a": {"icon": "🤝", "at": None},
+    "pedir_senha_nao_a": {"icon": "🙏", "at": None},
+    "exigir_senha_a": {"icon": "😠", "at": None},
+    "acusar_a": {"icon": "👉", "at": None},
+    "pedir_senha_vem_b": {"icon": "🤝", "at": None},
+    "pedir_senha_nao_b": {"icon": "🙏", "at": None},
+    "exigir_senha_b": {"icon": "😠", "at": None},
+    "acusar_b": {"icon": "👉", "at": None},
+    "lembrar_vem": {"icon": "👍", "at": None},
+    # Level 3
+    "pedir_sardinha": {"icon": "🐟", "at": None},
+    "dar_sardinha": {"icon": "🐟", "at": None},
+    "hdmi_rita": {"icon": "🙋‍♀️", "at": None},
+    "hdmi_tiago": {"icon": "🧑", "at": None},
+    "hdmi_professor": {"icon": "👨‍🏫", "at": None},
+    "abrir_v3": {"icon": "📊", "at": None},
+    "abrir_final": {"icon": "📊", "at": None},
+    "abrir_final_final": {"icon": "📊", "at": None},
+    "abrir_final_mesmo": {"icon": "📊", "at": None},
+    "lembrar_nao": {"icon": "👍", "at": None},
     # Level 3
     "bater_palmas": {"icon": "👏", "at": None},
     "agarrar_cartao": {"icon": "✋", "at": None},
@@ -475,6 +490,12 @@ def room_of(state):
     if room is None:
         return state["scene"]
     return room.get("base", scene_id)
+
+
+def opens_by_itself(state, spot):
+    """Whether this spot is the action of a briefing shown at once over the room (Level 1)."""
+    intro = SCENES[state["scene"]].get("intro") or {}
+    return bool(intro.get("auto")) and spot.get("action") == intro.get("action")
 
 
 def full_room(scene_id):
@@ -523,15 +544,22 @@ def world_view(state, role=None, look=None):
     linked = set()
     for thing in room["things"]:
         action = thing.get("action")
+        # The laptop with the email is Level 2's; Level 2 has no phone on that table
+        level2 = state["scene"].startswith(("l2_", "final_l2"))
+        if (thing["kind"] == "email_laptop" and not level2) or (thing["kind"] == "phone_spot" and level2):
+            continue
         # A thing that is only there after a decision (Tiago in the auditorium, if he said he'd come)
         if "only_if" in thing and state["decisions"].get(thing["only_if"][0]) != thing["only_if"][1]:
             continue
         # A thing that is only there for its action (the card, the coat) goes once the action is gone
         if thing.get("only_while_offered") and action not in offered:
             continue
+        # ...or once you carry it (your laptop: there before you may take it, gone after)
+        if thing.get("gone_with") in state["inventory"]:
+            continue
         # ...or stays without it (your chair, once the coat is taken)
         empty = bool(thing.get("stays_empty")) and action not in offered
-        hidden = ("look", "only_while_offered", "stays_empty", "actions", "only_if") + (("action", "stand") if empty else ())
+        hidden = ("look", "only_while_offered", "stays_empty", "actions", "only_if", "gone_with", "read_action") + (("action", "stand") if empty else ())
         view = {key: value for key, value in thing.items() if key not in hidden}
         if thing.get("stays_empty"):
             view["empty"] = empty
@@ -547,6 +575,10 @@ def world_view(state, role=None, look=None):
         if also:
             view["also"] = also
         linked.update(spot_index[name] for name in names if name in spot_index)
+        # Read by looking at it (the notice: closing its close-up does the action)
+        if thing.get("read_action") in spot_index:
+            view["read_action"] = thing["read_action"]
+            linked.add(spot_index[thing["read_action"]])
         label = thing.get("look")
         view["look"] = look_index.get(label) if label else None
         if label:
@@ -559,6 +591,10 @@ def world_view(state, role=None, look=None):
         # Level 2: the key on the security desk's hook until you take it; PC 7 once logged in
         if thing["kind"] == "security_desk":
             view["key"] = "chave_portao" not in state["inventory"] and state["scene"].startswith("l2_")
+        if thing["kind"] == "email_laptop":
+            view["unread"] = "_email" not in state["decisions"]
+            if view["unread"]:
+                view["look"] = None
         if thing["kind"] == "pc_desk":
             view["unlocked"] = "_pc7" in state["decisions"]
         # Level 3: the big screen shows your desktop once the laptop is plugged in
@@ -588,7 +624,8 @@ def world_view(state, role=None, look=None):
         "hero": {"coat": "casaco" in state["inventory"], "look": look or DEFAULT_LOOK},
         "things": things,
         # Actions with nothing in the room for them (texting Rita): buttons over the 3D view
-        "free": [i for i in range(len(spots)) if i not in linked],
+        # (not the briefing that opens a level by itself: its "Start" is the way to it)
+        "free": [i for i in range(len(spots)) if i not in linked and not opens_by_itself(state, spots[i])],
         # At the laptop: what is already done, so its screen shows it (the files, the Wi-Fi, git)
         "laptop": laptop_view(state) if state["scene"] == "portatil" else None,
     }

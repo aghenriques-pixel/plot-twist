@@ -279,6 +279,11 @@ def scene_looks(state, role=None):
     if is_finished(state):
         return []
     looks = SCENES[state["scene"]].get("looks", [])
+    # A remark that is only true until something is done ("Tiago is at the beach?!" until you log in)
+    looks = [
+        {key: value for key, value in look.items() if key != "remark"} if look.get("remark_until") in state["decisions"] else look
+        for look in looks
+    ]
     return [look for look in looks if role is None or clue_reader(look) in (None, role)]
 
 
@@ -366,8 +371,9 @@ def is_offered(action, state):
     if "decides" in action and action["decides"][0] in state["decisions"]:
         return False
     if "only_if" in action:
-        name, value = action["only_if"]
-        if state["decisions"].get(name) != value:
+        # One (name, value), or a list of them that must all hold
+        conditions = action["only_if"] if isinstance(action["only_if"], list) else [action["only_if"]]
+        if any(state["decisions"].get(name) != value for name, value in conditions):
             return False
     if "only_without_decision" in action and action["only_without_decision"] in state["decisions"]:
         return False
@@ -400,7 +406,9 @@ def end_in(state, ending, now=None):
 def refuse(state, action, message, now):
     """A refused action: the state does not change, except the time lost for a wrong answer."""
     if action.get("penalty") or "code" in action:
-        return False, penalise(state, WRONG_ANSWER_COST), message
+        # "penalty": True costs the usual time; a number is its own cost in seconds (the HDMI: 1 minute)
+        cost = action["penalty"] if type(action.get("penalty")) is int else WRONG_ANSWER_COST
+        return False, penalise(state, cost), message
     return False, copy_state(state), message
 
 
@@ -436,7 +444,9 @@ def apply_action(state, action_id, code=None, roll=None, now=None):
         return refuse(state, action, action.get("decision_message", action.get("blocked_message")), now)
     if "code" in action and not normalise_code(code):
         return False, copy_state(state), "Type the code first."
-    if "code" in action and normalise_code(code) != normalise_code(action["code"]):
+    # Other ways of writing the same code are accepted too (`also_codes`: "Bica 0.7" for bica070)
+    accepted = {normalise_code(c) for c in (action["code"], *action.get("also_codes", ()))} if "code" in action else set()
+    if "code" in action and normalise_code(code) not in accepted:
         return refuse(state, action, action["wrong_code_message"], now)
 
     new_state = copy_state(state)
@@ -445,6 +455,9 @@ def apply_action(state, action_id, code=None, roll=None, now=None):
             new_state["inventory"].append(item)
     if "decides" in action:
         name, value = action["decides"]
+        new_state["decisions"][name] = value
+    # A second thing settled by the same answer (Level 2: Tiago's password, and whether he comes at 9:00)
+    for name, value in action.get("also_decides", ()):
         new_state["decisions"][name] = value
     goes_to, message = action.get("goes_to"), action["message"]
     for (name, value), scene in action.get("goes_to_if", {}).items():

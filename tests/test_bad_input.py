@@ -224,3 +224,14 @@ def test_new_texts_have_portuguese():
 
 def test_new_game_starts_the_level_and_its_clock():
     assert new_game(now=1_000_000) == {"scene": "sala_estudo", "inventory": [], "decisions": {"_inicio": "1000000"}}
+
+
+def test_the_wifi_password_takes_the_price_written_either_way():
+    """Bica0.7, Bica0.70, bica070 and BICA 0,70 all connect to the terrace Wi-Fi."""
+    from logic import ACTIONS, normalise_code
+
+    action = ACTIONS["ligar_wifi"]
+    accepted = {normalise_code(c) for c in (action["code"], *action.get("also_codes", ()))}
+    for typed in ("Bica0.7", "Bica0.70", "bica070", "BICA 0,70", "bica 0.7"):
+        assert normalise_code(typed) in accepted, typed
+    assert normalise_code("bica0.17") not in accepted

@@ -17,7 +17,7 @@ def one_step_before_submitting():
     """At the laptop, everything done but git push (the clock started just now)."""
     state = new_game()
     steps = [
-        ("apanhar_portatil", None), ("apanhar_casaco", None), ("ir_corredor", None), ("ir_cafetaria", None), ("apanhar_cartao_rita", None),
+        ("ler_aviso", None), ("apanhar_portatil", None), ("apanhar_casaco", None), ("ir_corredor", None), ("ir_cafetaria", None), ("apanhar_cartao_rita", None),
         ("voltar_corredor_ronda", None), ("esconder_maquina", None), ("abrir_cacifo", "31284"),
         ("abrir_terraco", "314"), ("ligar_portatil", None), ("tapar_casaco", None), ("entrar_portatil", "13"),
         ("inserir_pen", None), ("ficheiro_v3", None), ("ligar_wifi", "bica070"), ("git_add", None), ("git_commit", None),

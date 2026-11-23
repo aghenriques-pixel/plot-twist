@@ -40,7 +40,8 @@ def start():
 
 
 # The right path, scene by scene (section 9 of the proposal)
-TO_CORRIDOR = ["apanhar_portatil", "apanhar_casaco", "tiago_excluido", "ir_corredor"]  # changed (specs/level1-laptop-and-notes.md): take the laptop, plug in the pen drive
+# changed: the laptop can be taken once the notice (the terrace socket) has been read
+TO_CORRIDOR = ["ler_aviso", "apanhar_portatil", "apanhar_casaco", "tiago_excluido", "ir_corredor"]  # changed (specs/level1-laptop-and-notes.md): take the laptop, plug in the pen drive
 TO_CAFETERIA = ["mensagem_rita", "ir_cafetaria", "apanhar_cartao_rita", "voltar_corredor_ronda", "esconder_maquina"]
 TO_TERRACE = [("abrir_cacifo", "31284"), ("abrir_terraco", "314")]
 TO_LAPTOP = ["ligar_portatil", "tapar_casaco"]
@@ -68,7 +69,7 @@ def test_the_right_path_submits_on_time():
 
 
 def test_telling_tiago_he_is_on_the_project_gives_the_secret_ending():
-    path = ["apanhar_portatil", "apanhar_casaco", "tiago_incluido"] + RIGHT_PATH[3:]
+    path = ["ler_aviso", "apanhar_portatil", "apanhar_casaco", "tiago_incluido"] + RIGHT_PATH[4:]
 
     state = play(start(), *path)
 
@@ -77,7 +78,7 @@ def test_telling_tiago_he_is_on_the_project_gives_the_secret_ending():
 
 
 def test_not_answering_tiago_still_submits():
-    path = ["apanhar_portatil", "apanhar_casaco"] + RIGHT_PATH[3:]
+    path = ["ler_aviso", "apanhar_portatil", "apanhar_casaco"] + RIGHT_PATH[4:]
 
     assert play(start(), *path)["scene"] == "final_entregue"
 
@@ -190,8 +191,9 @@ def test_on_the_laptop_each_step_appears_after_the_one_before():
     state = play(start(), *TO_CORRIDOR, *TO_CAFETERIA, *TO_TERRACE, *TO_LAPTOP)
 
     def offered():
-        # You can always stand up from the laptop (changed: specs/laptop-way-back.md)
-        return set(available_actions(state)) - {"sair_portatil"}
+        # You can always stand up from the laptop (changed: specs/laptop-way-back.md), and go back
+        # inside from it (changed: without the Wi-Fi password you were stuck on the terrace)
+        return set(available_actions(state)) - {"sair_portatil", "voltar_dentro_portatil"}
 
     assert offered() == {"entrar_portatil"}
     state = play(state, ("entrar_portatil", "13"))
@@ -455,3 +457,11 @@ def test_you_can_leave_the_laptop_and_come_back_without_the_sprinklers():
     state = play(state, "ir_corredor", ("abrir_terraco", "314"), "voltar_portatil")
     assert state["scene"] == "portatil"
     assert "inserir_pen" in available_actions(state)  # still logged in
+
+
+def test_the_laptop_waits_for_the_notice():
+    """Found while playing: taking the laptop first, you did not know where to charge it."""
+    state = start()
+    assert "apanhar_portatil" not in available_actions(state)
+    state = play(state, "ler_aviso")
+    assert "apanhar_portatil" in available_actions(state)
