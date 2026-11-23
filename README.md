@@ -1,5 +1,7 @@
 # Git Out — A night at Nova SBE
 
+**▶ Play online: [gitout.streamlit.app](https://gitout.streamlit.app)** — nothing to install (the free host sleeps when unused: the first visit can take a minute to wake it up). To run it on your own computer, see [Install and run it locally](#install-and-run-it-locally).
+
 A 3D escape room in the browser, set during one night at Nova SBE, in three levels. **Level 1 — "Submission at 23:59":** it is 23:44 in Study Room B, the group project is due on Moodle at 23:59, the code is on Rita's pen drive locked in her locker, your laptop is dead and Tiago changed its password as a joke. Get out of the room, find Rita's card in the cafeteria, open her locker, hide from the security round, find a working socket on the terrace, survive the sprinklers, and `git push` before midnight. Your answer to Tiago decides one of the five endings.
 
 ## Objectives
