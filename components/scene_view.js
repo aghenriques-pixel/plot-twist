@@ -974,9 +974,85 @@ function narration(data) {
   return box;
 }
 
+// --- Level 2: Prof. Marques' email, as a real mail app (specs/level2-briefing-first.md) ----------
+// The cover keeps the briefing's classes (.intro-email, .intro-start), so the keys and "busy" work the
+// same: E, Enter, Space or Esc press "Close". Only Close can be an action; Reply just shows a note.
+
+function mailScreen(mail, setTriggerValue) {
+  const cover = el("div", "intro-email mail-cover");
+  const app = el("div", "mail-app");
+  const unread = !mail.again;
+
+  const top = el("div", "mail-top");
+  top.append(el("span", "mail-logo", `✉️ ${mail.app}`), el("div", "mail-search", `🔍 ${mail.search}`));
+
+  const folders = el("nav", "mail-folders");
+  mail.folders.forEach((name, i) => {
+    const folder = el("div", i === 0 ? "mail-folder on" : "mail-folder", name);
+    if (i === 0 && unread) folder.append(el("span", "mail-count", "1"));
+    folders.append(folder);
+  });
+
+  const list = el("div", "mail-list");
+  mail.inbox.forEach((item, i) => {
+    const row = el("div", `mail-row${i === 0 ? " on" : ""}${item.unread && unread ? " unread" : ""}`);
+    const line = el("div", "mail-row-line");
+    line.append(el("span", "mail-row-from", item.from), el("span", "mail-row-time", item.time));
+    row.append(line, el("div", "mail-row-subject", item.subject));
+    list.append(row);
+  });
+
+  const read = el("article", "mail-read");
+  const meta = el("div", "mail-meta");
+  const initials = mail.sender.split(/\s+/).map((word) => word[0]).join("").slice(0, 2).toUpperCase();
+  const who = el("div", "mail-who");
+  who.append(el("div", "mail-from", mail.sender), el("div", "mail-role", mail.role), el("div", "mail-to", mail.to));
+  meta.append(el("div", "mail-avatar", initials), who, el("div", "mail-time", mail.time));
+
+  const body = el("div", "mail-body");
+  body.append(el("p", "mail-greeting", mail.greeting));
+  mail.lines.forEach((line, i) => body.append(el("p", i === mail.warn ? "mail-line mail-warn" : "mail-line", line)));
+  const signature = el("div", "mail-signature");
+  mail.signature.forEach((line) => signature.append(el("div", "", line)));
+  body.append(signature);
+
+  const attachment = el("div", "mail-attach");
+  const label = el("div", "mail-attach-text");
+  label.append(el("div", "mail-attach-file", mail.attachment.file), el("div", "mail-attach-note", mail.attachment.note));
+  attachment.append(el("span", "mail-attach-icon", "📄"), label);
+
+  const actions = el("div", "mail-actions");
+  const reply = el("button", "mail-reply", `↩ ${mail.reply}`);
+  const note = el("div", "mail-note", mail.reply_note);
+  note.hidden = true;
+  reply.onclick = () => {
+    Sound.click();
+    note.hidden = false;
+  };
+  const close = el("button", "intro-start mail-close", mail.button);
+  close.onclick = () => {
+    Sound.click();
+    // Already read (later, or the other student's in co-op): it only closes, nothing is sent
+    if (mail.again || !mail.action) return cover.remove();
+    close.disabled = true;
+    setTriggerValue("action", { id: mail.action, x: 0, code: null });
+  };
+  actions.append(reply, close);
+
+  read.append(el("h2", "mail-subject", mail.subject), meta, body, attachment, actions, note);
+  app.append(top, folders, list, read);
+  cover.append(app);
+  // Esc closes it too (gameKeys compares the button with this)
+  cover.dataset.close = mail.button;
+  setTimeout(() => close.focus(), 50);
+  return cover;
+}
+
 // --- A level's briefing, or Level 2's email on your laptop --------------------------------------
 
 function introEmail(intro, setTriggerValue) {
+  // Level 2: Prof. Marques' email, in a mail app
+  if (intro.kind === "mail") return mailScreen(intro, setTriggerValue);
   const cover = el("div", "intro-email");
   const mail = el("div", "intro-mail");
   const head = el("div", "intro-head");

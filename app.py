@@ -841,14 +841,36 @@ def intro_data(game, role):
 
 
 def email_data(game, role):
-    """The email your laptop shows when it is used (Level 2), translated; else None. The first time its
-    "Close" is the action (Read the email); after that it only closes."""
+    """Prof. Marques' email, drawn as a mail app when your laptop is used (Level 2), translated; else
+    None. The first time its "Close" is the action (Read the email); after that it only closes."""
     email = SCENES[game["scene"]].get("email")
     if not email or is_finished(game):
         return None
     # Already read (or, in co-op, the other student's to read): "Close" only closes it
     again = email["action"] not in available_actions(game) or not can_act(role)
-    return overlay_data(email, again=again, action=None if again else email["action"])
+    return {
+        "kind": "mail",
+        "again": again,
+        "for_action": email["action"],
+        "action": None if again else email["action"],
+        "button": t("close"),
+        "app": say(email["app"]),
+        "search": say(email["search"]),
+        "folders": [say(folder) for folder in email["folders"]],
+        "inbox": [{**mail, "from": say(mail["from"]), "subject": say(mail["subject"])} for mail in email["inbox"]],
+        "sender": say(email["sender"]),
+        "role": say(email["role"]),
+        "to": say(email["to"]),
+        "time": email["time"],
+        "subject": say(email["subject"]),
+        "greeting": say(email["greeting"]),
+        "lines": [say(line) for line in email["lines"]],
+        "warn": email.get("warn"),
+        "signature": [say(line) for line in email["signature"]],
+        "attachment": {"file": email["attachment"]["file"], "note": say(email["attachment"]["note"])},
+        "reply": say(email["reply"]),
+        "reply_note": say(email["reply_note"]),
+    }
 
 
 def overlay_data(box, again, action):
