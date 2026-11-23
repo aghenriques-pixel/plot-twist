@@ -482,9 +482,9 @@ export default function render({ data, parentElement, setTriggerValue }) {
   // A place with a 3D room is drawn in 3D (scene3d.js); everything else is the 2D picture
   const keys = wants3D(data) ? buildRoom3D(stage, data, setTriggerValue) : buildPicture(stage, data, setTriggerValue);
   if (data.ending) stage.append(endingCard(data, setTriggerValue));
-  // A level that starts with an email over the whole screen (Level 2): "Start" closes it
-  // (Level 1's briefing opens by itself, over the 3D room too)
-  if (data.intro && !data.intro.again && (!wants3D(data) || data.intro.auto)) game.append(introEmail(data.intro, setTriggerValue));
+  // Every level starts with its briefing over the whole screen (over the 3D room too): "Start" closes it.
+  // Level 2's email is not shown by itself: your laptop opens it (data.email)
+  if (data.intro) game.append(introEmail(data.intro, setTriggerValue));
   // Something just picked up appears as itself for a moment (a card with its number, a post-it...)
   const have = data.notebook.items.map((item) => item.id);
   const before = globalThis.__forbiddenArchiveItems;
@@ -569,8 +569,8 @@ function gameKeys(game, data, setTriggerValue, keys, event, down) {
     if (key === "Enter" || key === "y" || key === "Y" || key === "s" || key === "S") return click(confirm.querySelector(".yes"));
     return;
   }
-  // The level's opening email (level 2): E, Enter or Space close it, like its Start button (a held
-  // key that opened it does not close it again straight away)
+  // A level's briefing, or Level 2's email: E, Enter or Space close it, like its button (a held
+  // key that opened it does not close it again straight away); Esc too when the button is "Close"
   const intro = game.querySelector(".intro-email");
   if (intro) {
     const start = intro.querySelector(".intro-start");
@@ -974,7 +974,7 @@ function narration(data) {
   return box;
 }
 
-// --- The email that opens a level (Level 2) -----------------------------------------------------
+// --- A level's briefing, or Level 2's email on your laptop --------------------------------------
 
 function introEmail(intro, setTriggerValue) {
   const cover = el("div", "intro-email");
@@ -984,7 +984,8 @@ function introEmail(intro, setTriggerValue) {
   const body = el("div", "intro-body");
   body.append(el("div", "intro-big", intro.big));
   intro.lines.forEach((line, i) => body.append(el("p", i === intro.warn ? "intro-line intro-warn" : "intro-line", line)));
-  const goal = el("div", "intro-goal", `🎯 ${intro.goal}`);
+  // The briefing has the goal; the email is only the email
+  const goal = intro.goal ? el("div", "intro-goal", `🎯 ${intro.goal}`) : "";
   const start = el("button", "intro-start", intro.button);
   start.onclick = () => {
     Sound.click();
@@ -995,8 +996,8 @@ function introEmail(intro, setTriggerValue) {
   };
   // Co-op: only the one who acts closes it; the other student reads it until then
   if (!intro.action && !intro.again) start.hidden = true;
-  // Read again: Esc closes it too (gameKeys compares the button with this)
-  if (intro.again) cover.dataset.close = intro.button;
+  // The email (not a briefing): Esc closes it too (gameKeys compares the button with this)
+  if (intro.again || !intro.goal) cover.dataset.close = intro.button;
   mail.append(head, body, goal, start);
   cover.append(mail);
   setTimeout(() => start.focus(), 50);
@@ -1260,6 +1261,8 @@ function buildPicture(stage, data, setTriggerValue) {
     addSpot(spot, spot.edge ? `spot edge-${spot.edge}` : "spot", () => {
       if (spot.talk) openTalk(spot);
       else if (spot.code_prompt) openKeypad(spot);
+      // Level 2: your laptop shows the email; its "Close" reads it
+      else if (data.email && spot.action === data.email.for_action) (stage.closest(".game") || stage).append(introEmail(data.email, setTriggerValue));
       else setTriggerValue("action", { id: spot.action, x: spot.stand });
     });
   }

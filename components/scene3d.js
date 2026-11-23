@@ -755,8 +755,8 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
     world.laptop && (spot.lock === "login" || spot.action === "inserir_pen" || spot.lock === "wifi" || spot.talk === "pen" || spot.talk === "terminal");
   function useSpot(spot) {
     if (laptopSteps(spot)) return openLaptop(stage, data, setTriggerValue);
-    // Level 2: your laptop on the table opens the email; its "Start" closes it
-    if (data.intro && spot.action === data.intro.action) return (stage.closest(".game") || stage).append(introEmail(data.intro, setTriggerValue));
+    // Level 2: your laptop on the table opens the email; its "Close" reads it
+    if (data.email && spot.action === data.email.for_action) return (stage.closest(".game") || stage).append(introEmail(data.email, setTriggerValue));
     if (spot.talk) return hero && spot.options.every((o) => world.choices?.[o.action]) ? openChoices(spot) : ui.openTalk(spot);
     if (spot.code_prompt) return ui.openKeypad(spot);
     setTriggerValue("action", { id: spot.action, x: spot.stand });
@@ -880,9 +880,9 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
       const at = item.group.position;
       here.turn = Math.atan2(at.x - p.x, at.z - p.z);
     }
-    // Level 2: your laptop shows the whole email again, every time it is used
-    if (data.intro?.again && item.thing.reopens_intro) {
-      return (stage.closest(".game") || stage).append(introEmail(data.intro, setTriggerValue));
+    // Level 2: your laptop shows the email, every time it is used (only the first "Close" is an action)
+    if (data.email && item.thing.opens_email) {
+      return (stage.closest(".game") || stage).append(introEmail(data.email, setTriggerValue));
     }
     if (item.look) return inspect(item);
     // A door swings open first, then the next room is asked for

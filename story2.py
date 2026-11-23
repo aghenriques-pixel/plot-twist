@@ -1,7 +1,7 @@
 """Level 2 — "94%" (specs/level-2-94.md). The story only, like story.py.
 
-00:01, just after you submitted. A big email fills the screen: Group 7's project is 94% identical to
-yours, and because theirs arrived first (23:58), yours is marked as the copy. The report goes to
+00:01, just after you submitted. A briefing first (like Levels 1 and 3), then the email on your
+laptop: Group 7's project is 94% identical to yours, and because theirs arrived first (23:58), yours is marked as the copy. The report goes to
 Prof. Marques at 00:30; until then you can contest it with proof, sent from a campus computer.
 The giant screen says Group 7 submitted from Lab 0.12. Open the lab (the year on the plaque,
 backwards) and hide from the guard. PC 7 is Tiago's, locked, and he has gone for a walk by the sea:
@@ -21,8 +21,28 @@ TIME_UP_ENDING = "final_l2_alarme"
 # The 2D picture's walking line (used only when 3D cannot be drawn)
 WALK = {"start": 400, "floor": 360, "scale": 1.0, "min": 30, "max": 770}
 
-# The email that fills the screen when the level starts (until "Start" is pressed: decision "_email")
-INTRO_EMAIL = {
+# The briefing that fills the screen when Level 2 starts, like Levels 1 and 3 (until "Start":
+# decision "_intro"). Shown at once, over the room ("auto"). The email itself waits on your laptop.
+INTRO_L2 = {
+    "icon": "📋",
+    "sender": "Git Out — Level 2",
+    "subject": "94%",
+    "big": "00:30",
+    "lines": [
+        "00:01, the atrium. You submitted at 23:59… and the building locks for the night behind you.",
+        "The lights go out row by row. On the café table, your laptop pings: a new email about your project.",
+        "The alarm arms at 00:30, and a guard is doing his round.",
+        "Look at everything (click it, or press E next to it) and talk to people: they know things.",
+    ],
+    "goal": "Read the email on your laptop and do what it asks before 00:30.",
+    "button": "Start",
+    "action": "comecar_l2",
+    "auto": True,
+}
+
+# The email on your laptop (specs/level2-briefing-first.md): only the email, shown when the laptop is
+# used. Its "Close" is "Read the email" the first time (decision "_email"); after that it only closes.
+EMAIL_L2 = {
     "sender": "Plagiarism Check — Nova SBE",
     "subject": "Group 7's project is identical to yours",
     "big": "94%",
@@ -33,13 +53,9 @@ INTRO_EMAIL = {
         "To contest it, reply to this email with proof that the code left your group: a record with a date and time.",
         "For security reasons, replies are only accepted from a campus computer.",
     ],
-    "goal": "Find proof with a date and time, and send it from a campus computer before 00:30.",
     # The line in red: the deadline
     "warn": 2,
-    "button": "Start",
-    # Shown at once when the level starts, and again (to reread) each time you use your laptop
-    "auto": True,
-    "again": True,
+    "action": "ler_email",
 }
 
 ITEMS = {
@@ -76,7 +92,8 @@ SCENES = {
         "chapter": CHAPTER,
         "title": "The atrium",
         "walk": WALK,
-        "intro": INTRO_EMAIL,
+        "intro": INTRO_L2,
+        "email": EMAIL_L2,
         "text": (
             "00:01. Submitted. The lights go out row by row… and on the table, your laptop pings: NEW EMAIL."
         ),
@@ -271,14 +288,23 @@ SCENES = {
 }
 
 ACTIONS = {
-    # --- The email at the start: pressing "Start" closes it ---
+    # --- The briefing at the start: pressing "Start" closes it ---
+    "comecar_l2": {
+        "scene": "l2_atrio",
+        "label": "Read the briefing",
+        "only_without_decision": "_intro",
+        "decides": ("_intro", "lido"),
+        "message": "The clock is running: 00:30.",
+        "hotspot": {"x": 360, "y": 150, "w": 80, "h": 80, "stand": 400},
+    },
+    # --- Your laptop: the email (in 3D its "Close" is this action, the first time) ---
     "ler_email": {
         "scene": "l2_atrio",
         "label": "Read the email",
         "only_without_decision": "_email",
         "decides": ("_email", "lido"),
-        "message": "The clock is running: 00:30.",
-        # Under the email (it covers the whole screen until this is done)
+        "message": "📧 Plagiarism Check: Group 7's project is 94% identical to yours, and yours is marked as the copy. "
+        "Reply with proof (a date and time) from a campus computer before 00:30.",
         "hotspot": {"x": 100, "y": 260, "w": 70, "h": 50, "stand": 130},
     },
     # --- The atrium: opening the lab brings the guard down the stairs ---
@@ -518,6 +544,7 @@ ACTIONS = {
 }
 
 HINTS = [
+    {"scene": "l2_atrio", "undecided": "_email", "text": "Your laptop on the café table has a new email. Read it first."},
     {"scene": "l2_atrio", "undecided": "ronda2", "text": "The giant screen says where Group 7 submitted from. The code is on the notice by that door."},
     {"scene": "l2_atrio", "lacks": "chave_portao", "text": "The guard has gone upstairs. Look at his desk."},
     {"scene": "l2_atrio", "undecided": "_senha", "text": "Tiago is at the beach. The STAFF ONLY door leads there; its code is on the lab's whiteboard."},

@@ -244,9 +244,9 @@ ATRIUM_THINGS = [
     {"kind": "planter", "at": [8.8, 5.6], "small": True},
     {"kind": "round_table", "at": [-4.6, 3.6], "chairs": 3},
     {"kind": "phone_spot", "at": [-4.45, 3.75], "y": 0.75, "stand": [-4.6, 5.5], "look": "Your phone"},
-    # Level 2: your laptop on the same table, "NEW EMAIL" blinking; using it opens the email
+    # Level 2: your laptop on the same table, "NEW EMAIL" blinking; using it opens the email, every time
     {"kind": "email_laptop", "at": [-4.6, 3.75], "stand": [-3.5, 4.3], "action": "ler_email", "look": "Your laptop",
-     "stays_empty": True, "reopens_intro": True},
+     "stays_empty": True, "opens_email": True},
     {"kind": "round_table", "at": [3.0, 4.6], "chairs": 3},
     {"kind": "round_table", "at": [-1.8, 5.8], "chairs": 2},
 ]
@@ -494,7 +494,7 @@ def room_of(state):
 
 
 def opens_by_itself(state, spot):
-    """Whether this spot is the action of a briefing shown at once over the room (Level 1)."""
+    """Whether this spot is the action of a briefing shown at once over the room (every level's start)."""
     intro = SCENES[state["scene"]].get("intro") or {}
     return bool(intro.get("auto")) and spot.get("action") == intro.get("action")
 
