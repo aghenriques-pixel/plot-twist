@@ -423,7 +423,7 @@ ACTIONS = {
     "mostrar_impressao": {
         "scene": "l3_auditorio",
         "talk": "professor",
-        "only_if": ("_slides", "v3"),
+        "only_if": [("_slides", "v3"), ("_gitlog", "visto")],
         "only_with": "impressao",
         "say": "Show the printed log from PC 7",
         "goes_to": "final_apresentacao",
@@ -440,8 +440,8 @@ ACTIONS = {
     "pedir_tiago": {
         "scene": "l3_auditorio",
         "talk": "professor",
-        # Like the other proofs: once your laptop is on the big screen
-        "only_if": [("tiago9", "vem"), ("_slides", "v3")],
+        # Like the other proofs: once git log is on the big screen
+        "only_if": [("tiago9", "vem"), ("_slides", "v3"), ("_gitlog", "visto")],
         "say": "“Tiago, tell them.”",
         "goes_to": "final_l3_tiago",
         "message": "Everybody turns to the back row.",
@@ -449,7 +449,7 @@ ACTIONS = {
     "confia": {
         "scene": "l3_auditorio",
         "talk": "professor",
-        "only_if": ("_slides", "v3"),
+        "only_if": [("_slides", "v3"), ("_gitlog", "visto")],
         "say": "“It's ours. Trust me.”",
         "goes_to": "final_l3_zero",
         "message": "Prof. Marques raises an eyebrow.",
@@ -466,14 +466,25 @@ ACTIONS = {
         "scene": "l3_auditorio",
         "talk": "terminal3",
         "only_if": ("_slides", "v3"),
+        "only_without_decision": "_gitlog",
         "say": "git blame",
         "rejects": "Every line says: you. Not helpful.",
+        "penalty": True,
+    },
+    "git_status3": {
+        "scene": "l3_auditorio",
+        "talk": "terminal3",
+        "only_if": ("_slides", "v3"),
+        "only_without_decision": "_gitlog",
+        "say": "git status",
+        "rejects": "“nothing to commit, working tree clean”. True, but it proves nothing about who wrote it.",
         "penalty": True,
     },
     "git_force3": {
         "scene": "l3_auditorio",
         "talk": "terminal3",
         "only_if": ("_slides", "v3"),
+        "only_without_decision": "_gitlog",
         "say": "git push --force",
         "goes_to": "final_l3_force",
         "message": "Pushing… --force. Oh no.",
@@ -505,3 +516,16 @@ SCENE_MUSIC = {
 }
 LEVEL_MUSIC = "morning"
 DEFEATS = {"final_l3_atrasado", "final_l3_force", "final_l3_zero"}
+
+
+# Call Rita stays on the phone in the tunnel and in the atrium, before and after the first call: the
+# first call is the conversation (it goes in the notebook), the next ones only repeat what she said
+_RITA_CALL = {key: ACTIONS["ligar_rita"][key] for key in ("label", "say", "reply", "conversation_title", "hotspot")}
+ACTIONS["ligar_rita_atrio"] = {**ACTIONS["ligar_rita"], "scene": "l3_atrio"}
+for _scene, _id in (("l3_tunel", "ligar_rita_de_novo"), ("l3_atrio", "ligar_rita_de_novo_atrio")):
+    ACTIONS[_id] = {
+        **_RITA_CALL,
+        "scene": _scene,
+        "only_if": ("conversa_rita3", "portatil"),
+        "message": "Rita: “The reception, in the atrium! Go!”",
+    }

@@ -181,8 +181,9 @@ def test_level_3_with_git_log_gives_the_presentation():
     assert state["scene"] == "final_apresentacao"
 
 
-def test_the_printed_log_is_enough_on_its_own():
-    state = play(level(3, inventory=["impressao"]), *TO_THE_AUDITORIUM, "mostrar_impressao")
+def test_the_printed_log_also_convinces_the_professor():
+    # Changed in specs/urgent-fixes.md: the professor only listens after git log
+    state = play(level(3, inventory=["impressao"]), *TO_THE_AUDITORIUM, "git_log3", "mostrar_impressao")
 
     assert state["scene"] == "final_apresentacao"
 
@@ -191,14 +192,14 @@ def test_tiago_tells_the_truth_only_if_he_said_he_would_come():
     plain = play(new_game(3, now=T0), *TO_THE_AUDITORIUM)
     assert "pedir_tiago" not in available_actions(plain)
 
-    state = play(level(3, decisions={"tiago": "incluido", "tiago9": "vem"}), *TO_THE_AUDITORIUM, "pedir_tiago")
+    state = play(level(3, decisions={"tiago": "incluido", "tiago9": "vem"}), *TO_THE_AUDITORIUM, "git_log3", "pedir_tiago")
 
     assert state["scene"] == "final_l3_tiago"
 
 
-@pytest.mark.parametrize("step, ending", [("git_force3", "final_l3_force"), ("confia", "final_l3_zero")])
-def test_the_wrong_evidence_loses(step, ending):
-    assert play(new_game(3, now=T0), *TO_THE_AUDITORIUM, step)["scene"] == ending
+@pytest.mark.parametrize("steps, ending", [(["git_force3"], "final_l3_force"), (["git_log3", "confia"], "final_l3_zero")])
+def test_the_wrong_evidence_loses(steps, ending):
+    assert play(new_game(3, now=T0), *TO_THE_AUDITORIUM, *steps)["scene"] == ending
 
 
 def test_git_blame_and_lying_cost_time_but_change_nothing():
@@ -323,7 +324,9 @@ def test_tiago_speaks_only_once_your_laptop_is_on_the_big_screen():
     state = level(3, decisions={"tiago": "incluido", "tiago9": "vem"})
     before = play(state, *TO_THE_AUDITORIUM[:-1])
     assert "pedir_tiago" not in available_actions(before)
-    assert "pedir_tiago" in available_actions(play(before, "abrir_v3"))
+    # Changed in specs/urgent-fixes.md: and only after git log
+    assert "pedir_tiago" not in available_actions(play(before, "abrir_v3"))
+    assert "pedir_tiago" in available_actions(play(before, "abrir_v3", "git_log3"))
 
 
 def test_level_3_opens_with_a_briefing():

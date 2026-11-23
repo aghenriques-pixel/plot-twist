@@ -823,9 +823,16 @@ def intro_data(game, role):
     Only the one who acts can close it (co-op: the other student just reads it)."""
     intro = SCENES[game["scene"]].get("intro")
     action = (intro or {}).get("action", "ler_email")
-    if not intro or is_finished(game) or action not in available_actions(game):
+    if not intro or is_finished(game):
+        return None
+    # Already read: a level whose intro is "again" (Level 2) shows it once more when its thing is
+    # used (your laptop), with a button that only closes it
+    again = action not in available_actions(game)
+    if again and not intro.get("again"):
         return None
     return {
+        "again": again,
+        "for_action": action,
         "icon": intro.get("icon", "📧"),
         # Shown at once (Level 1's briefing), not only when its thing is used (Level 2's laptop)
         "auto": intro.get("auto", False),
@@ -835,8 +842,8 @@ def intro_data(game, role):
         "lines": [say(line) for line in intro["lines"]],
         "warn": intro.get("warn"),
         "goal": say(intro["goal"]),
-        "button": say(intro["button"]),
-        "action": action if can_act(role) else None,
+        "button": t("close") if again else say(intro["button"]),
+        "action": None if again else action if can_act(role) else None,
     }
 
 
@@ -884,7 +891,7 @@ def view_data(game, role, message, chat):
             key: t(key)
             for key in (
                 "talk_leave", "keypad_try", "cancel", "close", "dialogue_continue", "danger_hurry", "restart_level",
-                "restart_confirm", "yes", "no", "your_time", "best_time", "toggle_text", "toggle_fullscreen", "key_hint",
+                "restart_confirm", "yes", "no", "your_time", "best_time", "toggle_text", "toggle_fullscreen", "toggle_sound", "key_hint",
                 "hint_button", "free_actions", "inspect_back", "lock_open", "lap_user", "lap_login", "lap_usb",
                 "lap_open_hint", "lap_plug_hint", "lap_tests", "lap_wifi", "lap_connect", "lap_secured", "lap_no_signal",
                 "lap_connected", "lap_offline", "lap_wifi_hint", "lap_type", "lap_not_found", "clues_zoom",

@@ -569,7 +569,15 @@
 .level-list { display: none; }
 .level-card small { opacity: 0.8; }
 .level-card.locked { color: rgba(255, 244, 220, 0.72); }
-.map-extras { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; text-align: left; }
+.map-extras { display: grid; grid-template-columns: 1fr; gap: 12px; text-align: left; }
+/* "More levels coming soon": a bubble after the last level, not a button */
+.level-node.more { cursor: default; }
+.level-node.more .level-badge {
+  background: radial-gradient(circle at 35% 30%, #e9dcff, #8f6bd8); color: #fff; border-style: dashed;
+  box-shadow: 0 0 0 6px rgba(190, 160, 255, 0.22), 0 6px 14px rgba(0, 0, 0, 0.45);
+  animation: pulse 2.4s ease-in-out infinite; font-size: 24px;
+}
+.level-card.soon { border-style: dashed; border-color: rgba(200, 180, 255, 0.45); max-width: 130px; }
 .map-extras .coop-box { margin: 0; }
 .map-extras .join-input { flex: none; font-size: 14px; }
 .map-extras .join-form { flex-direction: column; }

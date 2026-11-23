@@ -37,6 +37,9 @@ INTRO_EMAIL = {
     # The line in red: the deadline
     "warn": 2,
     "button": "Start",
+    # Shown at once when the level starts, and again (to reread) each time you use your laptop
+    "auto": True,
+    "again": True,
 }
 
 ITEMS = {

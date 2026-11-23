@@ -246,7 +246,7 @@ ATRIUM_THINGS = [
     {"kind": "phone_spot", "at": [-4.45, 3.75], "y": 0.75, "stand": [-4.6, 5.5], "look": "Your phone"},
     # Level 2: your laptop on the same table, "NEW EMAIL" blinking; using it opens the email
     {"kind": "email_laptop", "at": [-4.6, 3.75], "stand": [-3.5, 4.3], "action": "ler_email", "look": "Your laptop",
-     "stays_empty": True},
+     "stays_empty": True, "reopens_intro": True},
     {"kind": "round_table", "at": [3.0, 4.6], "chairs": 3},
     {"kind": "round_table", "at": [-1.8, 5.8], "chairs": 2},
 ]
@@ -458,6 +458,7 @@ CHOICES = {
     "confia": {"icon": "🤞", "at": None},
     "git_log3": {"icon": "📜", "at": None},
     "git_blame3": {"icon": "🔎", "at": None},
+    "git_status3": {"icon": "📋", "at": None},
     "git_force3": {"icon": "💥", "at": None},
 }
 
