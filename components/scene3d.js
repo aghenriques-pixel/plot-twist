@@ -3595,18 +3595,36 @@ const THINGS = {
   },
 
   rita_card({ THREE, group, box, animated }) {
-    // Rita's card on the table, next to an empty cup, glinting
-    const card = box(0.09, 0.004, 0.055, "#ffffff", { emissive: "#7fd0ff", emissiveIntensity: 0.4 });
+    // Rita's card on the table, next to an empty cup, glinting: red with the white arc, like the
+    // student card shown when you pick it up (scene_view.css .real.card)
+    const face = canvasTexture(THREE, 256, 160, (g, w, h) => {
+      g.fillStyle = "#e2302b";
+      g.fillRect(0, 0, w, h);
+      g.fillStyle = "#f7f6f3";
+      g.beginPath();
+      g.ellipse(w * 0.33, h * 1.32, w * 0.67, h * 0.95, 0, 0, Math.PI * 2);
+      g.fill();
+      g.fillStyle = "#e2302b";
+      g.beginPath();
+      g.ellipse(w * 0.4, h * 1.12, w * 0.28, h * 0.36, 0, 0, Math.PI * 2);
+      g.fill();
+      g.fillStyle = "#ffffff";
+      g.font = "bold 30px Arial";
+      g.fillText("NOVA", 18, 40);
+      g.font = "16px Arial";
+      g.fillText("Student", 112, 40);
+    });
+    const card = new THREE.Mesh(
+      new THREE.BoxGeometry(0.09, 0.004, 0.055),
+      new THREE.MeshStandardMaterial({ map: face, emissive: "#ff9b8f", emissiveIntensity: 0.15, roughness: 0.4 })
+    );
     card.position.set(0.15, 0.78, 0.1);
     card.rotation.y = 0.4;
-    const stripe = box(0.09, 0.005, 0.015, "#2c6db0");
-    stripe.position.set(0.15, 0.781, 0.09);
-    stripe.rotation.y = 0.4;
     const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.035, 0.1, 16, 1, true), new THREE.MeshStandardMaterial({ color: "#f4f1e6", side: THREE.DoubleSide }));
     cup.position.set(-0.15, 0.825, 0);
     const glow = new THREE.PointLight("#bfe4ff", 1, 1.5, 2);
     glow.position.set(0.15, 1.0, 0.1);
-    group.add(card, stripe, cup, glow);
+    group.add(card, cup, glow);
     animated.push((dt, time) => (glow.intensity = 0.6 + Math.max(0, Math.sin(time * 3)) * 1.2));
   },
 
