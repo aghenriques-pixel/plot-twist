@@ -31,3 +31,23 @@ Levels 1 and 3 open with a briefing: what is going on and what to do, then "Star
    - every new text, and every hint, has Portuguese.
 2. `uv run pytest` passes.
 3. Checked in the browser: Level 2 opens with the briefing; after "Start" the laptop says "Read the email" and shows only the email; it opens again later.
+
+## Part 2 — a real email from the professor
+
+### Why
+The team wants "Read the email" to look like a real email, sent by Prof. Marques, not a notice from a "Plagiarism Check" system.
+
+### What
+- **The email is from Prof. Marques** (Introduction to Programming · Nova SBE), to Group 3, at 00:01:
+  - subject: "Final project — plagiarism check (94%)";
+  - "Dear Group 3," and the message: Group 7's project is 94% identical and arrived first (23:58), so yours is marked as the copy; reply with proof (a record with a date and time); only from a campus computer; the report closes at 00:30 (in red);
+  - signed "Prof. Marques", with an attachment "plagiarism_report_group3.pdf" (94% match).
+- **The screen is a mail app** (`kind: "mail"`): a top bar with a search field, folders (Inbox 1, Sent, Drafts), the inbox list with the professor's email open (unread) and a few others (Moodle's receipt at 23:59, Rita at 23:40, the library in the afternoon), and the reading pane with the avatar, From, To and time.
+  - **Reply** says that replies are only accepted from a campus computer (nothing is sent);
+  - **Close** works as before (the first time it is "Read the email").
+  - On a narrow screen only the reading pane is shown.
+- **The rest of Level 2 follows:** the laptop's close-up, the reply on PC 7 ("Reply to Prof. Marques"), the text mode's message and the endings name the professor.
+
+### Done when
+- `tests/test_level2_briefing.py`: the email is from Prof. Marques, is a `mail`, has the greeting, the signature, the attachment and the inbox, and every text in it has Portuguese.
+- Checked in the browser: the mail screen, Reply's note, Close, and reopening it.

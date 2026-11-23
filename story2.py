@@ -1,8 +1,9 @@
 """Level 2 — "94%" (specs/level-2-94.md). The story only, like story.py.
 
 00:01, just after you submitted. A briefing first (like Levels 1 and 3), then the email on your
-laptop: Group 7's project is 94% identical to yours, and because theirs arrived first (23:58), yours is marked as the copy. The report goes to
-Prof. Marques at 00:30; until then you can contest it with proof, sent from a campus computer.
+laptop, from Prof. Marques: Group 7's project is 94% identical to yours, and because theirs arrived
+first (23:58), yours is marked as the copy. He closes the report at 00:30; until then you can contest
+it with proof, sent from a campus computer.
 The giant screen says Group 7 submitted from Lab 0.12. Open the lab (the year on the plaque,
 backwards) and hide from the guard. PC 7 is Tiago's, locked, and he has gone for a walk by the sea:
 take the key from the guard's desk, open the service door (the IT whiteboard's sum), go through the
@@ -40,21 +41,40 @@ INTRO_L2 = {
     "auto": True,
 }
 
-# The email on your laptop (specs/level2-briefing-first.md): only the email, shown when the laptop is
-# used. Its "Close" is "Read the email" the first time (decision "_email"); after that it only closes.
+# The email on your laptop (specs/level2-briefing-first.md): a real email from Prof. Marques, drawn as
+# a mail app ("mail"), shown when the laptop is used. Its "Close" is "Read the email" the first time
+# (decision "_email"); after that it only closes. "Reply" only says where replies are accepted.
 EMAIL_L2 = {
-    "sender": "Plagiarism Check — Nova SBE",
-    "subject": "Group 7's project is identical to yours",
-    "big": "94%",
+    "kind": "mail",
+    "sender": "Prof. Marques",
+    "role": "Introduction to Programming · Nova SBE",
+    "to": "To: Group 3 (you, Rita, Tiago)",
+    "time": "00:01",
+    "subject": "Final project — plagiarism check (94%)",
+    "greeting": "Dear Group 3,",
     "lines": [
-        "The project submitted by Group 7 at 23:58 is 94% identical to yours, submitted at 23:59.",
-        "Because theirs arrived first, yours has been marked as the copy.",
-        "⏰ This report will be sent automatically to Prof. Marques at 00:30.",
-        "To contest it, reply to this email with proof that the code left your group: a record with a date and time.",
+        "The plagiarism check has flagged your final project: it is 94% identical to Group 7's.",
+        "Group 7 submitted at 23:58, one minute before you (23:59), so for now your project is marked as the copy.",
+        "If this is a mistake, reply to this email with proof that the code is yours: a record with a date and time.",
         "For security reasons, replies are only accepted from a campus computer.",
+        "⏰ I will close the report at 00:30. Without proof by then, the mark stands.",
     ],
     # The line in red: the deadline
-    "warn": 2,
+    "warn": 4,
+    "signature": ["Best regards,", "Prof. Marques", "Introduction to Programming · Nova SBE"],
+    "attachment": {"file": "plagiarism_report_group3.pdf", "note": "94% match with Group 7"},
+    # The mail app around it: its folders and the inbox (the professor's email first, unread)
+    "app": "Mail",
+    "search": "Search mail",
+    "folders": ["Inbox", "Sent", "Drafts"],
+    "inbox": [
+        {"from": "Prof. Marques", "subject": "Final project — plagiarism check (94%)", "time": "00:01", "unread": True},
+        {"from": "Moodle", "subject": "Submission received: Final project, Group 3", "time": "23:59"},
+        {"from": "Rita", "subject": "Went home 😴 pen drive in my locker", "time": "23:40"},
+        {"from": "Nova SBE Library", "subject": "Your loan is due tomorrow", "time": "16:12"},
+    ],
+    "reply": "Reply",
+    "reply_note": "Replies are only accepted from a campus computer. The lab has some.",
     "action": "ler_email",
 }
 
@@ -104,9 +124,9 @@ SCENES = {
         "looks": [
             {
                 "label": "Your laptop", "x": 100, "y": 260, "w": 70, "h": 50, "stand": 130,
-                "text": "The email again: “Group 7's project is 94% identical to yours. Yours is marked as the copy. "
-                "Reply with proof from a campus computer before 00:30.”",
-                "face": {"kind": "screen", "title": "Plagiarism Check — 94%",
+                "text": "Prof. Marques' email again: “Group 7's project is 94% identical to yours. Yours is marked as "
+                "the copy. Reply with proof from a campus computer before 00:30.”",
+                "face": {"kind": "screen", "title": "Prof. Marques — 94%",
                          "_lines": ["Group 7 = 94% yours", "Proof before 00:30"]},
             },
             {
@@ -192,7 +212,7 @@ SCENES = {
             "email": {
                 "x": 330, "y": 200, "w": 120, "h": 80, "stand": 390,
                 "label": "Reply to the email",
-                "line": "Reply to Plagiarism Check. Which proof do you attach?",
+                "line": "Reply to Prof. Marques. Which proof do you attach?",
             },
         },
     },
@@ -263,7 +283,7 @@ SCENES = {
         "title": "Ending 1 — Proof sent",
         # Shown first, big, when the level is won
         "congrats": "You proved your group didn't copy anyone's work.",
-        "text": "“Proof received. Prof. Marques will hear both groups at 9:00, Auditorium B.” The printer spits out the "
+        "text": "📧 Prof. Marques: “Proof received. I will hear both groups at 9:00, Auditorium B.” The printer spits out the "
         "page; you run back through the tunnel before the alarm and drop onto the sand by the fort, the proof in your "
         "pocket. 📱 Rita, 01:04: “Auditorium B, 9:00. Bring EVERYTHING.”",
         "ending": True,
@@ -280,7 +300,7 @@ SCENES = {
     "final_l2_alarme": {
         "chapter": CHAPTER,
         "title": "Ending 3 — 00:30",
-        "text": "00:30. Every light comes on and a siren howls. 📧 “Report sent to Prof. Marques: Group 3 — copy (94%).” "
+        "text": "00:30. Every light comes on and a siren howls. 📧 Prof. Marques: “No proof by 00:30. Group 3 — copy (94%).” "
         "The security company arrives in four minutes.",
         "ending": True,
         "room": "l2_atrio",
@@ -303,7 +323,7 @@ ACTIONS = {
         "label": "Read the email",
         "only_without_decision": "_email",
         "decides": ("_email", "lido"),
-        "message": "📧 Plagiarism Check: Group 7's project is 94% identical to yours, and yours is marked as the copy. "
+        "message": "📧 Prof. Marques: Group 7's project is 94% identical to yours, and yours is marked as the copy. "
         "Reply with proof (a date and time) from a campus computer before 00:30.",
         "hotspot": {"x": 100, "y": 260, "w": 70, "h": 50, "stand": 130},
     },
