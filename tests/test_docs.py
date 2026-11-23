@@ -35,7 +35,13 @@ def test_every_path_in_the_docs_exists(doc):
     paths |= set(re.findall(r"`((?:components|scripts|specs|tests|docs|static|assets)/[\w./-]*)`", text))
 
     assert paths, doc
+    # Files that git ignores on purpose (the secrets) are named in the docs but never in a fresh
+    # copy of the project, such as the one GitHub Actions tests (specs/quick-fixes.md)
+    ignored = {line.strip() for line in (ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()}
+
     def exists(path):
+        if path in ignored:
+            return True
         # a bare file name ("scene3d.js") may live in any folder of the project
         return (ROOT / path).exists() or ("/" not in path and any(ROOT.glob(f"[!.]*/{path}")))
 
