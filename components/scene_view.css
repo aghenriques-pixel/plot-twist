@@ -1261,3 +1261,85 @@ button.chip:hover { border-color: var(--warm); }
 .inspect3d .inspect-act { background: linear-gradient(90deg, #e63946, #ff7b54); border-color: transparent; color: #fff; font-weight: bold; }
 .inspect3d .inspect-act kbd { padding: 0 6px; margin-right: 2px; border-radius: 4px; background: rgba(255, 255, 255, 0.25); font: bold 12px/1.4 sans-serif; }
 .laptop3d .laptop-leave { position: absolute; left: 18px; top: 18px; margin: 0; }
+
+/* The email that opens Level 2: over the whole game, until "Start" */
+/* White, but under the game's top bar (menu, clock): a screen that hides everything, with big red
+   numbers, made Edge's scareware filter block localhost as "Dangerous" */
+.intro-email {
+  position: absolute; inset: 60px 0 0 0; z-index: 40; display: flex; align-items: center; justify-content: center;
+  background: #ffffff;
+  animation: device-in 0.25s ease-out;
+}
+.intro-mail {
+  width: min(760px, 92%); max-height: 92%; overflow: auto; border-radius: 14px; background: #f7f7fa; color: #1d2230;
+  border: 1px solid #dde0e6; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12); font: 16px/1.5 "Segoe UI", sans-serif;
+}
+.intro-head { padding: 14px 22px; background: #e4e6ec; border-radius: 14px 14px 0 0; }
+.intro-from { font-size: 13px; color: #5b6272; }
+.intro-subject { font-weight: 700; font-size: clamp(17px, 2vw, 22px); }
+.intro-body { padding: 8px 22px 4px; }
+.intro-big { font: 800 clamp(48px, 8vw, 88px)/1 "Segoe UI", sans-serif; color: #1d3557; text-align: center; margin: 6px 0 8px; }
+.intro-line { margin: 0 0 8px; }
+.intro-line.intro-warn { font-weight: 700; color: #8a4b08; }
+.intro-goal { margin: 6px 22px 0; padding: 10px 14px; border-radius: 10px; background: #fff4d6; font-weight: 600; }
+.intro-start {
+  display: block; margin: 14px auto 18px; padding: 12px 42px; border: none; border-radius: 10px; cursor: pointer;
+  background: linear-gradient(90deg, #1d3557, #2a6f97); color: #fff; font: 700 18px "Segoe UI", sans-serif;
+}
+.intro-start:disabled { opacity: 0.6; cursor: default; }
+
+/* Wide screens: the narration covers the bottom of the picture (--narr, set by scene_view.js), so
+   whatever sits at the bottom of the picture (close-up bar, choices, a conversation's box, the
+   laptop's messages) goes up above it instead of being hidden under it */
+@media (min-aspect-ratio: 5/4) {
+  .inspect3d { bottom: calc(var(--narr, 0px) + 12px); }
+  .choice-row { bottom: max(6%, calc(var(--narr, 0px) + 12px)); }
+  .card-leave { bottom: max(3%, calc(var(--narr, 0px) + 12px)); }
+  .dialogue-box { bottom: max(5%, calc(var(--narr, 0px) + 12px)); }
+  .laptop-toast { bottom: max(14px, calc(var(--narr, 0px) + 12px)); }
+  /* Padlocks, keypads, the laptop and the ending card are centred in the part left uncovered */
+  .lock3d, .laptop3d, .ending, .dialogue.phone-chat { box-sizing: border-box; padding-bottom: var(--narr, 0px); }
+}
+
+/* A login box (PC 7): in the middle of the screen, over the close-up of the screen it unlocks */
+.bubble.bubble-center {
+  left: 50%; top: 50%; right: auto; bottom: auto; transform: translate(-50%, -50%);
+  width: min(520px, 90%); z-index: 8;
+}
+
+/* A won level: the congratulations at the top of the ending card */
+.ending-congrats {
+  margin: 0 auto 18px; padding: 16px 20px; border-radius: 16px;
+  background: linear-gradient(135deg, rgba(242, 193, 78, 0.22), rgba(125, 255, 160, 0.14));
+  border: 1px solid rgba(242, 193, 78, 0.6); animation: congrats-in 0.6s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+.congrats-title { font: bold clamp(28px, 4.2vw, 46px)/1.15 Georgia, serif; color: #ffe08a; text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6); }
+.congrats-text { margin: 8px 0 0; font-size: clamp(15px, 1.7vw, 19px); color: #f3ead6; }
+@keyframes congrats-in { from { opacity: 0; transform: scale(0.8); } }
+
+/* "On your phone" (texting Rita): big enough to notice, under the top bar */
+.free3d { top: 92px; padding: 12px 14px; gap: 8px; border-width: 2px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); }
+.free3d-title { font-size: 14px; }
+.free3d .choice { padding: 10px 18px; font: bold 17px/1.2 sans-serif; border-radius: 12px; }
+
+/* The note under the Wi-Fi password: where to look for it */
+.laptop-wifi-hint {
+  margin: 10px 14px 14px; padding: 8px 12px; border-radius: 8px; transform: rotate(-1deg);
+  background: #ffe766; color: #2a2a6a; font: 600 15px/1.3 'Segoe Print', 'Bradley Hand', cursive;
+}
+
+/* The decisions in the top bar: one short line each, never spilling onto the picture */
+.topbar .chip.decision { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 230px; }
+/* ...all on one row: when there is no room, the decisions shrink (ellipsis) instead of wrapping
+   below the bar */
+.topbar .items { flex-wrap: nowrap; min-width: 0; overflow: hidden; align-items: center; }
+.topbar .items .chip { flex-shrink: 0; }
+.topbar .items .chip.decision { flex-shrink: 1; min-width: 70px; }
+/* The things you carry always show; only the decisions after them give way (cut at the end) */
+.topbar .items { justify-content: flex-start; }
+.topbar .items .chip.decision { min-width: 0; }
+
+/* The fisherman's sardine, as itself */
+.real.fish { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 170px; }
+.fish-body { font-size: 84px; line-height: 1; transform: rotate(-12deg); filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.35)); }
+.fish-tag { padding: 4px 10px; border-radius: 8px; background: #fff8e6; color: #3a2a10; font: 600 13px/1.3 sans-serif; text-align: center; }

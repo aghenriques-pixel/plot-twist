@@ -11,10 +11,12 @@ How an action works (logic.apply_action):
   requires              an item it needs, or a tuple of items (blocked_message otherwise)
   code                  what must be typed (wrong_code_message otherwise)
   decides               (name, value) remembered for later
+  also_decides          more (name, value) pairs settled by the same action
   needs_decision        a decision it needs (decision_message otherwise)
   only_if / only_with / only_without / only_without_decision   when it is shown at all
+                        (only_if: one (name, value), or a list of them that must all hold)
   rejects               always refused, with this text (a wrong choice)
-  penalty               a refusal that costs time on the clock
+  penalty               a refusal that costs time on the clock (True: 30 s; a number: that many seconds)
   goes_to / goes_to_if  where it leads (goes_to_if: {(decision, value): scene} wins when it matches)
   hotspot               where it is in the 2D picture (800x400), used when 3D cannot be drawn
   lock                  how a code is typed in 3D: "padlock", "keypad", "login" or "wifi"
@@ -86,10 +88,29 @@ DECISION_LABELS = {
 # The 2D picture's walking line (used only when 3D cannot be drawn)
 WALK = {"start": 400, "floor": 360, "scale": 1.0, "min": 30, "max": 770}
 
+# The briefing that fills the screen when Level 1 starts: what is going on and what to do (until
+# "Start": decision "_intro"). Shown at once, over the room ("auto").
+INTRO_L1 = {
+    "icon": "📋",
+    "sender": "Git Out — Level 1",
+    "subject": "Submission at 23:59",
+    "big": "23:59",
+    "lines": [
+        "23:44, Study Room B. Your group's final project is due on Moodle at 23:59.",
+        "Your laptop is dead (0%). Rita has gone home and Tiago is asleep on his Finance book.",
+        "Look at everything (click it, or press E next to it): the clues are on phones, post-its, notices and boards.",
+    ],
+    "goal": "Charge your laptop, find the right file and submit it with git before 23:59.",
+    "button": "Start",
+    "action": "comecar_l1",
+    "auto": True,
+}
+
 SCENES = {
     "sala_estudo": {
         "title": "Study Room B",
         "walk": WALK,
+        "intro": INTRO_L1,
         "text": (
             "Study Room B, 23:44. Tiago is asleep on top of a Finance textbook. Your laptop is dead: "
             "not even 1% left."
@@ -111,9 +132,12 @@ SCENES = {
             },
             {
                 "label": "Laptop", "x": 210, "y": 240, "w": 100, "h": 60, "stand": 260,
-                "text": "Dead: a black screen and an empty battery. It won't even turn on without a charger. A "
-                "post-it stuck on it: “Changed your password 😜 It's the answer to the exercise on the board. — Tiago”",
+                "text": "Dead: a black screen and an empty battery. It won't even turn on without a charger. Two "
+                "post-its on it. On top: “Your charger is in my locker, corridor B 🔌 — Rita”. Under it: “Changed your "
+                "password 😜 It's the answer to the exercise on the board. — Tiago”",
                 "face": {"kind": "laptop", "_battery": "0%", "_dead": True, "login": "Password", "low": "No battery",
+                         # The first thing to do comes first: Rita's post-it, on top (the charger)
+                         "charger_note": "Your charger is in my locker, corridor B 🔌", "charger_sign": "— Rita",
                          "postit": "Changed your password 😜 It's the answer to the exercise on the board.",
                          "sign": "— Tiago"},
             },
@@ -160,9 +184,9 @@ SCENES = {
             },
             {
                 "label": "Emergency plan", "clue": True, "reader": "contacto", "x": 470, "y": 90, "w": 80, "h": 90, "stand": 510,
-                "text": "“You are here ●. Exit to the terrace: Door 3.14.”",
+                "text": "“You are here ●. Exit to the terrace — door code: 3.14.”",
                 "face": {"kind": "plan", "title": "EMERGENCY PLAN", "here": "You are here", "exit": "Exit to the terrace",
-                         "door": "Door 3.14", "stairs": "Stairs", "lockers": "Lockers"},
+                         "door": "Door code: 3.14", "stairs": "Stairs", "lockers": "Lockers"},
             },
             {
                 "label": "Snack machine", "x": 600, "y": 120, "w": 80, "h": 200, "stand": 640,
@@ -221,8 +245,8 @@ SCENES = {
         "looks": [
             {
                 "label": "Sign by the door", "x": 80, "y": 150, "w": 70, "h": 90, "stand": 120,
-                "text": "“Automatic sprinklers: every day at 23:55.”",
-                "face": {"kind": "sign", "title": "Automatic sprinklers", "text": "every day at 23:55"},
+                "text": "“Automatic sprinklers. They can come on at any moment.”",
+                "face": {"kind": "sign", "title": "Automatic sprinklers", "text": "They can come on at any moment"},
             },
         ],
     },
@@ -290,6 +314,15 @@ SCENES = {
 }
 
 ACTIONS = {
+    # --- The briefing at the start: pressing "Start" closes it ---
+    "comecar_l1": {
+        "scene": "sala_estudo",
+        "label": "Read the briefing",
+        "only_without_decision": "_intro",
+        "decides": ("_intro", "lido"),
+        "message": "The clock is running: 23:59.",
+        "hotspot": {"x": 360, "y": 150, "w": 80, "h": 80, "stand": 400},
+    },
     # --- Study Room B ---
     "apanhar_casaco": {
         "scene": "sala_estudo",
@@ -298,9 +331,19 @@ ACTIONS = {
         "message": "You put your coat on. In the pocket: your student card.",
         "hotspot": {"x": 40, "y": 190, "w": 70, "h": 120, "stand": 90},
     },
+    # Reading the notice on the wall (closing its close-up in 3D) tells you where to charge it
+    "ler_aviso": {
+        "scene": "sala_estudo",
+        "label": "Read the notice",
+        "only_without_decision": "_aviso",
+        "decides": ("_aviso", "lido"),
+        "message": "The sockets are off… except the one on the terrace. Take your laptop there.",
+        "hotspot": {"x": 360, "y": 90, "w": 80, "h": 80, "stand": 400},
+    },
     "apanhar_portatil": {
         "scene": "sala_estudo",
         "label": "Take your laptop",
+        "only_if": ("_aviso", "lido"),
         "gives": "portatil_l1",
         "message": "You put the dead laptop in your bag. It needs Rita's charger — and a socket that works.",
         "hotspot": {"x": 210, "y": 240, "w": 100, "h": 60, "stand": 260},
@@ -349,7 +392,7 @@ ACTIONS = {
         "lock": "padlock",  # in 3D: a padlock with 5 wheels
         "wrong_code_message": "The padlock doesn't even move.",
         "gives": ("pen_drive", "carregador", "post_it_rita"),
-        "message": "Click! Inside: the pen drive, a charger and a post-it from Rita.",
+        "message": "Click! Inside: the pen drive, a charger, a post-it from Rita… and her HDMI adapter.",
         "hotspot": {"x": 250, "y": 120, "w": 80, "h": 200, "stand": 290},
     },
     "ir_cafetaria": {
@@ -496,6 +539,14 @@ ACTIONS = {
         "message": "You leave the laptop charging on the table.",
         "hotspot": {"x": 0, "y": 120, "w": 45, "h": 240, "stand": 30, "edge": "left"},
     },
+    # Without the Wi-Fi password yet: you can still go back in from the laptop (it stays charging)
+    "voltar_dentro_portatil": {
+        "scene": "portatil",
+        "label": "Back inside",
+        "goes_to": "corredor",
+        "message": "You leave the laptop charging on the table and go back into the warm corridor.",
+        "hotspot": {"x": 0, "y": 120, "w": 45, "h": 240, "stand": 30, "edge": "left"},
+    },
     "inserir_pen": {
         "scene": "portatil",
         "label": "Plug in Rita's pen drive",
@@ -547,6 +598,8 @@ ACTIONS = {
         "label": "Connect to the Wi-Fi",
         "only_if": ("_ficheiro", "v3"),
         "code": "bica070",
+        # The price can be written €0.7 as well as €0.70 (dots and case are ignored anyway)
+        "also_codes": ("bica07",),
         "code_prompt": "Wi-Fi “Esplanada”: password",
         "lock": "wifi",  # in 3D: the laptop's Wi-Fi window
         "wrong_code_message": "Wrong password. No internet.",
@@ -591,7 +644,8 @@ ACTIONS = {
 # Each can ask for: scene, has (an item), lacks (an item), decided / undecided (a decision's name).
 HINTS = [
     {"scene": "sala_estudo", "lacks": "cartao_jogador", "text": "Students always keep their card in their coat."},
-    {"scene": "sala_estudo", "lacks": "portatil_l1", "text": "Take your laptop with you: you will charge it somewhere."},
+    {"scene": "sala_estudo", "undecided": "_aviso", "text": "Your laptop is dead. Read the notice on the wall: where can you charge it?"},
+    {"scene": "sala_estudo", "lacks": "portatil_l1", "text": "Take your laptop with you: you will charge it on the terrace."},
     {"scene": "sala_estudo", "text": "Rita's locker is in the corridor. The door opens with your card."},
     {"scene": "corredor", "lacks": "cartao_rita", "undecided": "conversa_rita",
      "text": "Look at the floor, by the locker. And if the card is not here, ask its owner."},
@@ -655,6 +709,6 @@ TIME_UP_ENDINGS = {1: TIME_UP_ENDING, story2.CHAPTER: story2.TIME_UP_ENDING, sto
 # still in your pocket. A level opened without that memory starts with Tiago left out.
 CARRIED = {
     2: {"decisions": ("tiago",), "items": ()},
-    3: {"decisions": ("tiago", "tiago9"), "items": ("impressao", "caderno_rita")},
+    3: {"decisions": ("tiago", "tiago9"), "items": ("impressao",)},
 }
 CARRIED_DEFAULTS = {2: {"tiago": "excluido"}, 3: {"tiago": "excluido"}}

@@ -90,11 +90,21 @@ function stopSpeaking() {
 
 function goFullscreen() {
   if (loadSettings().fullscreen && !document.fullscreenElement && document.documentElement.requestFullscreen) {
-    document.documentElement.requestFullscreen().catch(() => {});
+    enterFullscreen();
   }
 }
 
+// Full screen, keeping the Esc key for the game (Chrome and Edge: the Keyboard Lock API): the first
+// Esc closes the note, the thing or the conversation, and only an Esc with nothing open leaves full
+// screen. Where the browser cannot lock it, Esc leaves full screen as usual.
+function enterFullscreen() {
+  document.documentElement.requestFullscreen?.()
+    .then(() => navigator.keyboard?.lock?.(["Escape"]))
+    .catch(() => {});
+}
+
 function leaveFullscreen() {
+  navigator.keyboard?.unlock?.();
   if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
 }
 
@@ -446,6 +456,19 @@ export default function render({ data, parentElement, setTriggerValue }) {
   if (data.chat) bottom.append(chatPanel(data.chat, setTriggerValue));
   game.append(stageWrap, bottom);
   parentElement.appendChild(game);
+  // On wide screens the narration is drawn over the bottom of the picture: --narr is how much of
+  // the picture it covers, so the bars, choices and boxes at the bottom sit above it, not under it
+  const coverNarration = () => {
+    const over = getComputedStyle(bottom).position === "absolute";
+    const covered = over ? stage.getBoundingClientRect().bottom - bottom.getBoundingClientRect().top : 0;
+    game.style.setProperty("--narr", `${Math.max(0, Math.round(covered))}px`);
+  };
+  coverNarration();
+  if (globalThis.ResizeObserver) {
+    const watch = new ResizeObserver(coverNarration);
+    watch.observe(bottom);
+    watch.observe(stage);
+  }
 
   // A level with a countdown shows the time of day; the level clock still counts, out of sight
   Timer.attach(data.timer, data.countdown ? el("span") : game.querySelector(".clock"));
@@ -453,6 +476,9 @@ export default function render({ data, parentElement, setTriggerValue }) {
   // A place with a 3D room is drawn in 3D (scene3d.js); everything else is the 2D picture
   const keys = wants3D(data) ? buildRoom3D(stage, data, setTriggerValue) : buildPicture(stage, data, setTriggerValue);
   if (data.ending) stage.append(endingCard(data, setTriggerValue));
+  // A level that starts with an email over the whole screen (Level 2): "Start" closes it
+  // (Level 1's briefing opens by itself, over the 3D room too)
+  if (data.intro && (!wants3D(data) || data.intro.auto)) game.append(introEmail(data.intro, setTriggerValue));
   // Something just picked up appears as itself for a moment (a card with its number, a post-it...)
   const have = data.notebook.items.map((item) => item.id);
   const before = globalThis.__forbiddenArchiveItems;
@@ -482,7 +508,8 @@ if (!globalThis.__forbiddenArchiveKeyListener) {
     return target && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName));
   };
   document.addEventListener("keydown", (event) => {
-    if (!typing(event) && !event.ctrlKey && !event.metaKey && !event.altKey) globalThis.__forbiddenArchiveKeys?.(event, true);
+    // Esc works even while typing a code (it closes the padlock, the keypad, the login)
+    if ((!typing(event) || event.key === "Escape") && !event.ctrlKey && !event.metaKey && !event.altKey) globalThis.__forbiddenArchiveKeys?.(event, true);
   });
   document.addEventListener("keyup", (event) => globalThis.__forbiddenArchiveKeys?.(event, false));
   globalThis.addEventListener("blur", () => globalThis.__forbiddenArchiveKeys?.({ key: "blur" }, false));
@@ -490,7 +517,7 @@ if (!globalThis.__forbiddenArchiveKeyListener) {
 
 function toggleFullscreen() {
   if (document.fullscreenElement) leaveFullscreen();
-  else document.documentElement.requestFullscreen?.().catch(() => {});
+  else enterFullscreen();
 }
 
 function toggleText(game) {
@@ -526,6 +553,17 @@ function gameKeys(game, data, setTriggerValue, keys, event, down) {
     if (key === "Enter" || key === "y" || key === "Y" || key === "s" || key === "S") return click(confirm.querySelector(".yes"));
     return;
   }
+  // The level's opening email (level 2): E, Enter or Space close it, like its Start button (a held
+  // key that opened it does not close it again straight away)
+  const intro = game.querySelector(".intro-email");
+  if (intro) {
+    const start = intro.querySelector(".intro-start");
+    if (["e", "E", "Enter", " "].includes(key) && !event.repeat && start && !start.hidden && !start.disabled) {
+      return click(start);
+    }
+    handled();
+    return;
+  }
   const book = game.querySelector(".notebook");
   if (book) {
     if (key === "Escape" || key === "n" || key === "N") {
@@ -552,7 +590,7 @@ function gameKeys(game, data, setTriggerValue, keys, event, down) {
   // A lock or the laptop's screen (3D) takes the keys while it is open; Esc closes it
   const device = game.querySelector(".lock3d, .laptop3d");
   if (device) {
-    if (key === "Escape") return click(device.querySelector(".device-close"));
+    if (key === "Escape") return click(device.querySelector(".device-close, .laptop-leave"));
     return;
   }
   const bubble = game.querySelector(".bubble");
@@ -609,6 +647,11 @@ function gameKeys(game, data, setTriggerValue, keys, event, down) {
     case "F":
       handled();
       return toggleFullscreen();
+    // Nothing open any more: the Esc after that leaves full screen
+    case "Escape":
+      if (!document.fullscreenElement) return;
+      handled();
+      return leaveFullscreen();
     case "r":
     case "R":
       if (!data.can_restart) return;
@@ -738,7 +781,13 @@ function topBar(data, setTriggerValue) {
     chip.onclick = () => openNotebook(bar.closest(".game"), data.notebook, "items");
     items.append(chip);
   }
-  for (const decision of data.hud.decisions) items.append(el("span", "chip decision", decision));
+  // What you decided before: one line each (the whole sentence on hover), never spilling out of the bar
+  // (only the latest: all of them are in the notebook)
+  for (const decision of data.hud.decisions.slice(-1)) {
+    const chip = el("span", "chip decision", decision);
+    chip.title = decision;
+    items.append(chip);
+  }
   const menu = el("button", "menu-button", data.hud.menu_label);
   menu.onclick = () => {
     Sound.click();
@@ -898,12 +947,45 @@ function narration(data) {
   return box;
 }
 
+// --- The email that opens a level (Level 2) -----------------------------------------------------
+
+function introEmail(intro, setTriggerValue) {
+  const cover = el("div", "intro-email");
+  const mail = el("div", "intro-mail");
+  const head = el("div", "intro-head");
+  head.append(el("div", "intro-from", `${intro.icon || "📧"} ${intro.sender}`), el("div", "intro-subject", intro.subject));
+  const body = el("div", "intro-body");
+  body.append(el("div", "intro-big", intro.big));
+  intro.lines.forEach((line, i) => body.append(el("p", i === intro.warn ? "intro-line intro-warn" : "intro-line", line)));
+  const goal = el("div", "intro-goal", `🎯 ${intro.goal}`);
+  const start = el("button", "intro-start", intro.button);
+  start.onclick = () => {
+    Sound.click();
+    start.disabled = true;
+    setTriggerValue("action", { id: intro.action, x: 0, code: null });
+  };
+  // Co-op: only the one who acts closes it; the other student reads it until then
+  if (!intro.action) start.hidden = true;
+  mail.append(head, body, goal, start);
+  cover.append(mail);
+  setTimeout(() => start.focus(), 50);
+  return cover;
+}
+
 // --- Ending card over the picture ----------------------------------------------------------
 
 function endingCard(data, setTriggerValue) {
   const ending = data.ending;
   const card = el("div", "ending");
   const inner = el("div", "ending-inner");
+  // A won level: congratulations first, big, then how it ended
+  if (ending.congrats) {
+    card.classList.add("won");
+    const cheer = el("div", "ending-congrats");
+    cheer.append(el("div", "congrats-title", ending.congrats.title));
+    if (ending.congrats.text) cheer.append(el("p", "congrats-text", ending.congrats.text));
+    inner.append(cheer);
+  }
   inner.append(el("div", "ending-kicker", ending.kicker), el("h2", "ending-title", ending.title));
   // A text message at the end (Tiago, Rita) arrives on the phone
   const [told, texted] = ending.text.split("📱");
@@ -1288,6 +1370,8 @@ function interactions(stage, data, setTriggerValue, hooks) {
       setTriggerValue("action", { id: spot.action, x: spot.stand, code: input.value });
     };
     openBubble(spot.code_prompt, [form], data.ui.cancel);
+    // A login (PC 7) is a box in the middle of the screen, over the screen it unlocks
+    if (spot.lock === "login") stage.querySelector(".bubble")?.classList.add("bubble-center");
     input.focus();
   }
 
@@ -1557,7 +1641,8 @@ function openLaptop(stage, data, setTriggerValue) {
       };
       const esplanada = el("button", "laptop-network on", `📶 Esplanada  🔒 ${L.lap_secured}`);
       esplanada.onclick = () => input.focus();
-      w.append(esplanada, form);
+      // Where the password is: a note on the Wi-Fi window
+      w.append(esplanada, form, el("div", "laptop-wifi-hint", `🔎 ${L.lap_wifi_hint}`));
       for (const name of ["eduroam", "NOVA-Guest"]) w.append(el("div", "laptop-network off", `▫ ${name} — ${L.lap_no_signal}`));
       if (state.file) toast(message?.ok ? message.text : "trabalho_final_v3.py ✓", true);
       if (message && !message.ok) toast(message.text, false);
@@ -1651,6 +1736,9 @@ function realThing(face, extra = "") {
     for (const line of face._lines) thing.append(el("code", "print-line", line));
   } else if (face.kind === "key") {
     thing.append(el("div", "key-ring"), el("div", "key-blade"), el("div", "key-tag", face.tag));
+  } else if (face.kind === "fish") {
+    // The fisherman's sardine (Level 3)
+    thing.append(el("div", "fish-body", "🐟"), el("div", "fish-tag", face.tag));
   } else if (face.kind === "laptop_item") {
     thing.append(el("div", "laptop-lid", "🐈"), el("div", "laptop-base"), el("div", "laptop-tag", face.tag));
   }
@@ -1850,7 +1938,7 @@ function menuScreen(data, setTriggerValue) {
       </g>
       <path class="map-road" d="M100 178 C150 205 200 150 275 176 S 400 200 455 172" fill="none" stroke="#ffe8a3" stroke-width="5" stroke-dasharray="4 13" stroke-linecap="round"/>
       <text x="40" y="96" fill="#ffe8a3" font-size="12" font-family="Georgia, serif" opacity=".8">23:59</text>
-      <text x="252" y="80" fill="#ffe8a3" font-size="12" font-family="Georgia, serif" opacity=".8">00:00 – 06:00</text>
+      <text x="252" y="80" fill="#ffe8a3" font-size="12" font-family="Georgia, serif" opacity=".8">00:01 – 00:30</text>
       <text x="470" y="90" fill="#fff0d0" font-size="12" font-family="Georgia, serif" opacity=".9">09:00</text>
     </svg>`;
     const positions = [

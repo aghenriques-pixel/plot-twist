@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 from logic import SCENES, apply_action, is_finished, new_game, scene_hotspots, scene_looks
-from world3d import ENDING_EXTRAS, ROOMS_3D, full_room, room_of, world_view
+from world3d import ENDING_EXTRAS, ROOMS_3D, full_room, opens_by_itself, room_of, world_view
 
 T0 = 1_000_000
 
@@ -22,7 +22,7 @@ def play(state, *steps):
     return state
 
 
-START = ["apanhar_portatil", "apanhar_casaco", "tiago_excluido", "ir_corredor"]  # changed (specs/level1-laptop-and-notes.md): take the laptop, plug in the pen drive
+START = ["ler_aviso", "apanhar_portatil", "apanhar_casaco", "tiago_excluido", "ir_corredor"]  # changed (specs/level1-laptop-and-notes.md): take the laptop, plug in the pen drive
 CARD = ["ir_cafetaria", "apanhar_cartao_rita", "voltar_corredor_ronda", "esconder_maquina"]
 TERRACE = [("abrir_cacifo", "31284"), ("abrir_terraco", "314")]
 LAPTOP = ["ligar_portatil", "tapar_casaco"]
@@ -83,6 +83,11 @@ def test_every_spot_can_be_used_in_3d():
         linked = {thing["spot"] for thing in view["things"] if thing.get("spot") is not None}
         # A thing's other actions offered at the same time (the laptop: standing up; specs/laptop-way-back.md)
         linked |= {index for thing in view["things"] for index in thing.get("also", [])}
+        # The briefing that opens Level 1 by itself: its "Start" is the way to it
+        linked |= {i for i, spot in enumerate(scene_hotspots(state)) if opens_by_itself(state, spot)}
+        # A notice read by looking at it (Study Room B): its action is done by closing the close-up
+        read = {thing.get("read_action") for thing in view["things"]}
+        linked |= {i for i, spot in enumerate(scene_hotspots(state)) if spot.get("action") in read}
         assert linked | set(view["free"]) == set(range(len(scene_hotspots(state)))), state["scene"]
 
 
