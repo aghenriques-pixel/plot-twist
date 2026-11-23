@@ -873,6 +873,10 @@ function drawRoom(THREE, stage, data, setTriggerValue) {
       const at = item.group.position;
       here.turn = Math.atan2(at.x - p.x, at.z - p.z);
     }
+    // Level 2: your laptop shows the whole email again, every time it is used
+    if (data.intro?.again && item.thing.reopens_intro) {
+      return (stage.closest(".game") || stage).append(introEmail(data.intro, setTriggerValue));
+    }
     if (item.look) return inspect(item);
     // A door swings open first, then the next room is asked for
     const spot = item.spot;

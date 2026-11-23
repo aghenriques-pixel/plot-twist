@@ -34,7 +34,7 @@ function el(tag, className, text) {
 // --- Settings kept in this browser --------------------------------------------------------
 
 const SETTINGS_KEY = "forbiddenArchive.settings";
-const DEFAULT_SETTINGS = { music: true, volume: 0.5, sfx: true, fullscreen: true, voices: true, showText: true, usedKeys: false, view3d: true };
+const DEFAULT_SETTINGS = { music: true, volume: 0.5, sfx: true, muted: false, fullscreen: true, showText: true, usedKeys: false, view3d: true };
 
 function loadSettings() {
   try {
@@ -66,9 +66,13 @@ const VOICE_STYLE = {
   Rita: { pitch: 1.25, rate: 1.05, pick: 2 },
 };
 
+// The game no longer speaks (the team decided against voices reading the texts aloud): speak()
+// only calls onEnd, so the places that used to wait for a line still go on
+const VOICES_ON = false;
+
 function speak(text, speaker, lang, onEnd) {
   const synth = globalThis.speechSynthesis;
-  if (!text || !synth || !loadSettings().voices) return onEnd && setTimeout(onEnd, 0);
+  if (!VOICES_ON || !text || !synth) return onEnd && setTimeout(onEnd, 0);
   synth.cancel();
   const line = new SpeechSynthesisUtterance(text);
   line.lang = lang || "en-GB";
@@ -180,7 +184,7 @@ function createSound() {
   function applySettings() {
     if (!ctx) return;
     const settings = loadSettings();
-    master.gain.setTargetAtTime(settings.volume, ctx.currentTime, 0.1);
+    master.gain.setTargetAtTime(settings.muted ? 0 : settings.volume, ctx.currentTime, 0.1);
     musicBus.gain.setTargetAtTime(settings.music ? 0.3 : 0, ctx.currentTime, 0.3);
   }
 
@@ -302,12 +306,12 @@ function createSound() {
   }
 
   function tone(freq, duration, type = "sine", volume = 0.25, delay = 0) {
-    if (!ctx || ctx.state !== "running" || !loadSettings().sfx) return;
+    if (!ctx || ctx.state !== "running" || !loadSettings().sfx || loadSettings().muted) return;
     note(master, freq, ctx.currentTime + delay, duration, type, volume, 0.005);
   }
 
   function noise(duration, volume = 0.18, frequency = 500) {
-    if (!ctx || ctx.state !== "running" || !loadSettings().sfx) return;
+    if (!ctx || ctx.state !== "running" || !loadSettings().sfx || loadSettings().muted) return;
     hiss(master, ctx.currentTime, duration, volume, "bandpass", frequency);
   }
 
@@ -478,7 +482,7 @@ export default function render({ data, parentElement, setTriggerValue }) {
   if (data.ending) stage.append(endingCard(data, setTriggerValue));
   // A level that starts with an email over the whole screen (Level 2): "Start" closes it
   // (Level 1's briefing opens by itself, over the 3D room too)
-  if (data.intro && (!wants3D(data) || data.intro.auto)) game.append(introEmail(data.intro, setTriggerValue));
+  if (data.intro && !data.intro.again && (!wants3D(data) || data.intro.auto)) game.append(introEmail(data.intro, setTriggerValue));
   // Something just picked up appears as itself for a moment (a card with its number, a post-it...)
   const have = data.notebook.items.map((item) => item.id);
   const before = globalThis.__forbiddenArchiveItems;
@@ -520,6 +524,16 @@ function toggleFullscreen() {
   else enterFullscreen();
 }
 
+function toggleMute(button) {
+  const settings = loadSettings();
+  settings.muted = !settings.muted;
+  saveSettings(settings);
+  Sound.applySettings();
+  if (!settings.muted) Sound.click();
+  button.textContent = settings.muted ? "🔇" : "🔊";
+  button.setAttribute("aria-pressed", String(!settings.muted));
+}
+
 function toggleText(game) {
   const settings = loadSettings();
   settings.showText = !settings.showText;
@@ -558,7 +572,8 @@ function gameKeys(game, data, setTriggerValue, keys, event, down) {
   const intro = game.querySelector(".intro-email");
   if (intro) {
     const start = intro.querySelector(".intro-start");
-    if (["e", "E", "Enter", " "].includes(key) && !event.repeat && start && !start.hidden && !start.disabled) {
+    const keys = start?.textContent === intro.dataset.close ? ["e", "E", "Enter", " ", "Escape"] : ["e", "E", "Enter", " "];
+    if (keys.includes(key) && !event.repeat && start && !start.hidden && !start.disabled) {
       return click(start);
     }
     handled();
@@ -647,6 +662,10 @@ function gameKeys(game, data, setTriggerValue, keys, event, down) {
     case "F":
       handled();
       return toggleFullscreen();
+    case "m":
+    case "M":
+      handled();
+      return toggleMute(game.querySelector(".sound-button"));
     // Nothing open any more: the Esc after that leaves full screen
     case "Escape":
       if (!document.fullscreenElement) return;
@@ -821,6 +840,12 @@ function topBar(data, setTriggerValue) {
     Sound.click();
     toggleFullscreen();
   };
+  // 🔊 / 🔇 Sound on or off at any moment of a level (music and effects; key M)
+  const sound = el("button", "menu-button icon sound-button", loadSettings().muted ? "🔇" : "🔊");
+  sound.title = `${data.ui.toggle_sound} (M)`;
+  sound.setAttribute("aria-label", data.ui.toggle_sound);
+  sound.setAttribute("aria-pressed", String(!loadSettings().muted));
+  sound.onclick = () => toggleMute(sound);
   const tools = el("div", "bar-tools");
   tools.append(clock);
   // 💡 A hint (it costs a minute on the clock): only the one who acts
@@ -848,7 +873,7 @@ function topBar(data, setTriggerValue) {
     };
     tools.append(view);
   }
-  tools.append(full);
+  tools.append(sound, full);
   bar.append(buttons, titles, items, tools);
   return bar;
 }
@@ -961,11 +986,15 @@ function introEmail(intro, setTriggerValue) {
   const start = el("button", "intro-start", intro.button);
   start.onclick = () => {
     Sound.click();
+    // Read again (your laptop, later): the button only closes it, nothing is sent
+    if (intro.again) return cover.remove();
     start.disabled = true;
     setTriggerValue("action", { id: intro.action, x: 0, code: null });
   };
   // Co-op: only the one who acts closes it; the other student reads it until then
-  if (!intro.action) start.hidden = true;
+  if (!intro.action && !intro.again) start.hidden = true;
+  // Read again: Esc closes it too (gameKeys compares the button with this)
+  if (intro.again) cover.dataset.close = intro.button;
   mail.append(head, body, goal, start);
   cover.append(mail);
   setTimeout(() => start.focus(), 50);
@@ -1883,7 +1912,8 @@ function menuScreen(data, setTriggerValue) {
       panel.append(levelMap());
       if (menu.can_continue) panel.append(button(L.continue, () => startCommand("continue"), "menu-item primary"));
       const extras = el("div", "map-extras");
-      extras.append(coopBox(), accountBox());
+      // Only two ways to play: alone (the map) or with a friend (a room); no account box
+      extras.append(coopBox());
       panel.append(extras, button(L.back, () => show("main"), "menu-item ghost"));
     } else if (screen === "how") {
       heading(false);
@@ -1937,6 +1967,7 @@ function menuScreen(data, setTriggerValue) {
         <text x="236" y="160">N</text><text x="254" y="160">O</text><text x="274" y="160">V</text><text x="292" y="160">A</text>
       </g>
       <path class="map-road" d="M100 178 C150 205 200 150 275 176 S 400 200 455 172" fill="none" stroke="#ffe8a3" stroke-width="5" stroke-dasharray="4 13" stroke-linecap="round"/>
+      <path d="M455 172 C500 150 520 110 552 86" fill="none" stroke="#ffe8a3" stroke-width="4" stroke-dasharray="3 12" stroke-linecap="round" opacity=".45"/>
       <text x="40" y="96" fill="#ffe8a3" font-size="12" font-family="Georgia, serif" opacity=".8">23:59</text>
       <text x="252" y="80" fill="#ffe8a3" font-size="12" font-family="Georgia, serif" opacity=".8">00:01 – 00:30</text>
       <text x="470" y="90" fill="#fff0d0" font-size="12" font-family="Georgia, serif" opacity=".9">09:00</text>
@@ -1973,6 +2004,19 @@ function menuScreen(data, setTriggerValue) {
       };
       map.append(node);
     });
+    // After the last level, like other games: a bubble saying more levels are on the way
+    const more = el("div", "level-node more");
+    more.style.left = "92%";
+    more.style.top = "36%";
+    more.append(el("span", "level-badge", "✨"));
+    const soon = () => {
+      const c = el("span", "level-card soon");
+      c.append(el("strong", "", L.more_levels), el("small", "", L.more_levels_text));
+      return c;
+    };
+    more.append(soon());
+    list.append(soon());
+    map.append(more);
     const wrap = el("div", "level-map-wrap");
     wrap.append(map, list);
     return wrap;
@@ -2082,50 +2126,6 @@ function menuScreen(data, setTriggerValue) {
     return coop;
   }
 
-  function accountBox() {
-    const box = el("div", "coop-box");
-    box.append(el("div", "coop-title", L.account));
-    if (!menu.online) {
-      box.append(el("p", "coop-text", L.account_offline));
-      return box;
-    }
-    if (menu.account) {
-      box.append(el("p", "coop-text", menu.account), button(L.log_out, () => command("log_out"), "menu-item small"));
-      return box;
-    }
-    box.append(el("p", "coop-text", L.account_hint));
-    const form = el("form", "account-form");
-    const name = el("input", "join-input");
-    name.placeholder = L.username;
-    name.maxLength = 20;
-    name.autocomplete = "username";
-    name.setAttribute("aria-label", L.username);
-    const pass = el("input", "join-input");
-    pass.type = "password";
-    pass.placeholder = L.password;
-    pass.maxLength = 128;
-    pass.autocomplete = "current-password";
-    pass.setAttribute("aria-label", L.password);
-    const send = (name_) => {
-      Sound.click();
-      command(name_, { username: name.value, password: pass.value });
-      pass.value = "";
-    };
-    const create = el("button", "menu-item small", L.create_account);
-    create.type = "button";
-    create.onclick = () => send("create_account");
-    const login = el("button", "menu-item small", L.log_in);
-    login.type = "submit";
-    form.onsubmit = (event) => {
-      event.preventDefault();
-      send("log_in");
-    };
-    form.append(name, pass, el("div", "account-buttons"));
-    form.lastChild.append(login, create);
-    box.append(form);
-    return box;
-  }
-
   function settingsForm() {
     const settings = loadSettings();
     const form = el("div", "settings");
@@ -2145,7 +2145,6 @@ function menuScreen(data, setTriggerValue) {
         save();
         Sound.click();
         if (key === "fullscreen") (settings.fullscreen ? goFullscreen : leaveFullscreen)();
-        if (key === "voices" && settings.voices) speak(L.voices, "you", menu.language === "pt" ? "pt-PT" : "en-GB");
       };
       row.append(el("span", "setting-name", label), b);
       return row;
@@ -2177,7 +2176,7 @@ function menuScreen(data, setTriggerValue) {
     }
     languageRow.append(el("span", "setting-name", L.language), languages);
 
-    form.append(toggle(L.music, "music"), volumeRow, toggle(L.effects, "sfx"), toggle(L.voices, "voices"), languageRow, toggle(L.fullscreen, "fullscreen"));
+    form.append(toggle(L.music, "music"), volumeRow, toggle(L.effects, "sfx"), languageRow, toggle(L.fullscreen, "fullscreen"));
     return form;
   }
 

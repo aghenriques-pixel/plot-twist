@@ -512,6 +512,10 @@ STORY_PT.update({
     "git log": "git log",
     "git blame": "git blame",
     "Every line says: you. Not helpful.": "Todas as linhas dizem: tu. Não ajuda.",
+    "git status": "git status",
+    "“nothing to commit, working tree clean”. True, but it proves nothing about who wrote it.":
+        "“nothing to commit, working tree clean”. É verdade, mas não prova nada sobre quem o escreveu.",
+    "Rita: “The reception, in the atrium! Go!”": "Rita: “Na receção, no átrio! Vai!”",
     "Pushing… --force. Oh no.": "A enviar… --force. Oh, não.",
     "git push --force": "git push --force",
     "“You WHAT? Security found your laptop on a café table in the atrium. It's at the reception!”": "“Tu O QUÊ? A segurança encontrou o teu portátil numa mesa do café do átrio. Está na receção!”",
@@ -926,6 +930,8 @@ UI_TEXT = {
     "waiting": {"en": "⏳ Waiting for your friend...", "pt": "⏳ À espera do teu amigo..."},
     "talk_leave": {"en": "Step away", "pt": "Afastar-te"},
     "map_title": {"en": "Choose a level", "pt": "Escolhe um nível"},
+    "more_levels": {"en": "More levels", "pt": "Mais níveis"},
+    "more_levels_text": {"en": "Coming soon…", "pt": "Em breve…"},
     "level_n": {"en": "Level {n}", "pt": "Nível {n}"},
     "level_1": {"en": "Submission at 23:59", "pt": "Entrega às 23:59"},
     "level_2": {"en": "94%", "pt": "94%"},
@@ -996,17 +1002,18 @@ UI_TEXT = {
     "best_time": {"en": "Best", "pt": "Recorde"},
     "toggle_text": {"en": "Hide or show the text (T)", "pt": "Esconder ou mostrar o texto (T)"},
     "toggle_fullscreen": {"en": "Full screen (F)", "pt": "Ecrã inteiro (F)"},
+    "toggle_sound": {"en": "Sound on or off", "pt": "Ligar ou desligar o som"},
     "invite_link": {
         "en": "Or send this link: opening it joins the room as Player 2. On the same Wi-Fi, use the game's Network URL instead of localhost.",
         "pt": "Ou envia este link: quem o abrir entra na sala como Jogador 2. Na mesma Wi-Fi, usem o Network URL do jogo em vez de localhost.",
     },
     "key_hint_3d": {
-        "en": "WASD / arrows walk · E use · click to walk or use · N notebook · R restart · F full screen",
-        "pt": "WASD / setas andar · E usar · clique para andar ou usar · N caderno · R reiniciar · F ecrã inteiro",
+        "en": "WASD / arrows walk · E use · click to walk or use · N notebook · R restart · M sound · F full screen",
+        "pt": "WASD / setas andar · E usar · clique para andar ou usar · N caderno · R reiniciar · M som · F ecrã inteiro",
     },
     "key_hint": {
-        "en": "← → walk · E use · N notebook · R restart · F full screen",
-        "pt": "← → andar · E usar · N caderno · R reiniciar · F ecrã inteiro",
+        "en": "← → walk · E use · N notebook · R restart · M sound · F full screen",
+        "pt": "← → andar · E usar · N caderno · R reiniciar · M som · F ecrã inteiro",
     },
 }
 
