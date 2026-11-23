@@ -1737,11 +1737,25 @@ function openLaptop(stage, data, setTriggerValue) {
 function realThing(face, extra = "") {
   const thing = el("div", `real ${face.kind} ${extra}`);
   if (face.kind === "card") {
-    const band = el("div", "card-band", "nova SBE");
-    const photo = el("div", "card-photo", "👤");
+    // In the style of the Nova SBE student card: red, a big white arc with the name and the number
+    // on it, "Issued" in the corner. No photo, and the names and numbers are made up (story.py).
+    const nova = el("span", "card-nova");
+    nova.append("N", el("span", "card-o", "O"), "VΛ");
+    const logo = el("div", "card-logo");
+    logo.append(nova, el("span", "card-student", "Student"));
     const words = el("div", "card-words");
-    words.append(el("div", "card-name", face.name || face._name), el("div", "card-number", `Nº ${face._number}`), el("div", "card-note", face.note));
-    thing.append(band, photo, words, el("div", "card-chip"));
+    words.append(el("div", "card-name", String(face.name || face._name).toUpperCase()), el("div", "card-number", face._number));
+    const issued = el("div", "card-issued");
+    issued.append(el("span", "", "Issued"), el("b", "", "2025/2030"));
+    thing.append(
+      el("div", "card-arc"),
+      el("div", "card-dot"),
+      logo,
+      el("div", "card-school", "NOVA SCHOOL OF BUSINESS & ECONOMICS"),
+      el("div", "card-note", face.note),
+      words,
+      issued
+    );
   } else if (face.kind === "postit") {
     thing.append(el("p", "postit-text", face.text));
     for (const step of face._steps || []) thing.append(el("p", "postit-step", step));
