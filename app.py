@@ -832,31 +832,41 @@ def laptop_notes(game):
 
 
 def intro_data(game, role):
-    """The email that opens a level (Level 2), translated, while its action is still offered; else None.
-    Only the one who acts can close it (co-op: the other student just reads it)."""
+    """The briefing that opens a level (every level), translated, while its "Start" is still offered;
+    else None. Only the one who acts can close it (co-op: the other student just reads it)."""
     intro = SCENES[game["scene"]].get("intro")
-    action = (intro or {}).get("action", "ler_email")
-    if not intro or is_finished(game):
+    if not intro or is_finished(game) or intro["action"] not in available_actions(game):
         return None
-    # Already read: a level whose intro is "again" (Level 2) shows it once more when its thing is
-    # used (your laptop), with a button that only closes it
-    again = action not in available_actions(game)
-    if again and not intro.get("again"):
+    return overlay_data(intro, again=False, action=intro["action"] if can_act(role) else None)
+
+
+def email_data(game, role):
+    """The email your laptop shows when it is used (Level 2), translated; else None. The first time its
+    "Close" is the action (Read the email); after that it only closes."""
+    email = SCENES[game["scene"]].get("email")
+    if not email or is_finished(game):
         return None
+    # Already read (or, in co-op, the other student's to read): "Close" only closes it
+    again = email["action"] not in available_actions(game) or not can_act(role)
+    return overlay_data(email, again=again, action=None if again else email["action"])
+
+
+def overlay_data(box, again, action):
+    """A briefing or an email over the whole screen, as plain data for the browser."""
     return {
         "again": again,
-        "for_action": action,
-        "icon": intro.get("icon", "📧"),
-        # Shown at once (Level 1's briefing), not only when its thing is used (Level 2's laptop)
-        "auto": intro.get("auto", False),
-        "sender": say(intro["sender"]),
-        "subject": say(intro["subject"]),
-        "big": intro["big"],
-        "lines": [say(line) for line in intro["lines"]],
-        "warn": intro.get("warn"),
-        "goal": say(intro["goal"]),
-        "button": t("close") if again else say(intro["button"]),
-        "action": None if again else action if can_act(role) else None,
+        "for_action": box["action"],
+        "icon": box.get("icon", "📧"),
+        # Shown at once (a level's briefing), not only when its thing is used (Level 2's laptop)
+        "auto": box.get("auto", False),
+        "sender": say(box["sender"]),
+        "subject": say(box["subject"]),
+        "big": box["big"],
+        "lines": [say(line) for line in box["lines"]],
+        "warn": box.get("warn"),
+        "goal": say(box["goal"]) if box.get("goal") else None,
+        "button": say(box["button"]) if box.get("button") else t("close"),
+        "action": action,
     }
 
 
@@ -935,8 +945,10 @@ def view_data(game, role, message, chat):
         "dialogue": None,
         # At the laptop (3D): Tiago's post-it on its screen and Rita's next to the keyboard
         "laptop_notes": laptop_notes(game),
-        # Level 2 opens with a big email over everything, until "Start" (the action ler_email)
+        # Every level opens with a briefing over everything, until "Start"
         "intro": intro_data(game, role),
+        # Level 2: the email your laptop shows (specs/level2-briefing-first.md)
+        "email": email_data(game, role),
     }
     dialogue = st.session_state.dialogue
     if dialogue:

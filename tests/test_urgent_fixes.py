@@ -63,12 +63,14 @@ def test_call_rita_is_on_the_phone_in_the_tunnel_and_the_atrium(steps, scene):
     assert play(called, again[0])["decisions"] == called["decisions"]
 
 
-def test_level_2_email_opens_at_the_start_and_again_from_the_laptop():
-    assert story2.INTRO_EMAIL["auto"] and story2.INTRO_EMAIL["again"]
-    # After "Start" the laptop has no action left, but the browser still knows it reopens the email
+# Changed in specs/level2-briefing-first.md: Level 2 opens with a briefing; the email is no longer
+# shown by itself, your laptop opens it, the first time too
+def test_level_2_email_opens_from_the_laptop_every_time():
+    assert not story2.EMAIL_L2.get("auto")
+    # After reading it the laptop has no action left, but the browser still knows it opens the email
     read = play(level(2), "ler_email")
     laptop = next(t for t in world_view(read)["things"] if t["kind"] == "email_laptop")
-    assert laptop["reopens_intro"] and laptop["look"] is not None
+    assert laptop["opens_email"] and laptop["look"] is not None
 
 
 def test_the_new_screen_texts_are_in_both_languages():
